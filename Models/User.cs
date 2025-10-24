@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace StudentPeformanceTracker.Models;
 
@@ -7,10 +6,6 @@ public class User
 {
     [Key]
     public int Id { get; set; }
-
-    [Required]
-    [MaxLength(50)]
-    public string StudentId { get; set; } = string.Empty;
 
     [Required]
     [MaxLength(100)]
@@ -26,4 +21,9 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    public Student? Student { get; set; }
+    public Teacher? Teacher { get; set; }
+    public Admin? Admin { get; set; }
 }

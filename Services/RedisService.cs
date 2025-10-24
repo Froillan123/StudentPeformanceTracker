@@ -12,15 +12,34 @@ public class RedisService
         var redisUrl = Environment.GetEnvironmentVariable("REDIS_URL")
             ?? throw new InvalidOperationException("REDIS_URL not found in environment variables");
 
-        var configOptions = ConfigurationOptions.Parse(redisUrl);
+        var configOptions = ParseUpstashRedisUrl(redisUrl);
 
         // Set connection timeout and retry settings for better reliability
-        configOptions.ConnectTimeout = 10000;
-        configOptions.SyncTimeout = 5000;
+        configOptions.ConnectTimeout = 15000; // Increased timeout
+        configOptions.SyncTimeout = 10000;
         configOptions.AbortOnConnectFail = false;
+        configOptions.ConnectRetry = 3;
 
         _redis = ConnectionMultiplexer.Connect(configOptions);
         _db = _redis.GetDatabase();
+    }
+
+    private ConfigurationOptions ParseUpstashRedisUrl(string redisUrl)
+    {
+        // Parse Upstash Redis URL format: rediss://default:password@host:port
+        var uri = new Uri(redisUrl);
+        var password = uri.UserInfo.Split(':')[1]; // Extract password after "default:"
+
+        var configOptions = new ConfigurationOptions
+        {
+            EndPoints = { $"{uri.Host}:{uri.Port}" },
+            Password = password,
+            Ssl = true, // Enable SSL/TLS for Upstash
+            SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13,
+            AbortOnConnectFail = false
+        };
+
+        return configOptions;
     }
 
     public async Task<bool> StoreRefreshTokenAsync(int userId, string token, DateTime expiry)
@@ -38,12 +57,19 @@ public class RedisService
             var transaction = _db.CreateTransaction();
             _ = transaction.StringSetAsync(key, token, timeToLive);
             _ = transaction.StringSetAsync(reverseKey, userId.ToString(), timeToLive);
-            
-            return await transaction.ExecuteAsync();
+
+            var result = await transaction.ExecuteAsync();
+
+            if (result)
+            {
+                Console.WriteLine($"✅ Redis: Successfully stored refresh token for user {userId}");
+            }
+
+            return result;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Redis Error (StoreRefreshToken): {ex.Message}");
+            Console.WriteLine($"❌ Redis Error (StoreRefreshToken): {ex.Message}");
             return false;
         }
     }
@@ -58,7 +84,7 @@ public class RedisService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Redis Error (GetRefreshToken): {ex.Message}");
+            Console.WriteLine($"❌ Redis Error (GetRefreshToken): {ex.Message}");
             return null;
         }
     }
@@ -83,7 +109,7 @@ public class RedisService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Redis Error (RevokeRefreshToken): {ex.Message}");
+            Console.WriteLine($"❌ Redis Error (RevokeRefreshToken): {ex.Message}");
             return false;
         }
     }
@@ -98,7 +124,7 @@ public class RedisService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Redis Error (GetUserIdFromRefreshToken): {ex.Message}");
+            Console.WriteLine($"❌ Redis Error (GetUserIdFromRefreshToken): {ex.Message}");
             return null;
         }
     }
@@ -112,7 +138,7 @@ public class RedisService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Redis Error (ValidateRefreshToken): {ex.Message}");
+            Console.WriteLine($"❌ Redis Error (ValidateRefreshToken): {ex.Message}");
             return false;
         }
     }
@@ -121,10 +147,23 @@ public class RedisService
     {
         try
         {
-            return await _db.PingAsync() != TimeSpan.Zero;
+            var result = await _db.PingAsync();
+            var isHealthy = result != TimeSpan.Zero;
+
+            if (isHealthy)
+            {
+                Console.WriteLine($"✅ Redis: Connection healthy (ping: {result.TotalMilliseconds}ms)");
+            }
+            else
+            {
+                Console.WriteLine("❌ Redis: Connection unhealthy");
+            }
+
+            return isHealthy;
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"❌ Redis Error (Health Check): {ex.Message}");
             return false;
         }
     }

@@ -40,7 +40,6 @@ public class JwtService
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.Username),
-            new Claim("student_id", user.StudentId),
             new Claim(ClaimTypes.Role, user.Role)
         };
 

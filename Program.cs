@@ -1,9 +1,12 @@
 using StudentPeformanceTracker.Data;
 using StudentPeformanceTracker.Services;
+using StudentPeformanceTracker.Repository;
+using StudentPeformanceTracker.Repository.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Asp.Versioning;
 using System.Text;
 using DotNetEnv;
 
@@ -15,7 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Configure Kestrel to listen on port 5199
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
-    serverOptions.ListenAnyIP(5199, listenOptions =>
+    serverOptions.ListenLocalhost(5199, listenOptions =>
     {
         listenOptions.UseHttps();
     });
@@ -48,6 +51,14 @@ else
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
+// Register repositories
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+builder.Services.AddScoped<ITeacherRepository, TeacherRepository>();
+builder.Services.AddScoped<IAdminRepository, AdminRepository>();
+builder.Services.AddScoped<ICourseRepository, CourseRepository>();
+builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+
 // Register services
 builder.Services.AddSingleton<JwtService>();
 builder.Services.AddSingleton<RedisService>();
@@ -63,6 +74,7 @@ builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultSignInScheme = JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
@@ -77,12 +89,71 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
     };
+
+    // Configure JWT to read from HttpOnly cookies instead of Authorization header
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            // Try to get token from cookie first
+            var accessToken = context.Request.Cookies["access_token"];
+
+            if (!string.IsNullOrEmpty(accessToken))
+            {
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
+    };
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("StudentOnly", policy => policy.RequireRole("Student"));
+    options.AddPolicy("TeacherOnly", policy => policy.RequireRole("Teacher"));
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("TeacherOrAdmin", policy => policy.RequireRole("Teacher", "Admin"));
+});
 
 // Add Controllers for API endpoints
 builder.Services.AddControllers();
+
+// Add API Versioning
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+    options.ApiVersionReader = ApiVersionReader.Combine(
+        new UrlSegmentApiVersionReader(),
+        new HeaderApiVersionReader("X-Api-Version")
+    );
+}).AddMvc()
+.AddApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV";
+    options.SubstituteApiVersionInUrl = true;
+});
+
+// Add HttpClient for API calls from Razor Pages
+builder.Services.AddHttpClient("default", client =>
+{
+    // Configure for development - ignore SSL certificate errors
+    client.DefaultRequestHeaders.Add("User-Agent", "StudentPerformanceTracker/1.0");
+})
+.ConfigurePrimaryHttpMessageHandler(() =>
+{
+    var handler = new HttpClientHandler();
+    
+    // In development, ignore SSL certificate errors
+    if (builder.Environment.IsDevelopment())
+    {
+        handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
+    }
+    
+    return handler;
+});
 
 // Add Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
@@ -155,6 +226,27 @@ app.UseHttpsRedirection();
 app.UseRouting();
 
 app.UseAuthentication(); // Must come before UseAuthorization
+
+// Custom middleware to handle unauthorized requests and redirect to login
+app.Use(async (context, next) =>
+{
+    await next();
+    
+    // If we get a 401 Unauthorized response, redirect to login page
+    if (context.Response.StatusCode == 401)
+    {
+        // Only redirect for page requests, not API requests
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            // For API requests, keep the 401 response
+            return;
+        }
+        
+        // For page requests, redirect to login with a message
+        context.Response.Redirect("/LoginPage?message=Please login to access this page");
+    }
+});
+
 app.UseAuthorization();
 
 app.MapControllers(); // Map API controllers
@@ -162,6 +254,82 @@ app.MapControllers(); // Map API controllers
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
+
+// Redirect old routes to new organized structure
+app.MapGet("/StudentDashboard", context =>
+{
+    context.Response.Redirect("/Student/Dashboard");
+    return Task.CompletedTask;
+});
+
+app.MapGet("/TeacherDashboard", context =>
+{
+    context.Response.Redirect("/Teacher/Dashboard");
+    return Task.CompletedTask;
+});
+
+app.MapGet("/AdminDashboard", context =>
+{
+    context.Response.Redirect("/Admin/Dashboard");
+    return Task.CompletedTask;
+});
+
+app.MapGet("/AdminAnalytics", context =>
+{
+    context.Response.Redirect("/Admin/Analytics");
+    return Task.CompletedTask;
+});
+
+app.MapGet("/AdminCourseManage", context =>
+{
+    context.Response.Redirect("/Admin/CourseManage");
+    return Task.CompletedTask;
+});
+
+app.MapGet("/AdminStudentManage", context =>
+{
+    context.Response.Redirect("/Admin/StudentManage");
+    return Task.CompletedTask;
+});
+
+app.MapGet("/AdminTeacherManage", context =>
+{
+    context.Response.Redirect("/Admin/TeacherManage");
+    return Task.CompletedTask;
+});
+
+app.MapGet("/AdminUserManage", context =>
+{
+    context.Response.Redirect("/Admin/UserManage");
+    return Task.CompletedTask;
+});
+
+app.MapGet("/StudentAnnouncements", context =>
+{
+    context.Response.Redirect("/Student/Announcements");
+    return Task.CompletedTask;
+});
+
+app.MapGet("/StudentGrades", context =>
+{
+    context.Response.Redirect("/Student/Grades");
+    return Task.CompletedTask;
+});
+
+app.MapGet("/MyClasses", context =>
+{
+    context.Response.Redirect("/Student/MyClasses");
+    return Task.CompletedTask;
+});
+
+app.MapGet("/Announcements", context =>
+{
+    context.Response.Redirect("/Student/Announcements");
+    return Task.CompletedTask;
+});
+
+// Removed generic /Profile redirect since we now have role-specific profile pages
+// /Student/Profile, /Teacher/Profile, /Admin/Profile
 
 // TESTING ROUTE HERE
 app.MapGet("/", context =>

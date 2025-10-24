@@ -1,0 +1,124 @@
+@{
+    var currentPath = Context.Request.Path.Value?.ToLower() ?? "";
+}
+
+<!-- Sidebar Navigation -->
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <h3><i class="fas fa-user-shield me-2"></i>Admin Portal</h3>
+    </div>
+    <button class="toggle-btn" id="toggleBtn">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+    <div class="sidebar-menu">
+        <ul>
+            <li>
+                <a href="/Admin/Dashboard" class="@(currentPath.Contains("/admin/dashboard") ? "active" : "")">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="/Admin/UserManage" class="@(currentPath.Contains("/admin/usermanage") ? "active" : "")">
+                    <i class="fas fa-user"></i>
+                    <span>User Management</span>
+                </a>
+            </li>
+            <li>
+                <a href="/Admin/StudentManage" class="@(currentPath.Contains("/admin/studentmanage") ? "active" : "")">
+                    <i class="fas fa-user-graduate"></i>
+                    <span>Students</span>
+                </a>
+            </li>
+            <li>
+                <a href="/Admin/TeacherManage" class="@(currentPath.Contains("/admin/teachermanage") ? "active" : "")">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    <span>Teachers</span>
+                </a>
+            </li>
+            <li>
+                <a href="/Admin/CourseManage" class="@(currentPath.Contains("/admin/coursemanage") ? "active" : "")">
+                    <i class="fas fa-book"></i>
+                    <span>Courses</span>
+                </a>
+            </li>
+            <li>
+                <a href="/Admin/DepartmentManage" class="@(currentPath.Contains("/admin/departmentmanage") ? "active" : "")">
+                    <i class="fas fa-building"></i>
+                    <span>Departments</span>
+                </a>
+            </li>
+            <li>
+                <a href="/Admin/Analytics" class="@(currentPath.Contains("/admin/analytics") ? "active" : "")">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Analytics</span>
+                </a>
+            </li>
+            <li>
+                <a href="/Admin/Profile" class="@(currentPath.Contains("/admin/profile") ? "active" : "")">
+                    <i class="fas fa-user"></i>
+                    <span>Profile</span>
+                </a>
+            </li>
+            <li>
+                <a href="javascript:void(0)" onclick="handleLogout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+<script>
+    // Toggle sidebar functionality
+    document.getElementById('toggleBtn').addEventListener('click', function() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleIcon = this.querySelector('i');
+        
+        sidebar.classList.toggle('collapsed');
+        mainContent.classList.toggle('expanded');
+        
+        if (sidebar.classList.contains('collapsed')) {
+            toggleIcon.classList.remove('fa-chevron-left');
+            toggleIcon.classList.add('fa-chevron-right');
+        } else {
+            toggleIcon.classList.remove('fa-chevron-right');
+            toggleIcon.classList.add('fa-chevron-left');
+        }
+    });
+
+    // Logout function that calls API and clears tokens from Redis
+    async function handleLogout() {
+        try {
+            // Show loading state
+            const logoutBtn = event.target.closest('a');
+            const originalText = logoutBtn.innerHTML;
+            logoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Logging out...</span>';
+            logoutBtn.style.pointerEvents = 'none';
+
+            // Call logout API endpoint
+            const response = await fetch('/api/v1/auth/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include' // Include cookies for authentication
+            });
+
+            if (response.ok) {
+                // Success - redirect to login page
+                window.location.href = '/LoginPage';
+            } else {
+                // Even if API fails, clear local state and redirect
+                console.warn('Logout API failed, but clearing local state');
+                window.location.href = '/LoginPage';
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Even on error, redirect to login page
+            window.location.href = '/LoginPage';
+        }
+    }
+</script>
