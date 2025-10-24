@@ -109,4 +109,9 @@ public class UserRepository : IUserRepository
             .Where(u => u.Status == status)
             .ToListAsync();
     }
+
+    public async Task<int> GetCountAsync()
+    {
+        return await _context.Users.CountAsync();
+    }
 }

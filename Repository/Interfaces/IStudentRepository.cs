@@ -17,4 +17,5 @@ public interface IStudentRepository
     Task<bool> ExistsAsync(int id);
     Task<bool> EmailExistsAsync(string email);
     Task<bool> StudentIdExistsAsync(string studentId);
+    Task<int> GetCountAsync();
 }

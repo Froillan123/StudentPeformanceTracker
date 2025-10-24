@@ -15,4 +15,5 @@ public interface IUserRepository
     Task<bool> UsernameExistsAsync(string username);
     Task<bool> UpdateStatusAsync(int userId, string status);
     Task<IEnumerable<User>> GetByStatusAsync(string status);
+    Task<int> GetCountAsync();
 }

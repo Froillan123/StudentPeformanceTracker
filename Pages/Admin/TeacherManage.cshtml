@@ -220,8 +220,8 @@
                         </div>
                         <div class="dropdown">
                             <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                <img src="https://ui-avatars.com/api/?name=Admin+User&background=3498db&color=fff" class="user-avatar me-2">
-                                Admin User
+                                <img src="https://ui-avatars.com/api/?name=Loading&background=3498db&color=fff" class="user-avatar me-2" id="headerAvatar">
+                                <span id="headerName">Loading...</span>
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="userDropdown">
                                 <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>My Profile</a></li>
@@ -404,10 +404,33 @@
             });
         });
 
-        // Load teachers on page load
+        // Load admin data and teachers on page load
         document.addEventListener('DOMContentLoaded', function() {
+            loadAdminData();
             loadTeachers();
         });
+
+        // Load admin data from API
+        async function loadAdminData() {
+            try {
+                const response = await fetch('/api/v1/admin/profile');
+                if (response.ok) {
+                    const adminData = await response.json();
+                    updateHeader(adminData);
+                } else {
+                    console.error('Failed to load admin data');
+                }
+            } catch (error) {
+                console.error('Error loading admin data:', error);
+            }
+        }
+
+        // Update header with real admin data
+        function updateHeader(data) {
+            const fullName = `${data.firstName} ${data.lastName}`;
+            document.getElementById('headerName').textContent = fullName;
+            document.getElementById('headerAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=3498db&color=fff`;
+        }
 
         // Load teachers from API
         async function loadTeachers() {
@@ -431,17 +454,17 @@
             const formData = new FormData(form);
             
             const teacherData = {
-                username: formData.get('username'),
-                password: formData.get('password'),
-                email: formData.get('email'),
-                firstName: formData.get('firstName'),
-                lastName: formData.get('lastName'),
-                phone: formData.get('phone'),
-                highestQualification: formData.get('highestQualification'),
-                status: formData.get('status'),
-                emergencyContact: formData.get('emergencyContact'),
-                emergencyPhone: formData.get('emergencyPhone'),
-                hireDate: formData.get('hireDate') ? new Date(formData.get('hireDate')).toISOString() : null
+                Username: formData.get('username'),
+                Password: formData.get('password'),
+                Email: formData.get('email'),
+                FirstName: formData.get('firstName'),
+                LastName: formData.get('lastName'),
+                Phone: formData.get('phone'),
+                HighestQualification: formData.get('highestQualification'),
+                Status: formData.get('status'),
+                EmergencyContact: formData.get('emergencyContact'),
+                EmergencyPhone: formData.get('emergencyPhone'),
+                HireDate: formData.get('hireDate') ? new Date(formData.get('hireDate')).toISOString() : null
             };
 
             try {

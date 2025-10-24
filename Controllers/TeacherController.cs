@@ -5,6 +5,9 @@ using StudentPeformanceTracker.DTO;
 using StudentPeformanceTracker.Models;
 using StudentPeformanceTracker.Repository.Interfaces;
 using StudentPeformanceTracker.Services;
+using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
+
 
 namespace StudentPeformanceTracker.Controllers;
 
@@ -163,6 +166,122 @@ public class TeacherController : ControllerBase
         }
     }
 
+    [HttpGet("profile")]
+    public async Task<ActionResult<object>> GetTeacherProfile()
+    {
+        try
+        {
+            // Get current user ID from JWT token
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Unauthorized(new { message = "Invalid user token" });
+            }
+
+            // Get teacher data
+            var teacher = await _teacherRepository.GetByUserIdAsync(userId);
+            if (teacher == null)
+            {
+                return NotFound(new { message = "Teacher profile not found" });
+            }
+
+            // Get user data
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null)
+            {
+                return NotFound(new { message = "User data not found" });
+            }
+
+            var result = new
+            {
+                // Personal Information
+                Id = teacher.Id,
+                UserId = teacher.UserId,
+                Username = user.Username,
+                Email = teacher.Email,
+                FirstName = teacher.FirstName,
+                LastName = teacher.LastName,
+                Phone = teacher.Phone,
+                CreatedAt = teacher.CreatedAt,
+                UpdatedAt = teacher.UpdatedAt,
+                LastLogin = user.UpdatedAt, // Using UpdatedAt as proxy for last login
+                
+                // Professional Information
+                HighestQualification = teacher.HighestQualification,
+                Status = teacher.Status,
+                EmergencyContact = teacher.EmergencyContact,
+                EmergencyPhone = teacher.EmergencyPhone,
+                HireDate = teacher.HireDate,
+                
+                // Departments
+                Departments = teacher.TeacherDepartments?.Where(td => td.Department != null).Select(td => new
+                {
+                    td.DepartmentId,
+                    DepartmentName = td.Department!.DepartmentName
+                }).ToList()
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving teacher profile", error = ex.Message });
+        }
+    }
+
+    [HttpPut("profile")]
+    public async Task<ActionResult<object>> UpdateTeacherProfile([FromBody] UpdateTeacherProfileRequest request)
+    {
+        try
+        {
+            // Get current user ID from JWT token
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Unauthorized(new { message = "Invalid user token" });
+            }
+
+            // Get teacher data
+            var teacher = await _teacherRepository.GetByUserIdAsync(userId);
+            if (teacher == null)
+            {
+                return NotFound(new { message = "Teacher profile not found" });
+            }
+
+            // Update teacher information
+            teacher.FirstName = request.FirstName;
+            teacher.LastName = request.LastName;
+            teacher.Phone = request.Phone;
+            teacher.HighestQualification = request.HighestQualification;
+            teacher.EmergencyContact = request.EmergencyContact;
+            teacher.EmergencyPhone = request.EmergencyPhone;
+            teacher.UpdatedAt = DateTime.UtcNow;
+
+            var updatedTeacher = await _teacherRepository.UpdateAsync(teacher);
+
+            var result = new
+            {
+                Id = updatedTeacher.Id,
+                UserId = updatedTeacher.UserId,
+                Email = updatedTeacher.Email,
+                FirstName = updatedTeacher.FirstName,
+                LastName = updatedTeacher.LastName,
+                Phone = updatedTeacher.Phone,
+                HighestQualification = updatedTeacher.HighestQualification,
+                EmergencyContact = updatedTeacher.EmergencyContact,
+                EmergencyPhone = updatedTeacher.EmergencyPhone,
+                UpdatedAt = updatedTeacher.UpdatedAt,
+                Message = "Profile updated successfully"
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error updating teacher profile", error = ex.Message });
+        }
+    }
+
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteTeacher(int id)
     {
@@ -182,11 +301,20 @@ public class TeacherController : ControllerBase
             }
 
             // Also delete from Users table
-            var userDeleted = await _userRepository.DeleteAsync(teacher.UserId);
-            if (!userDeleted)
+            try
             {
-                // Log warning but don't fail the operation since teacher is already deleted
-                // This could happen if the user was already deleted or doesn't exist
+                var userDeleted = await _userRepository.DeleteAsync(teacher.UserId);
+                if (!userDeleted)
+                {
+                    // Log warning but don't fail the operation since teacher is already deleted
+                    // This could happen if the user was already deleted or doesn't exist
+                }
+            }
+            catch (Exception)
+            {
+                // Log the error but don't fail the operation since teacher is already deleted
+                // This could happen due to foreign key constraints
+                // You might want to log this for debugging
             }
 
             return Ok(new { message = "Teacher and associated user account deleted successfully" });
@@ -292,6 +420,29 @@ public class TeacherController : ControllerBase
             return StatusCode(500, new { message = "Error creating teacher", error = ex.Message });
         }
     }
+}
+
+public class UpdateTeacherProfileRequest
+{
+    [Required]
+    [MaxLength(50)]
+    public string FirstName { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(50)]
+    public string LastName { get; set; } = string.Empty;
+
+    [MaxLength(20)]
+    public string? Phone { get; set; }
+
+    [MaxLength(100)]
+    public string? HighestQualification { get; set; }
+
+    [MaxLength(100)]
+    public string? EmergencyContact { get; set; }
+
+    [MaxLength(20)]
+    public string? EmergencyPhone { get; set; }
 }
 
 public class CreateTeacherRequest

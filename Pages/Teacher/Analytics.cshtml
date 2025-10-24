@@ -194,8 +194,8 @@
                     <div class="d-flex align-items-center">
                         <div class="dropdown">
                             <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                <img src="https://ui-avatars.com/api/?name=Merionne+Dela+Cruz&background=2196F3&color=fff" class="user-avatar me-2">
-                                Ms. Merionne Dela Cruz
+                                <img src="https://ui-avatars.com/api/?name=Loading&background=2196F3&color=fff" class="user-avatar me-2" id="headerAvatar">
+                                <span id="headerName">Loading...</span>
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="userDropdown">
                                 <li><a class="dropdown-item" href="/Profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
@@ -266,6 +266,33 @@
             }
         });
         
+        // Load teacher data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTeacherData();
+        });
+
+        // Load teacher data from API
+        async function loadTeacherData() {
+            try {
+                const response = await fetch('/api/v1/teacher/profile');
+                if (response.ok) {
+                    const teacherData = await response.json();
+                    updateHeader(teacherData);
+                } else {
+                    console.error('Failed to load teacher data');
+                }
+            } catch (error) {
+                console.error('Error loading teacher data:', error);
+            }
+        }
+
+        // Update header with real teacher data
+        function updateHeader(data) {
+            const fullName = `${data.firstName} ${data.lastName}`;
+            document.getElementById('headerName').textContent = fullName;
+            document.getElementById('headerAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2196F3&color=fff`;
+        }
+
         // Set active menu item
         document.querySelectorAll('.sidebar-menu a').forEach(item => {
             if (item.getAttribute('href') === window.location.pathname) {
