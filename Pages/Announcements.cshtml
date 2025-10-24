@@ -1,0 +1,418 @@
+@page
+@model StudentPeformanceTracker.Pages.AnnouncementsModel
+@{
+    ViewData["Title"] = "Announcements";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Announcements - Teacher Dashboard</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #3f51b5;
+            --secondary-color: #f5f5f5;
+            --accent-color: #ff4081;
+            --text-color: #333;
+            --border-color: #e0e0e0;
+            --sidebar-width: 250px;
+            --sidebar-collapsed-width: 70px;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9f9f9;
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background-color: var(--primary-color);
+            color: white;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+        
+        .sidebar-header {
+            padding: 1.5rem 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+        
+        .sidebar-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        
+        .sidebar.collapsed .sidebar-header h3 {
+            display: none;
+        }
+        
+        .sidebar-menu {
+            padding: 1rem 0;
+        }
+        
+        .sidebar-menu ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .sidebar-menu li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .sidebar-menu i {
+            width: 24px;
+            margin-right: 1rem;
+            text-align: center;
+        }
+        
+        .sidebar.collapsed .sidebar-menu span {
+            display: none;
+        }
+        
+        .sidebar.collapsed .sidebar-menu i {
+            margin-right: 0;
+        }
+        
+        .toggle-btn {
+            position: absolute;
+            top: 1rem;
+            right: -15px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        /* Main Content Area */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            transition: all 0.3s ease;
+            min-height: 100vh;
+            background-color: #f9f9f9;
+        }
+        
+        .main-content.expanded {
+            margin-left: var(--sidebar-collapsed-width);
+        }
+        
+        .dashboard-header {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1rem 0;
+        }
+        
+        .announcements-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .announcement-item {
+            border-left: 4px solid var(--primary-color);
+            padding-left: 1rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .announcement-item:hover {
+            background-color: #f8f9fa;
+            transform: translateX(5px);
+        }
+        
+        .badge-custom {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .section-title {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .create-announcement-btn {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        .create-announcement-btn:hover {
+            background-color: #303f9f;
+            border-color: #303f9f;
+        }
+        
+        .announcement-meta {
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+        
+        .announcement-badge {
+            font-size: 0.75rem;
+        }
+        
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>Teacher Portal</h3>
+        </div>
+        <button class="toggle-btn" id="toggleBtn">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="sidebar-menu">
+            <ul>
+                <li>
+                    <a href="/TeacherDashboard">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/MyClasses">
+                        <i class="fas fa-book-open"></i>
+                        <span>My Classes</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/Announcements" class="active">
+                        <i class="fas fa-bullhorn"></i>
+                        <span>Announcements</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <i class="fas fa-question-circle"></i>
+                        <span>Help Center</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/LoginPage">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Dashboard Header -->
+        <header class="dashboard-header">
+            <div class="container">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h1 class="h3 mb-0">Announcements</h1>
+                    <div class="d-flex align-items-center">
+                        <div class="dropdown">
+                            <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle me-2"></i>Merionne
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="/Profile"><i class="fas fa-user me-2"></i>Profile</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <main class="container my-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="h4 section-title">All Announcements</h2>
+                <button class="btn btn-primary create-announcement-btn">
+                    <i class="fas fa-plus me-2"></i>Create Announcement
+                </button>
+            </div>
+
+            <!-- Announcements List -->
+            <div class="announcements-card">
+                <div class="announcement-item">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h4 class="h5 mb-1">Grade Submission Deadline</h4>
+                            <p class="mb-2">Please finalize and submit your Quarter 1 grades through the system for adviser review. The registrar will lock grades after the deadline. Late submissions will not be accommodated.</p>
+                        </div>
+                        <span class="badge bg-light text-dark announcement-badge">For: All Junior High School Teachers</span>
+                    </div>
+                    <div class="announcement-meta">
+                        <i class="far fa-clock me-1"></i> Deadline: August 30, 2025 - 5:00pm
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="announcement-item">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h4 class="h5 mb-1">Parent-Teacher Conference</h4>
+                            <p class="mb-2">The quarterly parent-teacher conference is scheduled for September 5-6, 2025. Please prepare your student progress reports and be ready to discuss student performance with parents.</p>
+                        </div>
+                        <span class="badge bg-light text-dark announcement-badge">For: All Teachers</span>
+                    </div>
+                    <div class="announcement-meta">
+                        <i class="far fa-calendar me-1"></i> Date: September 5-6, 2025
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="announcement-item">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h4 class="h5 mb-1">Curriculum Planning Meeting</h4>
+                            <p class="mb-2">There will be a curriculum planning meeting for all science teachers next Monday at 3:00 PM in the conference room. Please bring your curriculum guides and any suggestions for improvements.</p>
+                        </div>
+                        <span class="badge bg-light text-dark announcement-badge">For: Science Teachers</span>
+                    </div>
+                    <div class="announcement-meta">
+                        <i class="far fa-clock me-1"></i> Date: September 2, 2025 - 3:00pm
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="announcement-item">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h4 class="h5 mb-1">Professional Development Workshop</h4>
+                            <p class="mb-2">Join us for a professional development workshop on innovative teaching strategies. This session will focus on project-based learning and technology integration in the classroom.</p>
+                        </div>
+                        <span class="badge bg-light text-dark announcement-badge">For: All Teachers</span>
+                    </div>
+                    <div class="announcement-meta">
+                        <i class="far fa-calendar me-1"></i> Date: September 15, 2025 - 9:00am to 3:00pm
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Announcements Card -->
+            <div class="announcements-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="h5 section-title">Recent Announcements <span class="badge badge-custom">4</span></h3>
+                </div>
+                
+                <div class="list-group">
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Quarter 1 Grades Due</h6>
+                            <small class="text-muted">2 days ago</small>
+                        </div>
+                        <p class="mb-1">Final submission for Quarter 1 grades</p>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Science Fair Preparation</h6>
+                            <small class="text-muted">1 week ago</small>
+                        </div>
+                        <p class="mb-1">Start preparing students for annual science fair</p>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">New Learning Materials</h6>
+                            <small class="text-muted">2 weeks ago</small>
+                        </div>
+                        <p class="mb-1">Digital learning resources now available</p>
+                    </a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Toggle sidebar functionality
+        document.getElementById('toggleBtn').addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const toggleIcon = this.querySelector('i');
+            
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            
+            if (sidebar.classList.contains('collapsed')) {
+                toggleIcon.classList.remove('fa-chevron-left');
+                toggleIcon.classList.add('fa-chevron-right');
+            } else {
+                toggleIcon.classList.remove('fa-chevron-right');
+                toggleIcon.classList.add('fa-chevron-left');
+            }
+        });
+        
+        // Set active menu item
+        document.querySelectorAll('.sidebar-menu a').forEach(item => {
+            if (item.getAttribute('href') === window.location.pathname) {
+                item.classList.add('active');
+            }
+            
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.sidebar-menu a').forEach(link => {
+                    link.classList.remove('active');
+                });
+                this.classList.add('active');
+            });
+        });
+
+        // Create announcement button functionality
+        document.querySelector('.create-announcement-btn').addEventListener('click', function() {
+            alert('Create Announcement feature would open here!');
+        });
+    </script>
+</body>
+</html>

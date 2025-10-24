@@ -1,0 +1,791 @@
+@page
+@model StudentPeformanceTracker.Pages.MyClassesModel
+@{
+    ViewData["Title"] = "My Classes";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Classes - Teacher Dashboard</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #3f51b5;
+            --secondary-color: #f5f5f5;
+            --accent-color: #ff4081;
+            --text-color: #333;
+            --border-color: #e0e0e0;
+            --sidebar-width: 250px;
+            --sidebar-collapsed-width: 70px;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9f9f9;
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background-color: var(--primary-color);
+            color: white;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+        
+        .sidebar-header {
+            padding: 1.5rem 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+        
+        .sidebar-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        
+        .sidebar.collapsed .sidebar-header h3 {
+            display: none;
+        }
+        
+        .sidebar-menu {
+            padding: 1rem 0;
+        }
+        
+        .sidebar-menu ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .sidebar-menu li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .sidebar-menu i {
+            width: 24px;
+            margin-right: 1rem;
+            text-align: center;
+        }
+        
+        .sidebar.collapsed .sidebar-menu span {
+            display: none;
+        }
+        
+        .sidebar.collapsed .sidebar-menu i {
+            margin-right: 0;
+        }
+        
+        .toggle-btn {
+            position: absolute;
+            top: 1rem;
+            right: -15px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        /* Main Content Area */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            transition: all 0.3s ease;
+            min-height: 100vh;
+            background-color: #f9f9f9;
+        }
+        
+        .main-content.expanded {
+            margin-left: var(--sidebar-collapsed-width);
+        }
+        
+        .dashboard-header {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1rem 0;
+        }
+        
+        .classes-overview-section {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .class-detail-section {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .table th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .btn-add {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        .btn-add:hover {
+            background-color: #303f9f;
+            border-color: #303f9f;
+        }
+        
+        .btn-excel {
+            background-color: #217346;
+            border-color: #217346;
+            color: white;
+            font-weight: 500;
+        }
+        
+        .btn-excel:hover {
+            background-color: #1e6a3e;
+            border-color: #1e6a3e;
+            color: white;
+        }
+        
+        .section-title {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .class-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .class-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+            border-color: var(--primary-color);
+        }
+        
+        .class-card.active {
+            border-color: var(--primary-color);
+            background-color: rgba(63, 81, 181, 0.05);
+        }
+        
+        .class-info h5 {
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+        
+        .class-meta {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .student-count {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 20px;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            background-color: #f8f9fa;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background-color: rgba(63, 81, 181, 0.05);
+        }
+        
+        .upload-area.dragover {
+            border-color: var(--primary-color);
+            background-color: rgba(63, 81, 181, 0.1);
+        }
+        
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+        
+        .grade-table th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .grade-cell {
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .final-grade {
+            background-color: #e8f5e8;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+        
+        .tab-content {
+            padding-top: 1.5rem;
+        }
+        
+        .nav-tabs .nav-link.active {
+            border-bottom: 3px solid var(--primary-color);
+            font-weight: 600;
+        }
+
+        .grade-excellent { color: #4CAF50; font-weight: bold; }
+        .grade-good { color: #FF9800; font-weight: bold; }
+        .grade-poor { color: #f44336; font-weight: bold; }
+
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>Teacher Portal</h3>
+        </div>
+        <button class="toggle-btn" id="toggleBtn">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="sidebar-menu">
+            <ul>
+                <li>
+                    <a href="/TeacherDashboard">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/MyClasses" class="active">
+                        <i class="fas fa-book-open"></i>
+                        <span>My Classes</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/Announcements">
+                        <i class="fas fa-bullhorn"></i>
+                        <span>Announcements</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <i class="fas fa-question-circle"></i>
+                        <span>Help Center</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/LoginPage">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Dashboard Header -->
+        <header class="dashboard-header">
+            <div class="container">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h1 class="h3 mb-0">My Classes</h1>
+                    <div class="d-flex align-items-center">
+                        <div class="dropdown">
+                            <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle me-2"></i>Merionne
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="Profile"><i class="fas fa-user me-2"></i>Profile</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <main class="container my-4">
+            <!-- Classes Overview Section -->
+            <div class="classes-overview-section">
+                <h2 class="h4 section-title">My Teaching Schedule</h2>
+                
+                <div class="row">
+                    <!-- Class 1 -->
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="class-card active" onclick="selectClass('science10a')">
+                            <div class="class-info">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5>SCI10-A - Science</h5>
+                                    <span class="student-count">20 students</span>
+                                </div>
+                                <p class="class-meta mb-2">
+                                    <i class="far fa-clock me-1"></i>11:30 - 12:30 m | MWF
+                                </p>
+                                <p class="class-meta mb-0">
+                                    <i class="fas fa-users me-1"></i>Grade 10 - Section A
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Class 2 -->
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="class-card" onclick="selectClass('math10b')">
+                            <div class="class-info">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5>MATH10-B - Mathematics</h5>
+                                    <span class="student-count">22 students</span>
+                                </div>
+                                <p class="class-meta mb-2">
+                                    <i class="far fa-clock me-1"></i>9:15 - 10:15 am | TTh
+                                </p>
+                                <p class="class-meta mb-0">
+                                    <i class="fas fa-users me-1"></i>Grade 10 - Section B
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Class Detail Section -->
+            <div class="class-detail-section">
+                <!-- Science 10-A (Default selected) -->
+                <div id="science10a-detail" class="class-detail">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h3 class="h4 mb-2">SCI10-A - Science</h3>
+                            <p class="text-muted mb-0">11:30 - 12:30 m | MWF • Grade 10 - Section A</p>
+                        </div>
+                        <div>
+                            <button class="btn btn-excel" data-bs-toggle="modal" data-bs-target="#uploadExcelModal">
+                                <i class="fas fa-file-excel me-2"></i>Upload Excel Grades
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tabs for Student List and Grading -->
+                    <ul class="nav nav-tabs" id="classTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="students-tab" data-bs-toggle="tab" data-bs-target="#students" type="button" role="tab">
+                                <i class="fas fa-users me-2"></i>Student List
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="grading-tab" data-bs-toggle="tab" data-bs-target="#grading" type="button" role="tab">
+                                <i class="fas fa-chart-bar me-2"></i>Grading Sheet
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="classTabContent">
+                        <!-- Student List Tab -->
+                        <div class="tab-pane fade show active" id="students" role="tabpanel">
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" placeholder="Search students...">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID Number</th>
+                                            <th>Name</th>
+                                            <th>Year Level</th>
+                                            <th>Course</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>20947230</td>
+                                            <td>Marianne Joy Napisa</td>
+                                            <td>2nd year</td>
+                                            <td>BSIT</td>
+                                        </tr>
+                                        <tr>
+                                            <td>20947231</td>
+                                            <td>John Michael Santos</td>
+                                            <td>2nd year</td>
+                                            <td>BSIT</td>
+                                        </tr>
+                                        <tr>
+                                            <td>20947232</td>
+                                            <td>Sarah Lynn Gomez</td>
+                                            <td>2nd year</td>
+                                            <td>BSIT</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Grading Sheet Tab -->
+                        <div class="tab-pane fade" id="grading" role="tabpanel">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Upload an Excel file with student grades or view the current grading sheet below.
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-bordered grade-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID Number</th>
+                                            <th>Student Name</th>
+                                            <th>Prelim (30%)</th>
+                                            <th>Midterm (30%)</th>
+                                            <th>Final (40%)</th>
+                                            <th>Final Grade</th>
+                                            <th>Remarks</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>20947230</td>
+                                            <td>Marianne Joy Napisa</td>
+                                            <td class="grade-cell grade-excellent">92</td>
+                                            <td class="grade-cell grade-excellent">88</td>
+                                            <td class="grade-cell grade-excellent">90</td>
+                                            <td class="grade-cell final-grade">90.0</td>
+                                            <td class="text-success">Passed</td>
+                                        </tr>
+                                        <tr>
+                                            <td>20947231</td>
+                                            <td>John Michael Santos</td>
+                                            <td class="grade-cell grade-good">85</td>
+                                            <td class="grade-cell grade-good">82</td>
+                                            <td class="grade-cell grade-good">80</td>
+                                            <td class="grade-cell final-grade">82.0</td>
+                                            <td class="text-success">Passed</td>
+                                        </tr>
+                                        <tr>
+                                            <td>20947232</td>
+                                            <td>Sarah Lynn Gomez</td>
+                                            <td class="grade-cell grade-excellent">95</td>
+                                            <td class="grade-cell grade-excellent">96</td>
+                                            <td class="grade-cell grade-excellent">97</td>
+                                            <td class="grade-cell final-grade">96.0</td>
+                                            <td class="text-success">Passed</td>
+                                        </tr>
+                                        <tr>
+                                            <td>20947233</td>
+                                            <td>David Christopher Reyes</td>
+                                            <td class="grade-cell grade-poor">75</td>
+                                            <td class="grade-cell grade-poor">72</td>
+                                            <td class="grade-cell grade-poor">78</td>
+                                            <td class="grade-cell final-grade">75.0</td>
+                                            <td class="text-warning">Conditional</td>
+                                        </tr>
+                                        <tr>
+                                            <td>20947234</td>
+                                            <td>Maria Santos Garcia</td>
+                                            <td class="grade-cell grade-good">84</td>
+                                            <td class="grade-cell grade-good">86</td>
+                                            <td class="grade-cell grade-good">88</td>
+                                            <td class="grade-cell final-grade">86.0</td>
+                                            <td class="text-success">Passed</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Excel Upload Modal -->
+    <div class="modal fade" id="uploadExcelModal" tabindex="-1" aria-labelledby="uploadExcelModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="uploadExcelModalLabel">Upload Excel Grades</h5>
+                    <button type="button" class="btn-close" data-bs-toggle="modal" data-bs-target="#uploadExcelModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="upload-area" id="uploadArea">
+                                <div class="upload-icon">
+                                    <i class="fas fa-file-excel"></i>
+                                </div>
+                                <h5>Drop Excel File Here</h5>
+                                <p class="text-muted">or click to browse</p>
+                                <input type="file" id="excelFile" accept=".xlsx,.xls" style="display: none;">
+                                <button class="btn btn-primary mt-2" onclick="document.getElementById('excelFile').click()">
+                                    <i class="fas fa-upload me-2"></i>Choose File
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Excel File Requirements:</h6>
+                            <ul class="small">
+                                <li>File format: .xlsx or .xls</li>
+                                <li>First row should be headers</li>
+                                <li>Required columns: ID Number, Student Name</li>
+                                <li>Grade columns: Prelim, Midterm, Final</li>
+                                <li>Grades should be numerical values (0-100)</li>
+                            </ul>
+                            
+                            <div class="mt-3">
+                                <h6>Download Template:</h6>
+                                <button class="btn btn-outline-primary btn-sm" onclick="downloadTemplate()">
+                                    <i class="fas fa-download me-2"></i>Download Excel Template
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4" id="uploadPreview" style="display: none;">
+                        <h6>Upload Preview:</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>ID Number</th>
+                                        <th>Student Name</th>
+                                        <th>Prelim</th>
+                                        <th>Midterm</th>
+                                        <th>Final</th>
+                                        <th>Final Grade</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="previewTable">
+                                    <!-- Preview data will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#uploadExcelModal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="processGrades" disabled>
+                        <i class="fas fa-calculator me-2"></i>Process Grades
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Toggle sidebar functionality
+        document.getElementById('toggleBtn').addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const toggleIcon = this.querySelector('i');
+            
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            
+            if (sidebar.classList.contains('collapsed')) {
+                toggleIcon.classList.remove('fa-chevron-left');
+                toggleIcon.classList.add('fa-chevron-right');
+            } else {
+                toggleIcon.classList.remove('fa-chevron-right');
+                toggleIcon.classList.add('fa-chevron-left');
+            }
+        });
+        
+        // Set active menu item
+        document.querySelectorAll('.sidebar-menu a').forEach(item => {
+            if (item.getAttribute('href') === window.location.pathname) {
+                item.classList.add('active');
+            }
+            
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.sidebar-menu a').forEach(link => {
+                    link.classList.remove('active');
+                });
+                this.classList.add('active');
+            });
+        });
+
+        // Class selection functionality
+        function selectClass(className) {
+            // Remove active class from all class cards
+            document.querySelectorAll('.class-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            // Add active class to selected class card
+            event.currentTarget.classList.add('active');
+            
+            // Hide all class details
+            document.querySelectorAll('.class-detail').forEach(detail => {
+                detail.style.display = 'none';
+            });
+            
+            // Show selected class detail
+            document.getElementById(className + '-detail').style.display = 'block';
+        }
+
+        // Download template function
+        function downloadTemplate() {
+            alert('Excel template download started! (Frontend simulation)');
+            // In real application, this would trigger file download
+        }
+
+        // Excel upload functionality
+        document.getElementById('excelFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Simulate file processing (frontend only)
+                simulateExcelProcessing(file.name);
+            }
+        });
+
+        // Drag and drop functionality
+        const uploadArea = document.getElementById('uploadArea');
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', function() {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
+                document.getElementById('excelFile').files = e.dataTransfer.files;
+                simulateExcelProcessing(file.name);
+            }
+        });
+
+        function simulateExcelProcessing(filename) {
+            // Show preview section
+            document.getElementById('uploadPreview').style.display = 'block';
+            
+            // Enable process button
+            document.getElementById('processGrades').disabled = false;
+            
+            // Simulate preview data
+            const previewTable = document.getElementById('previewTable');
+            previewTable.innerHTML = `
+                <tr>
+                    <td>20947230</td>
+                    <td>Marianne Joy Napisa</td>
+                    <td>92</td>
+                    <td>88</td>
+                    <td>90</td>
+                    <td>90.0</td>
+                </tr>
+                <tr>
+                    <td>20947231</td>
+                    <td>John Michael Santos</td>
+                    <td>85</td>
+                    <td>82</td>
+                    <td>80</td>
+                    <td>82.0</td>
+                </tr>
+                <tr>
+                    <td>20947232</td>
+                    <td>Sarah Lynn Gomez</td>
+                    <td>95</td>
+                    <td>96</td>
+                    <td>97</td>
+                    <td>96.0</td>
+                </tr>
+            `;
+            
+            // Update upload area text
+            uploadArea.innerHTML = `
+                <div class="text-success">
+                    <i class="fas fa-check-circle fa-2x mb-2"></i>
+                    <h5>File Ready: ${filename}</h5>
+                    <p class="text-muted">Click "Process Grades" to continue</p>
+                </div>
+            `;
+        }
+
+        // Process grades button
+        document.getElementById('processGrades').addEventListener('click', function() {
+            alert('Grades processed successfully! The grading sheet has been updated.');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('uploadExcelModal'));
+            modal.hide();
+            
+            // Switch to grading tab
+            document.getElementById('grading-tab').click();
+        });
+
+        // Initialize with first class selected
+        document.addEventListener('DOMContentLoaded', function() {
+            selectClass('science10a');
+        });
+    </script>
+</body>
+</html>

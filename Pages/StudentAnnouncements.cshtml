@@ -1,0 +1,534 @@
+@page
+@model StudentPeformanceTracker.Pages.StudentAnnouncementsModel
+@{
+    ViewData["Title"] = "Announcements";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Announcements - Student Portal</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --secondary-color: #f5f5f5;
+            --accent-color: #FF9800;
+            --text-color: #333;
+            --border-color: #e0e0e0;
+            --sidebar-width: 250px;
+            --sidebar-collapsed-width: 70px;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9f9f9;
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background-color: var(--primary-color);
+            color: white;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+        
+        .sidebar-header {
+            padding: 1.5rem 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+        
+        .sidebar-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        
+        .sidebar.collapsed .sidebar-header h3 {
+            display: none;
+        }
+        
+        .sidebar-menu {
+            padding: 1rem 0;
+        }
+        
+        .sidebar-menu ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .sidebar-menu li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .sidebar-menu i {
+            width: 24px;
+            margin-right: 1rem;
+            text-align: center;
+        }
+        
+        .sidebar.collapsed .sidebar-menu span {
+            display: none;
+        }
+        
+        .sidebar.collapsed .sidebar-menu i {
+            margin-right: 0;
+        }
+        
+        .toggle-btn {
+            position: absolute;
+            top: 1rem;
+            right: -15px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        /* Main Content Area */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            transition: all 0.3s ease;
+            min-height: 100vh;
+            background-color: #f9f9f9;
+        }
+        
+        .main-content.expanded {
+            margin-left: var(--sidebar-collapsed-width);
+        }
+        
+        .dashboard-header {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1rem 0;
+        }
+        
+        .card-custom {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .card-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .section-title {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .announcement-item {
+            border-left: 4px solid var(--accent-color);
+            padding-left: 1rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .announcement-item:hover {
+            background-color: #f8f9fa;
+            transform: translateX(5px);
+        }
+        
+        .badge-custom {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .announcement-meta {
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+        
+        .announcement-badge {
+            font-size: 0.75rem;
+        }
+        
+        .urgent-announcement {
+            border-left-color: #dc3545;
+            background-color: #fff5f5;
+        }
+        
+        .important-announcement {
+            border-left-color: #ffc107;
+            background-color: #fffbf0;
+        }
+        
+        .system-announcement {
+            border-left-color: #17a2b8;
+            background-color: #f0f9ff;
+        }
+        
+        .list-group-item {
+            border: none;
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem;
+        }
+        
+        .list-group-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>Student Portal</h3>
+        </div>
+        <button class="toggle-btn" id="toggleBtn">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="sidebar-menu">
+            <ul>
+                <li>
+                    <a href="/StudentDashboard">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/StudentGrades">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>My Grades</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/StudentAnnouncements" class="active">
+                        <i class="fas fa-bullhorn"></i>
+                        <span>Announcements</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/LoginPage">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Dashboard Header -->
+        <header class="dashboard-header">
+            <div class="container">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h1 class="h3 mb-0">Announcements</h1>
+                    <div class="d-flex align-items-center">
+                        <div class="dropdown">
+                            <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle me-2"></i>Marianne Napisa
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="/StudentProfile"><i class="fas fa-user me-2"></i>My Profile</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <main class="container my-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="h4 section-title">System & Grades Announcements</h2>
+                <div class="text-muted">
+                    <i class="fas fa-bell me-2"></i>
+                    <span id="unreadCount">4 unread announcements</span>
+                </div>
+            </div>
+
+            <!-- Announcements List -->
+            <div class="card-custom">
+                <!-- Urgent Announcement -->
+                <div class="announcement-item urgent-announcement">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h4 class="h5 mb-1">
+                                <i class="fas fa-exclamation-triangle me-2 text-danger"></i>
+                                System Maintenance - Grade Portal Unavailable
+                            </h4>
+                            <p class="mb-2">The Student Grade Portal will be temporarily unavailable on Saturday, March 22 from 10:00 PM to 2:00 AM for system maintenance. During this time, you will not be able to access your grades or academic records.</p>
+                        </div>
+                        <span class="badge bg-danger announcement-badge">URGENT</span>
+                    </div>
+                    <div class="announcement-meta">
+                        <i class="far fa-clock me-1"></i> Posted: 3 hours ago • 
+                        <i class="fas fa-user me-1 ms-2"></i> System Administrator •
+                        <i class="fas fa-users me-1 ms-2"></i> For: All Students
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <!-- Important Announcement -->
+                <div class="announcement-item important-announcement">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h4 class="h5 mb-1">
+                                <i class="fas fa-info-circle me-2 text-warning"></i>
+                                Quarter 1 Grades Finalization
+                            </h4>
+                            <p class="mb-2">All Quarter 1 grades have been finalized and are now available for viewing. Please review your grades and contact your teachers by March 25 if you have any concerns or discrepancies.</p>
+                        </div>
+                        <span class="badge bg-warning text-dark announcement-badge">IMPORTANT</span>
+                    </div>
+                    <div class="announcement-meta">
+                        <i class="far fa-clock me-1"></i> Posted: 1 day ago • 
+                        <i class="fas fa-user me-1 ms-2"></i> Registrar's Office •
+                        <i class="fas fa-users me-1 ms-2"></i> For: All Students
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <!-- System Announcement -->
+                <div class="announcement-item system-announcement">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h4 class="h5 mb-1">
+                                <i class="fas fa-database me-2 text-info"></i>
+                                New Grade Export Feature Available
+                            </h4>
+                            <p class="mb-2">We've added a new feature allowing you to export your grades to Excel and PDF formats. You can now download your grade reports directly from the My Grades page for personal records or scholarship applications.</p>
+                        </div>
+                        <span class="badge bg-info announcement-badge">NEW FEATURE</span>
+                    </div>
+                    <div class="announcement-meta">
+                        <i class="far fa-clock me-1"></i> Posted: 2 days ago • 
+                        <i class="fas fa-user me-1 ms-2"></i> System Development Team •
+                        <i class="fas fa-users me-1 ms-2"></i> For: All Students
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <!-- Regular Announcement -->
+                <div class="announcement-item">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h4 class="h5 mb-1">Grade Appeal Process Update</h4>
+                            <p class="mb-2">The grade appeal process has been updated. Students now have 5 business days after grade posting to submit appeals. All appeals must be submitted through the portal using the new Grade Appeal Form.</p>
+                        </div>
+                        <span class="badge bg-light text-dark announcement-badge">PROCESS UPDATE</span>
+                    </div>
+                    <div class="announcement-meta">
+                        <i class="far fa-clock me-1"></i> Posted: 3 days ago • 
+                        <i class="fas fa-user me-1 ms-2"></i> Academic Affairs •
+                        <i class="fas fa-users me-1 ms-2"></i> For: All Students
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <!-- Regular Announcement -->
+                <div class="announcement-item">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h4 class="h5 mb-1">System Performance Improvements</h4>
+                            <p class="mb-2">Recent system upgrades have improved grade loading times by 40%. You should experience faster access to your academic records and smoother navigation throughout the student portal.</p>
+                        </div>
+                        <span class="badge bg-light text-dark announcement-badge">SYSTEM UPDATE</span>
+                    </div>
+                    <div class="announcement-meta">
+                        <i class="far fa-clock me-1"></i> Posted: 1 week ago • 
+                        <i class="fas fa-user me-1 ms-2"></i> IT Department •
+                        <i class="fas fa-users me-1 ms-2"></i> For: All Students
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Regular Announcement -->
+                <div class="announcement-item">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h4 class="h5 mb-1">GPA Calculation Methodology</h4>
+                            <p class="mb-2">The GPA calculation methodology has been standardized across all departments. Your cumulative GPA is now calculated using a 4.0 scale with plus/minus grading. Detailed calculation rules are available in the student handbook.</p>
+                        </div>
+                        <span class="badge bg-light text-dark announcement-badge">ACADEMIC POLICY</span>
+                    </div>
+                    <div class="announcement-meta">
+                        <i class="far fa-clock me-1"></i> Posted: 2 weeks ago • 
+                        <i class="fas fa-user me-1 ms-2"></i> Academic Standards Committee •
+                        <i class="fas fa-users me-1 ms-2"></i> For: All Students
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Links Card
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="card-custom">
+                        <h4 class="h5 section-title">Grade-Related Resources</h4>
+                        <div class="list-group list-group-flush">
+                            <a href="/StudentGrades" class="list-group-item list-group-item-action">
+                                <i class="fas fa-chart-bar me-2 text-primary"></i>
+                                View My Grades
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <i class="fas fa-download me-2 text-success"></i>
+                                Export Grade Reports
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <i class="fas fa-question-circle me-2 text-info"></i>
+                                Grade Appeal Process
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <i class="fas fa-book me-2 text-warning"></i>
+                                Academic Policies
+                            </a>
+                        </div>
+                    </div>
+                </div> -->
+                <!-- <div class="col-lg-6">
+                    <div class="card-custom">
+                        <h4 class="h5 section-title">System Status</h4>
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Grade Portal</span>
+                                    <span class="badge bg-success">Operational</span>
+                                </div>
+                            </div>
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Export Features</span>
+                                    <span class="badge bg-success">Operational</span>
+                                </div>
+                            </div>
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Mobile Access</span>
+                                    <span class="badge bg-success">Operational</span>
+                                </div>
+                            </div>
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Next Maintenance</span>
+                                    <span class="badge bg-info">Mar 22, 10 PM</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div> -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Toggle sidebar functionality
+        document.getElementById('toggleBtn').addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const toggleIcon = this.querySelector('i');
+            
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            
+            if (sidebar.classList.contains('collapsed')) {
+                toggleIcon.classList.remove('fa-chevron-left');
+                toggleIcon.classList.add('fa-chevron-right');
+            } else {
+                toggleIcon.classList.remove('fa-chevron-right');
+                toggleIcon.classList.add('fa-chevron-left');
+            }
+        });
+        
+        // Set active menu item
+        document.querySelectorAll('.sidebar-menu a').forEach(item => {
+            if (item.getAttribute('href') === window.location.pathname) {
+                item.classList.add('active');
+            }
+            
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.sidebar-menu a').forEach(link => {
+                    link.classList.remove('active');
+                });
+                this.classList.add('active');
+            });
+        });
+
+        // Mark announcements as read
+        document.querySelectorAll('.announcement-item').forEach(item => {
+            item.addEventListener('click', function() {
+                if (!this.classList.contains('read')) {
+                    this.classList.add('read');
+                    updateUnreadCount();
+                }
+            });
+        });
+
+        function updateUnreadCount() {
+            const unreadItems = document.querySelectorAll('.announcement-item:not(.read)').length;
+            document.getElementById('unreadCount').textContent = `${unreadItems} unread announcements`;
+            
+            // Add visual indicator for read items
+            document.querySelectorAll('.announcement-item.read').forEach(item => {
+                item.style.opacity = '0.8';
+            });
+        }
+
+        // Initialize unread count
+        updateUnreadCount();
+    </script>
+</body>
+</html>

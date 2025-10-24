@@ -1,0 +1,586 @@
+@page
+@model StudentPeformanceTracker.Pages.StudentDashboardModel
+@{
+    ViewData["Title"] = "Student Dashboard";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --secondary-color: #f5f5f5;
+            --accent-color: #FF9800;
+            --text-color: #333;
+            --border-color: #e0e0e0;
+            --sidebar-width: 250px;
+            --sidebar-collapsed-width: 70px;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9f9f9;
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background-color: var(--primary-color);
+            color: white;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+        
+        .sidebar-header {
+            padding: 1.5rem 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+        
+        .sidebar-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        
+        .sidebar.collapsed .sidebar-header h3 {
+            display: none;
+        }
+        
+        .sidebar-menu {
+            padding: 1rem 0;
+        }
+        
+        .sidebar-menu ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .sidebar-menu li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .sidebar-menu i {
+            width: 24px;
+            margin-right: 1rem;
+            text-align: center;
+        }
+        
+        .sidebar.collapsed .sidebar-menu span {
+            display: none;
+        }
+        
+        .sidebar.collapsed .sidebar-menu i {
+            margin-right: 0;
+        }
+        
+        .toggle-btn {
+            position: absolute;
+            top: 1rem;
+            right: -15px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        /* Main Content Area */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            transition: all 0.3s ease;
+            min-height: 100vh;
+            background-color: #f9f9f9;
+        }
+        
+        .main-content.expanded {
+            margin-left: var(--sidebar-collapsed-width);
+        }
+        
+        .dashboard-header {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1rem 0;
+        }
+        
+        .welcome-section {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .card-custom {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .card-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .section-title {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: block;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .grade-excellent { color: #4CAF50; font-weight: bold; }
+        .grade-good { color: #FF9800; font-weight: bold; }
+        .grade-poor { color: #f44336; font-weight: bold; }
+        .grade-cell { text-align: center; font-weight: 500; }
+        .final-grade { background-color: #e8f5e8; font-weight: bold; color: #2e7d32; }
+        
+        .progress {
+            height: 8px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .schedule-item {
+            padding: 0.75rem;
+            border-left: 4px solid var(--primary-color);
+            margin-bottom: 0.5rem;
+            background-color: #f8f9fa;
+        }
+        
+        .announcement-item {
+            border-left: 4px solid var(--accent-color);
+            padding-left: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .badge-custom {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .grade-table th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>Student Portal</h3>
+        </div>
+        <button class="toggle-btn" id="toggleBtn">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="sidebar-menu">
+            <ul>
+                <li>
+                    <a href="/StudentDashboard" class="active">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/StudentGrades">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>My Grades</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/StudentAnnouncements">
+                        <i class="fas fa-bullhorn"></i>
+                        <span>Announcements</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/LoginPage">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Dashboard Header -->
+        <header class="dashboard-header">
+            <div class="container">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h1 class="h3 mb-0">Student Dashboard</h1>
+                    <div class="d-flex align-items-center">
+                        <div class="dropdown">
+                            <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle me-2"></i>Marianne Napisa
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="/StudentProfile"><i class="fas fa-user me-2"></i>My Profile</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <main class="container my-4">
+            <!-- Welcome Section -->
+            <section class="welcome-section">
+                <h2 class="h4">Welcome back, Marianne!</h2>
+                <p class="mb-0">Here's your academic overview for SY 2025-2026 Quarter 1</p>
+            </section>
+
+            <div class="row">
+                <!-- Left Column -->
+                <div class="col-lg-8">
+                    <!-- Academic Performance - Updated to match Teacher's Grading System -->
+                    <div class="card-custom">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3 class="h5 section-title">My Grades</h3>
+                            <span class="badge badge-custom">SY 2025-2026 Q1</span>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-bordered grade-table">
+                                <thead>
+                                    <tr>
+                                        <th>Subject</th>
+                                        <th>Teacher</th>
+                                        <th>Prelim (30%)</th>
+                                        <th>Midterm (30%)</th>
+                                        <th>Final (40%)</th>
+                                        <th>Final Grade</th>
+                                        <th>Remarks</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Science</td>
+                                        <td>Ms. Merionne Dela Cruz</td>
+                                        <td class="grade-cell grade-excellent">92</td>
+                                        <td class="grade-cell grade-excellent">88</td>
+                                        <td class="grade-cell grade-excellent">90</td>
+                                        <td class="grade-cell final-grade">90.0</td>
+                                        <td><span class="badge bg-success">Passed</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mathematics</td>
+                                        <td>Mr. John Smith</td>
+                                        <td class="grade-cell grade-good">85</td>
+                                        <td class="grade-cell grade-good">82</td>
+                                        <td class="grade-cell grade-good">80</td>
+                                        <td class="grade-cell final-grade">82.0</td>
+                                        <td><span class="badge bg-success">Passed</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>English</td>
+                                        <td>Ms. Sarah Johnson</td>
+                                        <td class="grade-cell grade-excellent">95</td>
+                                        <td class="grade-cell grade-excellent">96</td>
+                                        <td class="grade-cell grade-excellent">97</td>
+                                        <td class="grade-cell final-grade">96.0</td>
+                                        <td><span class="badge bg-success">Passed</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>History</td>
+                                        <td>Mr. Robert Brown</td>
+                                        <td class="grade-cell grade-poor">75</td>
+                                        <td class="grade-cell grade-poor">72</td>
+                                        <td class="grade-cell grade-poor">78</td>
+                                        <td class="grade-cell final-grade">75.0</td>
+                                        <td><span class="badge bg-warning">Conditional</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Grade Legend -->
+                        <div class="mt-3 p-3 bg-light rounded">
+                            <h6 class="mb-2">Grade Legend:</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <span class="grade-excellent"><i class="fas fa-circle me-1"></i>Excellent (90-100)</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <span class="grade-good"><i class="fas fa-circle me-1"></i>Good (75-89)</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <span class="grade-poor"><i class="fas fa-circle me-1"></i>Needs Improvement (Below 75)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Performance Summary -->
+                    <div class="card-custom">
+                        <h3 class="h5 section-title">Performance Summary</h3>
+                        <div class="row text-center">
+                            <div class="col-md-3 mb-3">
+                                <div class="stat-card">
+                                    <span class="stat-number">85.75</span>
+                                    <span class="stat-label">Average Grade</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="stat-card">
+                                    <span class="stat-number">3</span>
+                                    <span class="stat-label">Subjects Passed</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="stat-card">
+                                    <span class="stat-number">1</span>
+                                    <span class="stat-label">Needs Attention</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="stat-card">
+                                    <span class="stat-number">75%</span>
+                                    <span class="stat-label">Overall Progress</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Column -->
+                <div class="col-lg-4">
+                    <!-- Quick Stats -->
+                    <div class="card-custom">
+                        <h3 class="h5 section-title">Academic Summary</h3>
+                        
+                        <div class="row text-center">
+                            <div class="col-6 mb-3">
+                                <div class="stat-card">
+                                    <span class="stat-number">3.25</span>
+                                    <span class="stat-label">GPA</span>
+                                </div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <div class="stat-card">
+                                    <span class="stat-number">95%</span>
+                                    <span class="stat-label">Attendance</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stat-card">
+                                    <span class="stat-number">4</span>
+                                    <span class="stat-label">Subjects</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stat-card">
+                                    <span class="stat-number">2</span>
+                                    <span class="stat-label">Pending Tasks</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subject Progress -->
+                    <div class="card-custom">
+                        <h3 class="h5 section-title">Subject Performance</h3>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Science</span>
+                                <span class="grade-excellent">90.0</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-success" style="width: 90%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Mathematics</span>
+                                <span class="grade-good">82.0</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-info" style="width: 82%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>English</span>
+                                <span class="grade-excellent">96.0</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-success" style="width: 96%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>History</span>
+                                <span class="grade-poor">75.0</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-warning" style="width: 75%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Announcements -->
+                    <div class="card-custom">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3 class="h5 section-title">Recent Announcements</h3>
+                            <span class="badge badge-custom">3</span>
+                        </div>
+                        
+                        <div class="announcement-item">
+                            <h6 class="mb-1">Grade Consultation</h6>
+                            <p class="small mb-1">Schedule a meeting with your teachers to discuss your grades.</p>
+                            <small class="text-muted">Posted: 1 day ago</small>
+                        </div>
+                        
+                        <div class="announcement-item">
+                            <h6 class="mb-1">Remedial Classes</h6>
+                            <p class="small mb-1">Remedial classes available for students with grades below 75.</p>
+                            <small class="text-muted">Posted: 2 days ago</small>
+                        </div>
+                        
+                        <div class="announcement-item">
+                            <h6 class="mb-1">Next Quarter Schedule</h6>
+                            <p class="small mb-1">Quarter 2 schedule will be released next week.</p>
+                            <small class="text-muted">Posted: 3 days ago</small>
+                        </div>
+                    </div>
+
+                    <!-- Grade Improvement Tips -->
+                    <div class="card-custom">
+                        <h3 class="h5 section-title">Grade Improvement Tips</h3>
+                        
+                        <div class="mb-2">
+                            <i class="fas fa-book me-2 text-primary"></i>
+                            <span class="small">Attend all classes regularly</span>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <i class="fas fa-edit me-2 text-primary"></i>
+                            <span class="small">Submit assignments on time</span>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <i class="fas fa-users me-2 text-primary"></i>
+                            <span class="small">Join study groups</span>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <i class="fas fa-question-circle me-2 text-primary"></i>
+                            <span class="small">Ask teachers for help when needed</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Toggle sidebar functionality
+        document.getElementById('toggleBtn').addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const toggleIcon = this.querySelector('i');
+            
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            
+            if (sidebar.classList.contains('collapsed')) {
+                toggleIcon.classList.remove('fa-chevron-left');
+                toggleIcon.classList.add('fa-chevron-right');
+            } else {
+                toggleIcon.classList.remove('fa-chevron-right');
+                toggleIcon.classList.add('fa-chevron-left');
+            }
+        });
+        
+        // Set active menu item
+        document.querySelectorAll('.sidebar-menu a').forEach(item => {
+            if (item.getAttribute('href') === window.location.pathname) {
+                item.classList.add('active');
+            }
+            
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.sidebar-menu a').forEach(link => {
+                    link.classList.remove('active');
+                });
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>
