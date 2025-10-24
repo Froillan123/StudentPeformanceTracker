@@ -32,7 +32,10 @@ public class DepartmentController : ControllerBase
                 d.HeadOfDepartment,
                 d.CreatedAt,
                 d.UpdatedAt,
-                TeachersCount = d.Teachers?.Count ?? 0
+                TeachersCount = d.TeacherDepartments?.Count ?? 0,
+                // Debug info
+                TeacherDepartmentsCount = d.TeacherDepartments?.Count ?? 0,
+                TeacherDepartments = d.TeacherDepartments?.Select(td => new { td.TeacherId, td.DepartmentId }).ToList()
             });
 
             return Ok(result);
@@ -63,12 +66,12 @@ public class DepartmentController : ControllerBase
                 department.HeadOfDepartment,
                 department.CreatedAt,
                 department.UpdatedAt,
-                Teachers = department.Teachers?.Select(t => new
+                Teachers = department.TeacherDepartments?.Select(td => new
                 {
-                    t.Id,
-                    t.FirstName,
-                    t.LastName,
-                    t.Email
+                    td.Teacher.Id,
+                    td.Teacher.FirstName,
+                    td.Teacher.LastName,
+                    td.Teacher.Email
                 }).ToList()
             };
 
@@ -201,7 +204,7 @@ public class DepartmentController : ControllerBase
             }
 
             // Check if department has teachers
-            if (department.Teachers?.Any() == true)
+            if (department.TeacherDepartments?.Any() == true)
             {
                 return BadRequest(new { message = "Cannot delete department with assigned teachers" });
             }

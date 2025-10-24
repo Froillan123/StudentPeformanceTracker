@@ -12,4 +12,5 @@ public interface ICourseRepository
     Task<bool> DeleteAsync(int id);
     Task<bool> ExistsAsync(int id);
     Task<bool> CourseNameExistsAsync(string courseName);
+    Task<IEnumerable<Course>> GetByDepartmentIdAsync(int departmentId);
 }

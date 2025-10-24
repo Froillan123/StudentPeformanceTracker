@@ -1,7 +1,10 @@
 using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using StudentPeformanceTracker.DTO;
 using StudentPeformanceTracker.Models;
 using StudentPeformanceTracker.Repository.Interfaces;
+using StudentPeformanceTracker.Services;
 
 namespace StudentPeformanceTracker.Controllers;
 
@@ -12,11 +15,15 @@ public class TeacherController : ControllerBase
 {
     private readonly ITeacherRepository _teacherRepository;
     private readonly IDepartmentRepository _departmentRepository;
+    private readonly IUserRepository _userRepository;
+    private readonly AuthService _authService;
 
-    public TeacherController(ITeacherRepository teacherRepository, IDepartmentRepository departmentRepository)
+    public TeacherController(ITeacherRepository teacherRepository, IDepartmentRepository departmentRepository, IUserRepository userRepository, AuthService authService)
     {
         _teacherRepository = teacherRepository;
         _departmentRepository = departmentRepository;
+        _userRepository = userRepository;
+        _authService = authService;
     }
 
     [HttpGet]
@@ -33,8 +40,15 @@ public class TeacherController : ControllerBase
                 t.FirstName,
                 t.LastName,
                 t.Phone,
-                t.DepartmentId,
-                DepartmentName = t.Department?.DepartmentName,
+                t.HighestQualification,
+                t.Status,
+                t.EmergencyContact,
+                t.EmergencyPhone,
+                Departments = t.TeacherDepartments.Where(td => td.Department != null).Select(td => new
+                {
+                    td.DepartmentId,
+                    DepartmentName = td.Department!.DepartmentName
+                }).ToList(),
                 t.HireDate,
                 t.CreatedAt,
                 t.UpdatedAt
@@ -67,8 +81,15 @@ public class TeacherController : ControllerBase
                 teacher.FirstName,
                 teacher.LastName,
                 teacher.Phone,
-                teacher.DepartmentId,
-                DepartmentName = teacher.Department?.DepartmentName,
+                teacher.HighestQualification,
+                teacher.Status,
+                teacher.EmergencyContact,
+                teacher.EmergencyPhone,
+                Departments = teacher.TeacherDepartments.Where(td => td.Department != null).Select(td => new
+                {
+                    td.DepartmentId,
+                    DepartmentName = td.Department!.DepartmentName
+                }).ToList(),
                 teacher.HireDate,
                 teacher.CreatedAt,
                 teacher.UpdatedAt
@@ -106,20 +127,12 @@ public class TeacherController : ControllerBase
                 return BadRequest(new { message = "Email already exists" });
             }
 
-            // Validate department exists if provided
-            if (request.DepartmentId.HasValue)
-            {
-                if (!await _departmentRepository.ExistsAsync(request.DepartmentId.Value))
-                {
-                    return BadRequest(new { message = "Department not found" });
-                }
-            }
+            // Note: Department assignment is managed separately via TeacherDepartments API
 
             existingTeacher.Email = request.Email;
             existingTeacher.FirstName = request.FirstName;
             existingTeacher.LastName = request.LastName;
             existingTeacher.Phone = request.Phone;
-            existingTeacher.DepartmentId = request.DepartmentId;
             existingTeacher.HireDate = request.HireDate;
 
             var updatedTeacher = await _teacherRepository.UpdateAsync(existingTeacher);
@@ -132,8 +145,11 @@ public class TeacherController : ControllerBase
                 updatedTeacher.FirstName,
                 updatedTeacher.LastName,
                 updatedTeacher.Phone,
-                updatedTeacher.DepartmentId,
-                DepartmentName = updatedTeacher.Department?.DepartmentName,
+                Departments = updatedTeacher.TeacherDepartments.Select(td => new
+                {
+                    td.DepartmentId,
+                    DepartmentName = td.Department.DepartmentName
+                }).ToList(),
                 updatedTeacher.HireDate,
                 updatedTeacher.CreatedAt,
                 updatedTeacher.UpdatedAt
@@ -158,13 +174,22 @@ public class TeacherController : ControllerBase
                 return NotFound(new { message = "Teacher not found" });
             }
 
+            // Delete from Teacher table first
             var deleted = await _teacherRepository.DeleteAsync(id);
             if (!deleted)
             {
                 return StatusCode(500, new { message = "Failed to delete teacher" });
             }
 
-            return Ok(new { message = "Teacher deleted successfully" });
+            // Also delete from Users table
+            var userDeleted = await _userRepository.DeleteAsync(teacher.UserId);
+            if (!userDeleted)
+            {
+                // Log warning but don't fail the operation since teacher is already deleted
+                // This could happen if the user was already deleted or doesn't exist
+            }
+
+            return Ok(new { message = "Teacher and associated user account deleted successfully" });
         }
         catch (Exception ex)
         {
@@ -186,8 +211,11 @@ public class TeacherController : ControllerBase
                 t.FirstName,
                 t.LastName,
                 t.Phone,
-                t.DepartmentId,
-                DepartmentName = t.Department?.DepartmentName,
+                Departments = t.TeacherDepartments.Select(td => new
+                {
+                    td.DepartmentId,
+                    DepartmentName = td.Department.DepartmentName
+                }).ToList(),
                 t.HireDate,
                 t.CreatedAt,
                 t.UpdatedAt
@@ -200,6 +228,70 @@ public class TeacherController : ControllerBase
             return StatusCode(500, new { message = "Error retrieving teachers by department", error = ex.Message });
         }
     }
+
+    [HttpPost("admin-create")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<object>> AdminCreateTeacher([FromBody] AdminCreateTeacherRequest request)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            // Check if username already exists
+            if (await _authService.UsernameExistsAsync(request.Username))
+            {
+                return Conflict(new { message = "Username already exists" });
+            }
+
+            // Check if email already exists
+            if (await _authService.EmailExistsAsync(request.Email))
+            {
+                return Conflict(new { message = "Email already exists" });
+            }
+
+            // Create teacher registration request
+            var teacherRequest = new TeacherRegisterRequest
+            {
+                Username = request.Username,
+                Password = request.Password,
+                Email = request.Email,
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                Phone = request.Phone,
+                HighestQualification = request.HighestQualification,
+                Status = request.Status,
+                EmergencyContact = request.EmergencyContact,
+                EmergencyPhone = request.EmergencyPhone,
+                HireDate = request.HireDate
+            };
+
+            // Register teacher with Active status (admin-created)
+            var result = await _authService.RegisterTeacherAsync(teacherRequest, isAdminCreated: true);
+            
+            if (result == null)
+            {
+                return BadRequest(new { message = "Failed to create teacher account" });
+            }
+
+            return CreatedAtAction(nameof(GetTeacher), new { id = result.UserId }, new
+            {
+                UserId = result.UserId,
+                Username = result.Username,
+                Email = result.Email,
+                FirstName = result.FirstName,
+                LastName = result.LastName,
+                Role = result.Role,
+                Message = result.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error creating teacher", error = ex.Message });
+        }
+    }
 }
 
 public class CreateTeacherRequest
@@ -209,8 +301,8 @@ public class CreateTeacherRequest
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string? Phone { get; set; }
-    public int? DepartmentId { get; set; }
     public DateTime? HireDate { get; set; }
+    // Note: Departments are assigned separately via TeacherDepartments API
 }
 
 public class UpdateTeacherRequest
@@ -219,6 +311,10 @@ public class UpdateTeacherRequest
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string? Phone { get; set; }
-    public int? DepartmentId { get; set; }
+    public string? HighestQualification { get; set; }
+    public string Status { get; set; } = "Full-time";
+    public string? EmergencyContact { get; set; }
+    public string? EmergencyPhone { get; set; }
     public DateTime? HireDate { get; set; }
+    // Note: Departments are managed separately via TeacherDepartments API
 }

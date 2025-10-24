@@ -18,7 +18,8 @@ public class TeacherRepository : ITeacherRepository
     {
         return await _context.Teachers
             .Include(t => t.User)
-            .Include(t => t.Department)
+            .Include(t => t.TeacherDepartments)
+                .ThenInclude(td => td.Department)
             .OrderBy(t => t.LastName)
             .ThenBy(t => t.FirstName)
             .ToListAsync();
@@ -28,7 +29,8 @@ public class TeacherRepository : ITeacherRepository
     {
         return await _context.Teachers
             .Include(t => t.User)
-            .Include(t => t.Department)
+            .Include(t => t.TeacherDepartments)
+                .ThenInclude(td => td.Department)
             .FirstOrDefaultAsync(t => t.Id == id);
     }
 
@@ -36,7 +38,8 @@ public class TeacherRepository : ITeacherRepository
     {
         return await _context.Teachers
             .Include(t => t.User)
-            .Include(t => t.Department)
+            .Include(t => t.TeacherDepartments)
+                .ThenInclude(td => td.Department)
             .FirstOrDefaultAsync(t => t.UserId == userId);
     }
 
@@ -44,7 +47,8 @@ public class TeacherRepository : ITeacherRepository
     {
         return await _context.Teachers
             .Include(t => t.User)
-            .Include(t => t.Department)
+            .Include(t => t.TeacherDepartments)
+                .ThenInclude(td => td.Department)
             .FirstOrDefaultAsync(t => t.Email == email);
     }
 
@@ -52,8 +56,9 @@ public class TeacherRepository : ITeacherRepository
     {
         return await _context.Teachers
             .Include(t => t.User)
-            .Include(t => t.Department)
-            .Where(t => t.DepartmentId == departmentId)
+            .Include(t => t.TeacherDepartments)
+                .ThenInclude(td => td.Department)
+            .Where(t => t.TeacherDepartments.Any(td => td.DepartmentId == departmentId))
             .OrderBy(t => t.LastName)
             .ThenBy(t => t.FirstName)
             .ToListAsync();
@@ -106,6 +111,6 @@ public class TeacherRepository : ITeacherRepository
 
     public async Task<int> GetCountByDepartmentAsync(int departmentId)
     {
-        return await _context.Teachers.CountAsync(t => t.DepartmentId == departmentId);
+        return await _context.Teachers.CountAsync(t => t.TeacherDepartments.Any(td => td.DepartmentId == departmentId));
     }
 }

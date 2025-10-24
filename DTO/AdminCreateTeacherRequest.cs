@@ -1,15 +1,16 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
-namespace StudentPeformanceTracker.Models;
+namespace StudentPeformanceTracker.DTO;
 
-public class Teacher
+public class AdminCreateTeacherRequest
 {
-    [Key]
-    public int Id { get; set; }
+    [Required]
+    [MaxLength(50)]
+    public string Username { get; set; } = string.Empty;
 
     [Required]
-    public int UserId { get; set; }
+    [MinLength(8)]
+    public string Password { get; set; } = string.Empty;
 
     [Required]
     [EmailAddress]
@@ -30,6 +31,7 @@ public class Teacher
     [MaxLength(100)]
     public string? HighestQualification { get; set; }
 
+    [Required]
     [MaxLength(20)]
     public string Status { get; set; } = "Full-time"; // Full-time or Part-time
 
@@ -40,15 +42,4 @@ public class Teacher
     public string? EmergencyPhone { get; set; }
 
     public DateTime? HireDate { get; set; }
-
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-    // Navigation properties
-    [ForeignKey("UserId")]
-    public User User { get; set; } = null!;
-
-    // Many-to-many relationship with Departments through TeacherDepartments
-    public ICollection<TeacherDepartment> TeacherDepartments { get; set; } = new List<TeacherDepartment>();
 }

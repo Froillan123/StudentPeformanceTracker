@@ -17,6 +17,8 @@ public class DepartmentRepository : IDepartmentRepository
     public async Task<IEnumerable<Department>> GetAllAsync()
     {
         return await _context.Departments
+            .Include(d => d.TeacherDepartments)
+                .ThenInclude(td => td.Teacher)
             .OrderBy(d => d.DepartmentName)
             .ToListAsync();
     }
@@ -24,7 +26,8 @@ public class DepartmentRepository : IDepartmentRepository
     public async Task<Department?> GetByIdAsync(int id)
     {
         return await _context.Departments
-            .Include(d => d.Teachers)
+            .Include(d => d.TeacherDepartments)
+                .ThenInclude(td => td.Teacher)
             .FirstOrDefaultAsync(d => d.Id == id);
     }
 

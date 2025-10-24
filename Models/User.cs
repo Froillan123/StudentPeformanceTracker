@@ -18,6 +18,10 @@ public class User
     [MaxLength(20)]
     public string Role { get; set; } = "Student"; // Student, Teacher, Admin
 
+    [Required]
+    [MaxLength(20)]
+    public string Status { get; set; } = "Inactive"; // Active, Inactive
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

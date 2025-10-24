@@ -85,10 +85,7 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = "Student number is required for student registration" });
         }
 
-        if (request.Role == "Teacher" && string.IsNullOrWhiteSpace(request.Department))
-        {
-            return BadRequest(new { message = "Department is required for teacher registration" });
-        }
+        // Note: Department assignment removed - admins will assign departments after registration
 
         var result = await _authService.RegisterAsync(request);
 
@@ -173,52 +170,6 @@ public class AuthController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Register a new teacher
-    /// </summary>
-    [HttpPost("register/teacher")]
-    [AllowAnonymous]
-    public async Task<IActionResult> RegisterTeacher([FromBody] TeacherRegisterRequest request)
-    {
-        // Validate required fields
-        if (string.IsNullOrWhiteSpace(request.Username) ||
-            string.IsNullOrWhiteSpace(request.Password) ||
-            string.IsNullOrWhiteSpace(request.Email) ||
-            string.IsNullOrWhiteSpace(request.FirstName) ||
-            string.IsNullOrWhiteSpace(request.LastName) ||
-            request.DepartmentId <= 0)
-        {
-            return BadRequest(new { message = "All required fields must be provided" });
-        }
-
-        if (request.Password.Length < 6)
-        {
-            return BadRequest(new { message = "Password must be at least 6 characters long" });
-        }
-
-        var result = await _authService.RegisterTeacherAsync(request);
-
-        if (result == null)
-        {
-            return Conflict(new { message = "User with this username or email already exists" });
-        }
-
-        _logger.LogInformation($"New teacher registered: {result.Username}");
-
-        return CreatedAtAction(nameof(RegisterTeacher), new
-        {
-            message = result.Message,
-            user = new
-            {
-                userId = result.UserId,
-                username = result.Username,
-                email = result.Email,
-                firstName = result.FirstName,
-                lastName = result.LastName,
-                role = result.Role
-            }
-        });
-    }
 
     /// <summary>
     /// Register a new admin
@@ -359,7 +310,7 @@ public class AuthController : ControllerBase
         var accessTokenCookieOptions = new CookieOptions
         {
             HttpOnly = true, // Prevents JavaScript access (XSS protection)
-            Secure = true, // Only sent over HTTPS
+            Secure = false, // Set to true in production with HTTPS
             SameSite = SameSiteMode.Strict, // CSRF protection
             Expires = DateTimeOffset.UtcNow.AddMinutes(15)
         };
@@ -369,7 +320,7 @@ public class AuthController : ControllerBase
         var refreshTokenCookieOptions = new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
+            Secure = false, // Set to true in production with HTTPS
             SameSite = SameSiteMode.Strict,
             Expires = DateTimeOffset.UtcNow.AddDays(7)
         };

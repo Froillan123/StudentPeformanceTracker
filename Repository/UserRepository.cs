@@ -84,4 +84,29 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users.AnyAsync(u => u.Username == username);
     }
+
+    public async Task<bool> UpdateStatusAsync(int userId, string status)
+    {
+        if (status != "Active" && status != "Inactive")
+            return false;
+
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            return false;
+
+        user.Status = status;
+        user.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<IEnumerable<User>> GetByStatusAsync(string status)
+    {
+        return await _context.Users
+            .Include(u => u.Student)
+            .Include(u => u.Teacher)
+            .Include(u => u.Admin)
+            .Where(u => u.Status == status)
+            .ToListAsync();
+    }
 }

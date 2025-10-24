@@ -15,12 +15,25 @@ namespace StudentPeformanceTracker.Data
         public DbSet<Admin> Admins { get; set; }
         public DbSet<Course> Courses { get; set; }
         public DbSet<Department> Departments { get; set; }
+        public DbSet<TeacherDepartment> TeacherDepartments { get; set; }
 
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Configure DateTime properties to be stored as UTC
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                foreach (var property in entityType.GetProperties())
+                {
+                    if (property.ClrType == typeof(DateTime) || property.ClrType == typeof(DateTime?))
+                    {
+                        property.SetColumnType("timestamp with time zone");
+                    }
+                }
+            }
 
             // User configuration
             modelBuilder.Entity<User>(entity =>
@@ -80,13 +93,32 @@ namespace StudentPeformanceTracker.Data
                 entity.HasIndex(e => e.DepartmentCode).IsUnique();
             });
 
-            // Teacher-Department relationship
-            modelBuilder.Entity<Teacher>(entity =>
+            // Course configuration
+            modelBuilder.Entity<Course>(entity =>
             {
-                entity.HasOne(t => t.Department)
-                    .WithMany(d => d.Teachers)
-                    .HasForeignKey(t => t.DepartmentId)
+                entity.HasOne(c => c.Department)
+                    .WithMany()
+                    .HasForeignKey(c => c.DepartmentId)
                     .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // TeacherDepartment many-to-many junction table configuration
+            modelBuilder.Entity<TeacherDepartment>(entity =>
+            {
+                // Composite primary key
+                entity.HasKey(td => new { td.TeacherId, td.DepartmentId });
+
+                // Teacher relationship
+                entity.HasOne(td => td.Teacher)
+                    .WithMany(t => t.TeacherDepartments)
+                    .HasForeignKey(td => td.TeacherId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Department relationship
+                entity.HasOne(td => td.Department)
+                    .WithMany(d => d.TeacherDepartments)
+                    .HasForeignKey(td => td.DepartmentId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
         }

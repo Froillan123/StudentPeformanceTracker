@@ -26,5 +26,6 @@ public class Department
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
-    public ICollection<Teacher> Teachers { get; set; } = new List<Teacher>();
+    // Many-to-many relationship with Teachers through TeacherDepartments
+    public ICollection<TeacherDepartment> TeacherDepartments { get; set; } = new List<TeacherDepartment>();
 }

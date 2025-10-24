@@ -370,6 +370,51 @@
         </div>
     </div>
 
+    <!-- Assign Teachers Modal -->
+    <div class="modal fade" id="assignTeachersModal" tabindex="-1" aria-labelledby="assignTeachersModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="assignTeachersModalLabel">Assign Teachers to Department</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <h6>Department: <span id="selectedDepartmentName"></span></h6>
+                    </div>
+                    
+                    <!-- Current Teachers in Department -->
+                    <div class="mb-4">
+                        <h6>Current Teachers in Department</h6>
+                        <div id="currentTeachersList" class="border rounded p-3" style="min-height: 100px;">
+                            <!-- Current teachers will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Available Teachers -->
+                    <div class="mb-3">
+                        <h6>Available Teachers</h6>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <select class="form-select" id="availableTeachersSelect">
+                                    <option value="">Select a teacher to assign...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-success w-100" id="assignTeacherBtn">
+                                    <i class="fas fa-plus me-2"></i>Assign Teacher
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     
@@ -382,9 +427,11 @@
         // Load departments from API
         async function loadDepartments() {
             try {
-                const response = await fetch('/api/v1/department');
+                // Add cache-busting parameter to force fresh data
+                const response = await fetch(`/api/v1/department?t=${Date.now()}`);
                 if (response.ok) {
                     const departments = await response.json();
+                    console.log('Departments loaded:', departments); // Debug log
                     displayDepartments(departments);
                 } else {
                     console.error('Failed to load departments');
@@ -399,7 +446,10 @@
             const tbody = document.getElementById('departmentsTableBody');
             tbody.innerHTML = '';
 
+            console.log('Displaying departments:', departments); // Debug log
+
             departments.forEach(dept => {
+                console.log('Department:', dept.departmentName, 'teachersCount:', dept.teachersCount); // Debug log
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${dept.departmentName}</td>
@@ -409,6 +459,9 @@
                     <td>
                         <button class="btn btn-sm btn-outline-primary action-btn" onclick="editDepartment(${dept.id})" title="Edit">
                             <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-success action-btn" onclick="assignTeachers(${dept.id}, '${dept.departmentName}')" title="Assign Teachers">
+                            <i class="fas fa-users"></i>
                         </button>
                         <button class="btn btn-sm btn-outline-danger action-btn" onclick="deleteDepartment(${dept.id})" title="Delete">
                             <i class="fas fa-trash"></i>
@@ -580,6 +633,164 @@
             toast.addEventListener('hidden.bs.toast', () => {
                 toast.remove();
             });
+        }
+
+        // Teacher Assignment Functions
+        let currentDepartmentId = null;
+
+        // Open assign teachers modal
+        function assignTeachers(departmentId, departmentName) {
+            currentDepartmentId = departmentId;
+            document.getElementById('selectedDepartmentName').textContent = departmentName;
+            
+            // Load current teachers in department
+            loadCurrentTeachers(departmentId);
+            
+            // Load available teachers
+            loadAvailableTeachers();
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('assignTeachersModal'));
+            modal.show();
+        }
+
+        // Load current teachers in department
+        async function loadCurrentTeachers(departmentId) {
+            try {
+                const response = await fetch(`/api/v1/teacher-department/department/${departmentId}`);
+                if (response.ok) {
+                    const teachers = await response.json();
+                    displayCurrentTeachers(teachers);
+                } else {
+                    console.error('Failed to load current teachers');
+                }
+            } catch (error) {
+                console.error('Error loading current teachers:', error);
+            }
+        }
+
+        // Display current teachers
+        function displayCurrentTeachers(teachers) {
+            const container = document.getElementById('currentTeachersList');
+            
+            if (teachers.length === 0) {
+                container.innerHTML = '<p class="text-muted">No teachers assigned to this department.</p>';
+                return;
+            }
+
+            const teachersHtml = teachers.map(teacher => `
+                <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                    <div>
+                        <strong>${teacher.firstName} ${teacher.lastName}</strong>
+                        <br>
+                        <small class="text-muted">${teacher.email}</small>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" onclick="unassignTeacher(${teacher.id})">
+                        <i class="fas fa-times"></i> Remove
+                    </button>
+                </div>
+            `).join('');
+
+            container.innerHTML = teachersHtml;
+        }
+
+        // Load available teachers (unassigned)
+        async function loadAvailableTeachers() {
+            try {
+                const response = await fetch('/api/v1/teacher-department/unassigned-teachers');
+                if (response.ok) {
+                    const teachers = await response.json();
+                    populateAvailableTeachersSelect(teachers);
+                } else {
+                    console.error('Failed to load available teachers');
+                }
+            } catch (error) {
+                console.error('Error loading available teachers:', error);
+            }
+        }
+
+        // Populate available teachers select
+        function populateAvailableTeachersSelect(teachers) {
+            const select = document.getElementById('availableTeachersSelect');
+            select.innerHTML = '<option value="">Select a teacher to assign...</option>';
+            
+            teachers.forEach(teacher => {
+                const option = document.createElement('option');
+                option.value = teacher.id;
+                option.textContent = `${teacher.firstName} ${teacher.lastName} (${teacher.email})`;
+                select.appendChild(option);
+            });
+        }
+
+        // Assign teacher to department
+        document.getElementById('assignTeacherBtn').addEventListener('click', async function() {
+            const teacherId = document.getElementById('availableTeachersSelect').value;
+            
+            if (!teacherId) {
+                showToast('Please select a teacher to assign', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/teacher-department/assign', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        teacherId: parseInt(teacherId),
+                        departmentId: currentDepartmentId
+                    })
+                });
+
+                if (response.ok) {
+                    showToast('Teacher assigned successfully!', 'success');
+                    // Reload current teachers and available teachers
+                    loadCurrentTeachers(currentDepartmentId);
+                    loadAvailableTeachers();
+                    loadDepartments(); // Refresh department list to update teacher count
+                    // Clear selection
+                    document.getElementById('availableTeachersSelect').value = '';
+                } else {
+                    const error = await response.json();
+                    showToast(error.message || 'Failed to assign teacher', 'error');
+                }
+            } catch (error) {
+                console.error('Error assigning teacher:', error);
+                showToast('Error assigning teacher', 'error');
+            }
+        });
+
+        // Unassign teacher from department
+        async function unassignTeacher(teacherId) {
+            if (confirm('Are you sure you want to remove this teacher from the department?')) {
+                try {
+                    const response = await fetch('/api/v1/teacher-department/unassign', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            teacherId: teacherId,
+                            departmentId: currentDepartmentId
+                        })
+                    });
+
+                    if (response.ok) {
+                        showToast('Teacher removed successfully!', 'success');
+                        // Reload current teachers and available teachers
+                        loadCurrentTeachers(currentDepartmentId);
+                        loadAvailableTeachers();
+                        loadDepartments(); // Refresh department list to update teacher count
+                    } else {
+                        const error = await response.json();
+                        showToast(error.message || 'Failed to remove teacher', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error removing teacher:', error);
+                    showToast('Error removing teacher', 'error');
+                }
+            }
         }
     </script>
 </body>

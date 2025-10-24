@@ -237,14 +237,50 @@
 
         <!-- Page Content -->
         <main class="container my-4">
+            <!-- User Filter Section -->
+            <div class="card-custom">
+                <h3 class="section-title">Filter Users</h3>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="filterStatus" class="form-label">Filter by Status</label>
+                            <select class="form-select" id="filterStatus">
+                                <option value="">All Users</option>
+                                <option value="Active">Active Users</option>
+                                <option value="Inactive">Pending Users</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="filterRole" class="form-label">Filter by Role</label>
+                            <select class="form-select" id="filterRole">
+                                <option value="">All Roles</option>
+                                <option value="Student">Students</option>
+                                <option value="Teacher">Teachers</option>
+                                <option value="Admin">Admins</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-outline-primary" onclick="filterUsers()">
+                                <i class="fas fa-filter me-2"></i>Filter Users
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary ms-2" onclick="clearFilter()">
+                                <i class="fas fa-times me-2"></i>Clear Filter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- User List -->
             <div class="card-custom">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h3 class="section-title mb-0">User List</h3>
                     <div>
-                        <button class="btn btn-primary">
-                            <i class="fas fa-plus me-2"></i>Add User
-                        </button>
+                        <span class="badge bg-primary" id="userCount">Total: 0</span>
                     </div>
                 </div>
                 
@@ -254,53 +290,15 @@
                             <tr>
                                 <th>Username</th>
                                 <th>Email</th>
+                                <th>Name</th>
                                 <th>Role</th>
                                 <th>Status</th>
-                                <th>Last Login</th>
+                                <th>Registration Date</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td>admin</td>
-                                <td>admin@example.com</td>
-                                <td><span class="badge bg-danger">Admin</span></td>
-                                <td><span class="badge bg-success">Active</span></td>
-                                <td>2024-01-15 10:30</td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-primary action-btn" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-outline-warning action-btn" title="Reset Password">
-                                            <i class="fas fa-key"></i>
-                                        </button>
-                                        <button class="btn btn-outline-danger action-btn" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>marianne</td>
-                                <td>marianne@example.com</td>
-                                <td><span class="badge bg-primary">Student</span></td>
-                                <td><span class="badge bg-success">Active</span></td>
-                                <td>2024-01-15 09:15</td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-primary action-btn" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-outline-warning action-btn" title="Reset Password">
-                                            <i class="fas fa-key"></i>
-                                        </button>
-                                        <button class="btn btn-outline-danger action-btn" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
+                        <tbody id="userTableBody">
+                            <!-- Users will be loaded here via JavaScript -->
                         </tbody>
                     </table>
                 </div>
@@ -343,6 +341,196 @@
                 this.classList.add('active');
             });
         });
+
+        // Load users on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUsers();
+        });
+
+        // Load users from API
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/v1/user-management/active');
+                if (response.ok) {
+                    const users = await response.json();
+                    displayUsers(users);
+                } else {
+                    console.error('Failed to load users');
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+        }
+
+        // Display users in the table
+        function displayUsers(users) {
+            const tbody = document.getElementById('userTableBody');
+            if (!tbody) return;
+
+            // Clear existing rows
+            tbody.innerHTML = '';
+
+            if (users.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-4">
+                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No users found.</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                const statusBadge = user.status === 'Active' 
+                    ? '<span class="badge bg-success">Active</span>' 
+                    : '<span class="badge bg-warning">Pending</span>';
+                
+                const roleBadge = getRoleBadge(user.role);
+                const actionButtons = getActionButtons(user);
+
+                row.innerHTML = `
+                    <td>${user.username}</td>
+                    <td>${user.email}</td>
+                    <td>${user.firstName} ${user.lastName}</td>
+                    <td>${roleBadge}</td>
+                    <td>${statusBadge}</td>
+                    <td>${new Date(user.createdAt).toLocaleDateString()}</td>
+                    <td>${actionButtons}</td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Update user count
+            const userCount = document.getElementById('userCount');
+            if (userCount) {
+                userCount.textContent = `Total: ${users.length}`;
+            }
+        }
+
+        // Get role badge HTML
+        function getRoleBadge(role) {
+            const badges = {
+                'Admin': '<span class="badge bg-danger">Admin</span>',
+                'Teacher': '<span class="badge bg-info">Teacher</span>',
+                'Student': '<span class="badge bg-primary">Student</span>'
+            };
+            return badges[role] || '<span class="badge bg-secondary">Unknown</span>';
+        }
+
+        // Get action buttons HTML
+        function getActionButtons(user) {
+            let buttons = '';
+            
+            if (user.status === 'Inactive') {
+                buttons += `
+                    <button class="btn btn-outline-success action-btn" title="Activate User" onclick="activateUser(${user.id})">
+                        <i class="fas fa-check"></i>
+                    </button>
+                `;
+            } else {
+                buttons += `
+                    <button class="btn btn-outline-warning action-btn" title="Deactivate User" onclick="deactivateUser(${user.id})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+            }
+            
+            buttons += `
+                <button class="btn btn-outline-primary action-btn" title="View Details" onclick="viewUser(${user.id})">
+                    <i class="fas fa-eye"></i>
+                </button>
+            `;
+            
+            return `<div class="btn-group btn-group-sm">${buttons}</div>`;
+        }
+
+        // Filter users
+        async function filterUsers() {
+            const status = document.getElementById('filterStatus').value;
+            const role = document.getElementById('filterRole').value;
+            
+            try {
+                let url = '/api/v1/user-management/active';
+                if (status === 'Inactive') {
+                    url = '/api/v1/user-management/pending';
+                }
+                
+                const response = await fetch(url);
+                if (response.ok) {
+                    let users = await response.json();
+                    
+                    // Filter by role if specified
+                    if (role) {
+                        users = users.filter(user => user.role === role);
+                    }
+                    
+                    displayUsers(users);
+                } else {
+                    console.error('Failed to filter users');
+                }
+            } catch (error) {
+                console.error('Error filtering users:', error);
+            }
+        }
+
+        // Clear filter
+        function clearFilter() {
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterRole').value = '';
+            loadUsers();
+        }
+
+        // Activate user
+        async function activateUser(userId) {
+            if (confirm('Are you sure you want to activate this user?')) {
+                try {
+                    const response = await fetch(`/api/v1/user-management/${userId}/activate`, {
+                        method: 'PUT'
+                    });
+                    
+                    if (response.ok) {
+                        alert('User activated successfully!');
+                        loadUsers(); // Reload the list
+                    } else {
+                        const error = await response.json();
+                        alert(`Failed to activate user: ${error.message}`);
+                    }
+                } catch (error) {
+                    console.error('Error activating user:', error);
+                    alert('Error activating user');
+                }
+            }
+        }
+
+        // Deactivate user
+        async function deactivateUser(userId) {
+            if (confirm('Are you sure you want to deactivate this user?')) {
+                try {
+                    const response = await fetch(`/api/v1/user-management/${userId}/deactivate`, {
+                        method: 'PUT'
+                    });
+                    
+                    if (response.ok) {
+                        alert('User deactivated successfully!');
+                        loadUsers(); // Reload the list
+                    } else {
+                        const error = await response.json();
+                        alert(`Failed to deactivate user: ${error.message}`);
+                    }
+                } catch (error) {
+                    console.error('Error deactivating user:', error);
+                    alert('Error deactivating user');
+                }
+            }
+        }
+
+        // View user details
+        function viewUser(userId) {
+            alert(`View user details for ID: ${userId}`);
+        }
     </script>
 </body>
 </html>

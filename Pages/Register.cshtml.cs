@@ -1,10 +1,18 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using StudentPeformanceTracker.Configuration;
 
 namespace StudentPeformanceTracker.Pages
 {
     public class RegisterModel : PageModel
     {
+        private readonly ApiConfiguration _apiConfig;
+
+        public RegisterModel(ApiConfiguration apiConfig)
+        {
+            _apiConfig = apiConfig;
+        }
+
         [BindProperty]
         public string FirstName { get; set; } = string.Empty;
 
@@ -82,7 +90,7 @@ namespace StudentPeformanceTracker.Pages
 
                 // Call API to register student
                 using var httpClient = new HttpClient();
-                var response = await httpClient.PostAsJsonAsync("https://localhost:5199/api/v1/auth/register/student", registrationData);
+                var response = await httpClient.PostAsJsonAsync(_apiConfig.RegisterStudentEndpoint, registrationData);
 
                 if (response.IsSuccessStatusCode)
                 {

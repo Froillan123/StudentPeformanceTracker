@@ -20,7 +20,7 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 {
     serverOptions.ListenLocalhost(5199, listenOptions =>
     {
-        listenOptions.UseHttps();
+        // listenOptions.UseHttps(); // Commented out for local development
     });
 });
 
@@ -41,7 +41,10 @@ if (!string.IsNullOrEmpty(databaseUrl) && databaseUrl.StartsWith("postgresql://"
     // Handle port - use 5432 as default if not specified
     var port = uri.Port == -1 ? 5432 : uri.Port;
     
-    connectionString = $"Host={uri.Host};Database={uri.AbsolutePath.TrimStart('/')};Username={username};Password={password};Port={port};SslMode=Require;ChannelBinding=Require";
+    // Check if this is a Neon database (requires SSL) or local database
+    var isNeonDatabase = uri.Host.Contains("neon.tech") || uri.Host.Contains("aws.neon.tech");
+    var sslMode = isNeonDatabase ? "Require" : (builder.Environment.IsDevelopment() ? "Disable" : "Require");
+    connectionString = $"Host={uri.Host};Database={uri.AbsolutePath.TrimStart('/')};Username={username};Password={password};Port={port};SslMode={sslMode}";
 }
 else
 {
@@ -63,6 +66,7 @@ builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
 builder.Services.AddSingleton<JwtService>();
 builder.Services.AddSingleton<RedisService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<UserManagementService>();
 
 // JWT Authentication configuration
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
@@ -136,6 +140,9 @@ builder.Services.AddApiVersioning(options =>
     options.SubstituteApiVersionInUrl = true;
 });
 
+// Register API Configuration singleton
+builder.Services.AddSingleton(StudentPeformanceTracker.Configuration.ApiConfiguration.LoadFromEnvironment());
+
 // Add HttpClient for API calls from Razor Pages
 builder.Services.AddHttpClient("default", client =>
 {
@@ -145,13 +152,13 @@ builder.Services.AddHttpClient("default", client =>
 .ConfigurePrimaryHttpMessageHandler(() =>
 {
     var handler = new HttpClientHandler();
-    
+
     // In development, ignore SSL certificate errors
     if (builder.Environment.IsDevelopment())
     {
         handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
     }
-    
+
     return handler;
 });
 
@@ -198,14 +205,17 @@ builder.Services.AddRazorPages();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+// Enable Swagger in all environments for easier API testing
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Student Performance Tracker API v1");
+    c.RoutePrefix = "swagger"; // Access at https://localhost:5199/swagger
+});
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Student Performance Tracker API v1");
-        c.RoutePrefix = "swagger"; // Access at https://localhost:5199/swagger
-    });
+    // Development-specific configurations can go here
 }
 
 if (!app.Environment.IsDevelopment())
@@ -221,7 +231,7 @@ if (!app.Environment.IsDevelopment())
 //     DbInitializer.Initialize(db);
 // }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); // Commented out for local development
 
 app.UseRouting();
 

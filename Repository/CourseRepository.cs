@@ -65,4 +65,12 @@ public class CourseRepository : ICourseRepository
     {
         return await _context.Courses.AnyAsync(c => c.CourseName == courseName);
     }
+
+    public async Task<IEnumerable<Course>> GetByDepartmentIdAsync(int departmentId)
+    {
+        return await _context.Courses
+            .Include(c => c.Department)
+            .Where(c => c.DepartmentId == departmentId)
+            .ToListAsync();
+    }
 }

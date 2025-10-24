@@ -1,10 +1,18 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using StudentPeformanceTracker.Configuration;
 
 namespace StudentPeformanceTracker.Pages.Register;
 
 public class AdminModel : PageModel
 {
+    private readonly ApiConfiguration _apiConfig;
+
+    public AdminModel(ApiConfiguration apiConfig)
+    {
+        _apiConfig = apiConfig;
+    }
+
     [BindProperty]
     public string SecretPassword { get; set; } = string.Empty;
 
@@ -103,7 +111,7 @@ public class AdminModel : PageModel
 
             // Call API to register admin
             using var httpClient = new HttpClient();
-            var response = await httpClient.PostAsJsonAsync("https://localhost:5199/api/v1/auth/register/admin", registrationData);
+            var response = await httpClient.PostAsJsonAsync(_apiConfig.RegisterAdminEndpoint, registrationData);
 
             if (response.IsSuccessStatusCode)
             {

@@ -14,7 +14,12 @@ public class Course
     [MaxLength(500)]
     public string? Description { get; set; }
 
+    public int? DepartmentId { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    public Department? Department { get; set; }
 }

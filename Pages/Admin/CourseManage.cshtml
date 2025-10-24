@@ -258,6 +258,31 @@
                 <strong>Demo Mode:</strong> This is a frontend demonstration. Form submissions and data operations are not functional.
             </div>
 
+            <!-- Department Filter Section -->
+            <div class="card-custom">
+                <h3 class="section-title">Filter Courses</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="filterDepartment" class="form-label">Filter by Department</label>
+                            <select class="form-select" id="filterDepartment">
+                                <option value="">All Departments</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-outline-primary" onclick="filterCourses()">
+                                <i class="fas fa-filter me-2"></i>Filter Courses
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary ms-2" onclick="clearFilter()">
+                                <i class="fas fa-times me-2"></i>Clear Filter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Course Form Section -->
             <div class="card-custom">
                 <h3 class="section-title">Add New Course</h3>
@@ -281,20 +306,9 @@
                     <div class="row">
                         <div class="col-md-4">
                             <div class="mb-3">
-                                <label for="department" class="form-label">Department</label>
-                                <select class="form-select" id="department" name="department">
-                                    <option value="Computer Science">Computer Science</option>
-                                    <option value="Mathematics">Mathematics</option>
-                                    <option value="Physics">Physics</option>
-                                    <option value="Chemistry">Chemistry</option>
-                                    <option value="Biology">Biology</option>
-                                    <option value="Engineering">Engineering</option>
-                                    <option value="Business">Business</option>
-                                    <option value="Economics">Economics</option>
-                                    <option value="Psychology">Psychology</option>
-                                    <option value="Sociology">Sociology</option>
-                                    <option value="English">English</option>
-                                    <option value="History">History</option>
+                                <label for="departmentId" class="form-label">Department</label>
+                                <select class="form-select" id="departmentId" name="departmentId">
+                                    <option value="">Select Department</option>
                                 </select>
                             </div>
                         </div>
@@ -466,10 +480,156 @@
             });
         });
 
+        // Load departments and courses on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDepartments();
+            loadCourses();
+        });
+
+        // Load departments from API
+        async function loadDepartments() {
+            try {
+                const response = await fetch('/api/v1/department');
+                if (response.ok) {
+                    const departments = await response.json();
+                    const departmentSelects = document.querySelectorAll('#departmentId, #filterDepartment');
+                    
+                    departmentSelects.forEach(select => {
+                        // Clear existing options except the first one
+                        while (select.children.length > 1) {
+                            select.removeChild(select.lastChild);
+                        }
+                        
+                        departments.forEach(dept => {
+                            const option = document.createElement('option');
+                            option.value = dept.id;
+                            option.textContent = dept.departmentName;
+                            select.appendChild(option);
+                        });
+                    });
+                } else {
+                    console.error('Failed to load departments');
+                }
+            } catch (error) {
+                console.error('Error loading departments:', error);
+            }
+        }
+
+        // Load courses from API
+        async function loadCourses() {
+            try {
+                const response = await fetch('/api/v1/course');
+                if (response.ok) {
+                    const courses = await response.json();
+                    displayCourses(courses);
+                } else {
+                    console.error('Failed to load courses');
+                }
+            } catch (error) {
+                console.error('Error loading courses:', error);
+            }
+        }
+
+        // Display courses in the table
+        function displayCourses(courses) {
+            const tbody = document.querySelector('tbody');
+            if (!tbody) return;
+
+            // Clear existing rows
+            tbody.innerHTML = '';
+
+            if (courses.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="10" class="text-center py-4">
+                            <i class="fas fa-book fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No courses found. Add your first course using the form above.</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            courses.forEach(course => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><span class="course-code">${course.courseName}</span></td>
+                    <td>${course.description || 'N/A'}</td>
+                    <td>${course.departmentName || 'No Department'}</td>
+                    <td>N/A</td>
+                    <td>N/A</td>
+                    <td>N/A</td>
+                    <td>N/A</td>
+                    <td>N/A</td>
+                    <td><span class="badge bg-success">Active</span></td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary action-btn" title="Edit" onclick="editCourse(${course.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-warning action-btn" title="Toggle Status">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                            <button class="btn btn-outline-danger action-btn" title="Delete" onclick="deleteCourse(${course.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Update total count
+            const totalBadge = document.querySelector('.badge.bg-primary');
+            if (totalBadge) {
+                totalBadge.textContent = `Total: ${courses.length}`;
+            }
+        }
+
+        // Filter courses by department
+        async function filterCourses() {
+            const departmentId = document.getElementById('filterDepartment').value;
+            
+            try {
+                let url = '/api/v1/course';
+                if (departmentId) {
+                    url = `/api/v1/course/department/${departmentId}`;
+                }
+                
+                const response = await fetch(url);
+                if (response.ok) {
+                    const courses = await response.json();
+                    displayCourses(courses);
+                } else {
+                    console.error('Failed to filter courses');
+                }
+            } catch (error) {
+                console.error('Error filtering courses:', error);
+            }
+        }
+
+        // Clear filter
+        function clearFilter() {
+            document.getElementById('filterDepartment').value = '';
+            loadCourses();
+        }
+
         // Demo alert function
         function showDemoAlert() {
             alert('This is a demo. In a real application, this would submit the form data to the server.');
             return false;
+        }
+
+        // Edit course function
+        function editCourse(courseId) {
+            alert(`Edit course with ID: ${courseId}`);
+        }
+
+        // Delete course function
+        function deleteCourse(courseId) {
+            if (confirm('Are you sure you want to delete this course?')) {
+                alert(`Delete course with ID: ${courseId}`);
+            }
         }
 
         // Simple search functionality

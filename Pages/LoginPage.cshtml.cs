@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using StudentPeformanceTracker.Configuration;
 
 namespace StudentPeformanceTracker.Pages;
 
@@ -10,6 +11,7 @@ public class LoginPageModel : PageModel
 {
     private readonly ILogger<LoginPageModel> _logger;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ApiConfiguration _apiConfig;
 
     [BindProperty]
     public string Username { get; set; } = string.Empty;
@@ -23,10 +25,11 @@ public class LoginPageModel : PageModel
     [TempData]
     public string? ErrorMessage { get; set; }
 
-    public LoginPageModel(ILogger<LoginPageModel> logger, IHttpClientFactory httpClientFactory)
+    public LoginPageModel(ILogger<LoginPageModel> logger, IHttpClientFactory httpClientFactory, ApiConfiguration apiConfig)
     {
         _logger = logger;
         _httpClientFactory = httpClientFactory;
+        _apiConfig = apiConfig;
     }
 
     public void OnGet()
@@ -49,7 +52,6 @@ public class LoginPageModel : PageModel
         try
         {
             var client = _httpClientFactory.CreateClient("default");
-            var baseUrl = $"{Request.Scheme}://{Request.Host}";
 
             // Prepare login request
             var loginRequest = new
@@ -61,8 +63,8 @@ public class LoginPageModel : PageModel
             var json = JsonSerializer.Serialize(loginRequest);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            // Call the login API
-            var response = await client.PostAsync($"{baseUrl}/api/v1/auth/login", content);
+            // Call the login API using ApiConfiguration
+            var response = await client.PostAsync(_apiConfig.LoginEndpoint, content);
 
             if (response.IsSuccessStatusCode)
             {
@@ -104,7 +106,16 @@ public class LoginPageModel : PageModel
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
                 _logger.LogWarning($"Login failed for user {Username}: {errorContent}");
-                ErrorMessage = "Invalid username or password";
+                
+                // Check if it's an inactive account error
+                if (errorContent.Contains("pending") || errorContent.Contains("activation"))
+                {
+                    ErrorMessage = "Your account is pending admin approval. Please contact an administrator.";
+                }
+                else
+                {
+                    ErrorMessage = "Invalid username or password";
+                }
                 return Page();
             }
         }

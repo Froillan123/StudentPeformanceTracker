@@ -241,9 +241,10 @@
             <div class="card-custom">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h3 class="section-title mb-0">Teacher List</h3>
-                    <div class="alert alert-info mb-0">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Teachers must register themselves at <a href="/Register/Teacher" class="alert-link">/Register/Teacher</a>
+                    <div>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTeacherModal">
+                            <i class="fas fa-plus me-2"></i>Add Teacher
+                        </button>
                     </div>
                 </div>
                 
@@ -252,7 +253,9 @@
                         <thead>
                             <tr>
                                 <th>Name</th>
-                                <th>Department</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Qualification</th>
                                 <th>Phone</th>
                                 <th>Hire Date</th>
                                 <th>Actions</th>
@@ -265,6 +268,104 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Add Teacher Modal -->
+    <div class="modal fade" id="addTeacherModal" tabindex="-1" aria-labelledby="addTeacherModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addTeacherModalLabel">Add New Teacher</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addTeacherForm">
+                        <!-- Account Information -->
+                        <h6 class="fw-bold mb-3">
+                            <i class="fas fa-user-lock me-2"></i>Account Information
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="username" class="form-label">Username *</label>
+                                <input type="text" class="form-control" id="username" name="username" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="password" class="form-label">Password *</label>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                        </div>
+
+                        <!-- Personal Information -->
+                        <h6 class="fw-bold mb-3 mt-4">
+                            <i class="fas fa-user me-2"></i>Personal Information
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="firstName" class="form-label">First Name *</label>
+                                <input type="text" class="form-control" id="firstName" name="firstName" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="lastName" class="form-label">Last Name *</label>
+                                <input type="text" class="form-control" id="lastName" name="lastName" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Email Address *</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="phone" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="phone" name="phone">
+                            </div>
+                        </div>
+
+                        <!-- Employment Information -->
+                        <h6 class="fw-bold mb-3 mt-4">
+                            <i class="fas fa-briefcase me-2"></i>Employment Information
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="highestQualification" class="form-label">Highest Qualification</label>
+                                <input type="text" class="form-control" id="highestQualification" name="highestQualification" placeholder="e.g., Master's Degree, PhD">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="status" class="form-label">Employment Status *</label>
+                                <select class="form-select" id="status" name="status" required>
+                                    <option value="Full-time">Full-time</option>
+                                    <option value="Part-time">Part-time</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="hireDate" class="form-label">Hire Date</label>
+                                <input type="date" class="form-control" id="hireDate" name="hireDate">
+                            </div>
+                        </div>
+
+                        <!-- Emergency Contact -->
+                        <h6 class="fw-bold mb-3 mt-4">
+                            <i class="fas fa-phone-alt me-2"></i>Emergency Contact
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="emergencyContact" class="form-label">Emergency Contact Name</label>
+                                <input type="text" class="form-control" id="emergencyContact" name="emergencyContact">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="emergencyPhone" class="form-label">Emergency Contact Phone</label>
+                                <input type="tel" class="form-control" id="emergencyPhone" name="emergencyPhone">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveTeacherBtn">Create Teacher</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Bootstrap JS Bundle with Popper -->
@@ -302,6 +403,114 @@
                 this.classList.add('active');
             });
         });
+
+        // Load teachers on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTeachers();
+        });
+
+        // Load teachers from API
+        async function loadTeachers() {
+            try {
+                const response = await fetch('/api/v1/teacher');
+                if (response.ok) {
+                    const teachers = await response.json();
+                    displayTeachers(teachers);
+                } else {
+                    console.error('Failed to load teachers');
+                }
+            } catch (error) {
+                console.error('Error loading teachers:', error);
+            }
+        }
+
+
+        // Add teacher functionality
+        document.getElementById('saveTeacherBtn').addEventListener('click', async function() {
+            const form = document.getElementById('addTeacherForm');
+            const formData = new FormData(form);
+            
+            const teacherData = {
+                username: formData.get('username'),
+                password: formData.get('password'),
+                email: formData.get('email'),
+                firstName: formData.get('firstName'),
+                lastName: formData.get('lastName'),
+                phone: formData.get('phone'),
+                highestQualification: formData.get('highestQualification'),
+                status: formData.get('status'),
+                emergencyContact: formData.get('emergencyContact'),
+                emergencyPhone: formData.get('emergencyPhone'),
+                hireDate: formData.get('hireDate') ? new Date(formData.get('hireDate')).toISOString() : null
+            };
+
+            try {
+                const response = await fetch('/api/v1/teacher/admin-create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(teacherData)
+                });
+
+                if (response.ok) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addTeacherModal'));
+                    modal.hide();
+                    form.reset();
+                    loadTeachers();
+                    showToast('Teacher created successfully!', 'success');
+                } else {
+                    const error = await response.json();
+                    showToast(error.message || 'Failed to create teacher', 'error');
+                }
+            } catch (error) {
+                console.error('Error creating teacher:', error);
+                showToast('Error creating teacher', 'error');
+            }
+        });
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} border-0`;
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            // Add to page
+            document.body.appendChild(toast);
+            
+            // Initialize and show toast
+            const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
+            bsToast.show();
+            
+            // Remove toast after it's hidden
+            toast.addEventListener('hidden.bs.toast', () => {
+                toast.remove();
+            });
+        }
+
+        // Edit teacher function
+        function editTeacher(id) {
+            alert(`Edit teacher with ID: ${id}`);
+        }
+
+        // Delete teacher function
+        function deleteTeacher(id) {
+            if (confirm('Are you sure you want to delete this teacher?')) {
+                alert(`Delete teacher with ID: ${id}`);
+            }
+        }
     </script>
 
 
@@ -380,37 +589,10 @@
     </div>
 
     <script>
-        // Load departments and teachers on page load
+        // Load teachers on page load
         document.addEventListener('DOMContentLoaded', function() {
-            loadDepartments();
             loadTeachers();
         });
-
-        // Load departments for dropdowns
-        async function loadDepartments() {
-            try {
-                const response = await fetch('/api/v1/department');
-                if (response.ok) {
-                    const departments = await response.json();
-                    populateDepartmentDropdowns(departments);
-                }
-            } catch (error) {
-                console.error('Error loading departments:', error);
-            }
-        }
-
-        // Populate department dropdowns
-        function populateDepartmentDropdowns(departments) {
-            const addDropdown = document.getElementById('teacherDepartment');
-            const editDropdown = document.getElementById('editTeacherDepartment');
-            
-            departments.forEach(dept => {
-                const option1 = new Option(dept.departmentName, dept.id);
-                const option2 = new Option(dept.departmentName, dept.id);
-                addDropdown.add(option1);
-                editDropdown.add(option2);
-            });
-        }
 
         // Load teachers from API
         async function loadTeachers() {
@@ -434,8 +616,24 @@
             
             tbody.innerHTML = '';
 
+            if (teachers.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-4">
+                            <i class="fas fa-chalkboard-teacher fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No teachers found.</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
             teachers.forEach(teacher => {
                 const row = document.createElement('tr');
+                const statusBadge = teacher.status === 'Full-time' 
+                    ? '<span class="badge bg-success">Full-time</span>' 
+                    : '<span class="badge bg-info">Part-time</span>';
+
                 row.innerHTML = `
                     <td>
                         <div class="d-flex align-items-center">
@@ -446,15 +644,17 @@
                             </div>
                         </div>
                     </td>
-                    <td>${teacher.departmentName || '-'}</td>
+                    <td>${teacher.email}</td>
+                    <td>${statusBadge}</td>
+                    <td>${teacher.highestQualification || '-'}</td>
                     <td>${teacher.phone || '-'}</td>
                     <td>${teacher.hireDate ? new Date(teacher.hireDate).toLocaleDateString() : '-'}</td>
                     <td>
-                        <div class="btn-group" role="group">
-                            <button class="btn btn-outline-primary action-btn" onclick="editTeacher(${teacher.id})" title="Edit">
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary action-btn" title="Edit" onclick="editTeacher(${teacher.id})">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-outline-danger action-btn" onclick="deleteTeacher(${teacher.id})" title="Delete">
+                            <button class="btn btn-outline-danger action-btn" title="Delete" onclick="deleteTeacher(${teacher.id})">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -475,7 +675,6 @@
                     document.getElementById('editTeacherFirstName').value = teacher.firstName;
                     document.getElementById('editTeacherLastName').value = teacher.lastName;
                     document.getElementById('editTeacherPhone').value = teacher.phone || '';
-                    document.getElementById('editTeacherDepartment').value = teacher.departmentId || '';
                     document.getElementById('editTeacherHireDate').value = teacher.hireDate ? new Date(teacher.hireDate).toISOString().split('T')[0] : '';
                     
                     const modal = new bootstrap.Modal(document.getElementById('editTeacherModal'));
@@ -495,7 +694,6 @@
                 firstName: document.getElementById('editTeacherFirstName').value,
                 lastName: document.getElementById('editTeacherLastName').value,
                 phone: document.getElementById('editTeacherPhone').value,
-                departmentId: document.getElementById('editTeacherDepartment').value ? parseInt(document.getElementById('editTeacherDepartment').value) : null,
                 hireDate: document.getElementById('editTeacherHireDate').value ? new Date(document.getElementById('editTeacherHireDate').value) : null
             };
 

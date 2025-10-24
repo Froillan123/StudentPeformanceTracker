@@ -43,6 +43,10 @@ public class AuthService
         if (!PasswordHelper.VerifyPassword(password, user.PasswordHash))
             return null;
 
+        // Check if user is active
+        if (user.Status != "Active")
+            return null;
+
         var accessToken = _jwtService.GenerateAccessToken(user);
         var refreshToken = _jwtService.GenerateRefreshToken();
         var refreshTokenExpiry = _jwtService.GetRefreshTokenExpiry();
@@ -80,6 +84,7 @@ public class AuthService
             Username = request.Username,
             PasswordHash = passwordHash,
             Role = request.Role,
+            Status = request.Role == "Admin" ? "Active" : "Inactive", // Admins active, others inactive
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -120,6 +125,7 @@ public class AuthService
             Username = request.Username,
             PasswordHash = passwordHash,
             Role = "Student",
+            Status = "Inactive", // Students are inactive by default
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -153,7 +159,7 @@ public class AuthService
         };
     }
 
-    public async Task<RegisterResponse?> RegisterTeacherAsync(TeacherRegisterRequest request)
+    public async Task<RegisterResponse?> RegisterTeacherAsync(TeacherRegisterRequest request, bool isAdminCreated = false)
     {
         var existingUser = await _userRepository.GetByUsernameAsync(request.Username);
         if (existingUser != null)
@@ -170,6 +176,7 @@ public class AuthService
             Username = request.Username,
             PasswordHash = passwordHash,
             Role = "Teacher",
+            Status = isAdminCreated ? "Active" : "Inactive", // Admin-created teachers are active immediately
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -183,8 +190,12 @@ public class AuthService
             FirstName = request.FirstName,
             LastName = request.LastName,
             Phone = request.Phone,
-            DepartmentId = request.DepartmentId,
-            HireDate = request.HireDate ?? DateTime.UtcNow
+            HighestQualification = request.HighestQualification,
+            Status = request.Status,
+            EmergencyContact = request.EmergencyContact,
+            EmergencyPhone = request.EmergencyPhone,
+            HireDate = request.HireDate?.ToUniversalTime() ?? DateTime.UtcNow
+            // Note: Departments will be assigned by admins later via TeacherDepartments junction table
         };
 
         await _teacherRepository.CreateAsync(teacher);
@@ -197,8 +208,27 @@ public class AuthService
             FirstName = request.FirstName,
             LastName = request.LastName,
             Role = "Teacher",
-            Message = "Teacher registered successfully"
+            Message = isAdminCreated ? "Teacher created successfully with Active status" : "Teacher registered successfully"
         };
+    }
+
+    public async Task<bool> UsernameExistsAsync(string username)
+    {
+        var user = await _userRepository.GetByUsernameAsync(username);
+        return user != null;
+    }
+
+    public async Task<bool> EmailExistsAsync(string email)
+    {
+        // Check email across all roles
+        var teacherExists = await _teacherRepository.EmailExistsAsync(email);
+        if (teacherExists) return true;
+
+        var studentExists = await _studentRepository.EmailExistsAsync(email);
+        if (studentExists) return true;
+
+        var adminExists = await _adminRepository.EmailExistsAsync(email);
+        return adminExists;
     }
 
     public async Task<RegisterResponse?> RegisterAdminAsync(AdminRegisterRequest request)
@@ -218,6 +248,7 @@ public class AuthService
             Username = request.Username,
             PasswordHash = passwordHash,
             Role = "Admin",
+            Status = "Active", // Admins are active immediately
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
