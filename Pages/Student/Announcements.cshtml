@@ -198,6 +198,12 @@
                     </a>
                 </li>
                 <li>
+                    <a href="/Student/Enrollment">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>Enrollment</span>
+                    </a>
+                </li>
+                <li>
                     <a href="/Student/MyClasses">
                         <i class="fas fa-book"></i>
                         <span>My Classes</span>
@@ -216,7 +222,7 @@
                     </a>
                 </li>
                 <li>
-                    <a href="/Profile">
+                    <a href="/Student/Profile">
                         <i class="fas fa-user"></i>
                         <span>Profile</span>
                     </a>
@@ -241,11 +247,11 @@
                     <div class="d-flex align-items-center">
                         <div class="dropdown">
                             <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                <img src="https://ui-avatars.com/api/?name=Marianne+Napisa&background=4CAF50&color=fff" class="user-avatar me-2">
-                                Marianne Napisa
+                                <img src="https://ui-avatars.com/api/?name=Loading&background=4CAF50&color=fff" class="user-avatar me-2" id="headerAvatar">
+                                <span id="headerName">Loading...</span>
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="userDropdown">
-                                <li><a class="dropdown-item" href="/Profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
+                                <li><a class="dropdown-item" href="/Student/Profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
                                 <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="/LoginPage"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
@@ -261,36 +267,10 @@
             <!-- Announcements List -->
             <div class="card-custom">
                 <h3 class="section-title">Latest Announcements</h3>
-                <div class="row">
-                    <div class="col-md-12 mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Midterm Exam Schedule</h5>
-                                <p class="card-text">The midterm examinations will be held from January 22-26, 2024. Please check your individual schedules.</p>
-                                <small class="text-muted">Posted on: January 15, 2024</small>
-                                <span class="badge bg-primary ms-2">Important</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-12 mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Library Hours Extended</h5>
-                                <p class="card-text">The library will be open until 10 PM during the examination period to accommodate students.</p>
-                                <small class="text-muted">Posted on: January 14, 2024</small>
-                                <span class="badge bg-info ms-2">General</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-12 mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Project Submission Deadline</h5>
-                                <p class="card-text">All project submissions for Software Engineering course are due on January 25, 2024.</p>
-                                <small class="text-muted">Posted on: January 13, 2024</small>
-                                <span class="badge bg-warning ms-2">Reminder</span>
-                            </div>
-                        </div>
+                <div class="row" id="announcementsContainer">
+                    <div class="col-12 text-center py-5">
+                        <i class="fas fa-spinner fa-spin fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Loading announcements...</p>
                     </div>
                 </div>
             </div>
@@ -319,6 +299,136 @@
             }
         });
         
+        // Load student data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStudentData();
+        });
+
+        let currentStudentId = null;
+
+        // Load student data from API
+        async function loadStudentData() {
+            try {
+                // Get current user from session/localStorage or API
+                const response = await fetch('/api/v1/student/profile');
+                if (response.ok) {
+                    const studentData = await response.json();
+                    currentStudentId = studentData.id;
+                    updateHeader(studentData);
+                    loadAnnouncements(studentData.id);
+                } else {
+                    console.error('Failed to load student data');
+                    // Fallback: try to get from student list
+                    await loadFromStudentList();
+                }
+            } catch (error) {
+                console.error('Error loading student data:', error);
+                await loadFromStudentList();
+            }
+        }
+
+        // Fallback: load from student list
+        async function loadFromStudentList() {
+            try {
+                const response = await fetch('/api/v1/student');
+                if (response.ok) {
+                    const students = await response.json();
+                    if (students.length > 0) {
+                        // Use first student as example (in real app, get current user)
+                        const studentData = students[0];
+                        currentStudentId = studentData.id;
+                        updateHeader(studentData);
+                        loadAnnouncements(studentData.id);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading from student list:', error);
+                displayEmptyState();
+            }
+        }
+
+        // Update header with real data
+        function updateHeader(data) {
+            const fullName = `${data.firstName} ${data.lastName}`;
+            document.getElementById('headerName').textContent = fullName;
+            document.getElementById('headerAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=4CAF50&color=fff`;
+        }
+
+        // Load announcements
+        async function loadAnnouncements(studentId) {
+            try {
+                // For now, show placeholder announcements since we don't have announcements API yet
+                displayPlaceholderAnnouncements();
+            } catch (error) {
+                console.error('Error loading announcements:', error);
+                displayEmptyState();
+            }
+        }
+
+        // Display placeholder announcements (until announcements system is implemented)
+        function displayPlaceholderAnnouncements() {
+            const container = document.getElementById('announcementsContainer');
+            if (!container) return;
+
+            const placeholderAnnouncements = [
+                {
+                    title: 'Midterm Exam Schedule',
+                    content: 'The midterm examinations will be held from January 22-26, 2024. Please check your individual schedules.',
+                    date: 'January 15, 2024',
+                    badge: 'Important',
+                    badgeClass: 'bg-primary'
+                },
+                {
+                    title: 'Library Hours Extended',
+                    content: 'The library will be open until 10 PM during the examination period to accommodate students.',
+                    date: 'January 14, 2024',
+                    badge: 'General',
+                    badgeClass: 'bg-info'
+                },
+                {
+                    title: 'Project Submission Deadline',
+                    content: 'All project submissions for Software Engineering course are due on January 25, 2024.',
+                    date: 'January 13, 2024',
+                    badge: 'Reminder',
+                    badgeClass: 'bg-warning'
+                }
+            ];
+
+            container.innerHTML = '';
+
+            placeholderAnnouncements.forEach(announcement => {
+                const col = document.createElement('div');
+                col.className = 'col-md-12 mb-3';
+                
+                col.innerHTML = `
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">${announcement.title}</h5>
+                            <p class="card-text">${announcement.content}</p>
+                            <small class="text-muted">Posted on: ${announcement.date}</small>
+                            <span class="badge ${announcement.badgeClass} ms-2">${announcement.badge}</span>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(col);
+            });
+        }
+
+        // Display empty state
+        function displayEmptyState() {
+            const container = document.getElementById('announcementsContainer');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-bullhorn fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">No Announcements</h4>
+                    <p class="text-muted">There are no announcements at this time.</p>
+                </div>
+            `;
+        }
+
         // Set active menu item
         document.querySelectorAll('.sidebar-menu a').forEach(item => {
             if (item.getAttribute('href') === window.location.pathname) {

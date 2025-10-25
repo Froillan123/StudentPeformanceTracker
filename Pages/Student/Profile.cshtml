@@ -255,8 +255,8 @@
                     <div class="d-flex align-items-center">
                         <div class="dropdown">
                             <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                <img src="https://ui-avatars.com/api/?name=John+Doe&background=4CAF50&color=fff" class="user-avatar me-2">
-                                John Doe
+                                <img src="https://ui-avatars.com/api/?name=Loading&background=4CAF50&color=fff" class="user-avatar me-2" id="headerAvatar">
+                                <span id="headerName">Loading...</span>
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="userDropdown">
                                 <li><a class="dropdown-item" href="/Student/Profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
@@ -278,11 +278,11 @@
                     <!-- Profile Card -->
                     <div class="profile-card">
                         <div class="profile-header">
-                            <div class="profile-avatar">
+                            <div class="profile-avatar" id="profileAvatar">
                                 <i class="fas fa-user-graduate"></i>
                             </div>
-                            <h2 class="h3">John Doe</h2>
-                            <p class="text-muted">Computer Science Student</p>
+                            <h2 class="h3" id="profileName">Loading...</h2>
+                            <p class="text-muted" id="profileCourse">Loading...</p>
                             <button class="btn btn-edit">
                                 <i class="fas fa-edit me-2"></i>Edit Profile
                             </button>
@@ -293,23 +293,23 @@
                                 <h4 class="section-title">Personal Information</h4>
                                 <div class="info-item">
                                     <div class="info-label">Full Name</div>
-                                    <div class="info-value">John Doe</div>
+                                    <div class="info-value" id="fullName">Loading...</div>
                                 </div>
                                 <div class="info-item">
                                     <div class="info-label">Student ID</div>
-                                    <div class="info-value">ucmn-22686570</div>
+                                    <div class="info-value" id="studentId">Loading...</div>
                                 </div>
                                 <div class="info-item">
                                     <div class="info-label">Email Address</div>
-                                    <div class="info-value">john.doe@student.edu</div>
+                                    <div class="info-value" id="email">Loading...</div>
                                 </div>
                                 <div class="info-item">
                                     <div class="info-label">Phone Number</div>
-                                    <div class="info-value">+1 (555) 123-4567</div>
+                                    <div class="info-value" id="phone">Loading...</div>
                                 </div>
                                 <div class="info-item">
                                     <div class="info-label">Date of Birth</div>
-                                    <div class="info-value">January 15, 2000</div>
+                                    <div class="info-value">N/A</div>
                                 </div>
                             </div>
                             
@@ -317,19 +317,19 @@
                                 <h4 class="section-title">Academic Information</h4>
                                 <div class="info-item">
                                     <div class="info-label">Year Level</div>
-                                    <div class="info-value">4th Year</div>
+                                    <div class="info-value" id="yearLevel">Loading...</div>
                                 </div>
                                 <div class="info-item">
                                     <div class="info-label">Course</div>
-                                    <div class="info-value">Bachelor of Science in Computer Science</div>
+                                    <div class="info-value" id="courseName">Loading...</div>
                                 </div>
                                 <div class="info-item">
                                     <div class="info-label">Enrollment Date</div>
-                                    <div class="info-value">August 2020</div>
+                                    <div class="info-value" id="enrollmentDate">Loading...</div>
                                 </div>
                                 <div class="info-item">
                                     <div class="info-label">Expected Graduation</div>
-                                    <div class="info-value">May 2024</div>
+                                    <div class="info-value">N/A</div>
                                 </div>
                             </div>
                         </div>
@@ -357,25 +357,25 @@
                         <div class="row text-center">
                             <div class="col-6 mb-3">
                                 <div class="stat-item">
-                                    <span class="stat-number">3.8</span>
+                                    <span class="stat-number" id="gpa">-</span>
                                     <span class="stat-label">GPA</span>
                                 </div>
                             </div>
                             <div class="col-6 mb-3">
                                 <div class="stat-item">
-                                    <span class="stat-number">24</span>
+                                    <span class="stat-number" id="units">-</span>
                                     <span class="stat-label">Units</span>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="stat-item">
-                                    <span class="stat-number">5</span>
+                                    <span class="stat-number" id="subjects">-</span>
                                     <span class="stat-label">Subjects</span>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="stat-item">
-                                    <span class="stat-number">95%</span>
+                                    <span class="stat-number" id="attendance">-</span>
                                     <span class="stat-label">Attendance</span>
                                 </div>
                             </div>
@@ -445,6 +445,100 @@
             }
         });
         
+        // Load student data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStudentData();
+        });
+
+        let currentStudentId = null;
+
+        // Load student data from API
+        async function loadStudentData() {
+            try {
+                // Get current user from session/localStorage or API
+                const response = await fetch('/api/v1/student/profile');
+                if (response.ok) {
+                    const studentData = await response.json();
+                    currentStudentId = studentData.id;
+                    updateProfile(studentData);
+                    updateHeader(studentData);
+                } else {
+                    console.error('Failed to load student data');
+                    // Fallback: try to get from student list
+                    await loadFromStudentList();
+                }
+            } catch (error) {
+                console.error('Error loading student data:', error);
+                await loadFromStudentList();
+            }
+        }
+
+        // Fallback: load from student list
+        async function loadFromStudentList() {
+            try {
+                const response = await fetch('/api/v1/student');
+                if (response.ok) {
+                    const students = await response.json();
+                    if (students.length > 0) {
+                        // Use first student as example (in real app, get current user)
+                        const studentData = students[0];
+                        currentStudentId = studentData.id;
+                        updateProfile(studentData);
+                        updateHeader(studentData);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading from student list:', error);
+            }
+        }
+
+        // Update profile with real data
+        function updateProfile(data) {
+            const fullName = `${data.firstName} ${data.lastName}`;
+            
+            // Update profile header
+            document.getElementById('profileName').textContent = fullName;
+            document.getElementById('profileCourse').textContent = data.courseName || 'Student';
+            document.getElementById('profileAvatar').innerHTML = `<i class="fas fa-user-graduate"></i>`;
+            
+            // Update personal information
+            document.getElementById('fullName').textContent = fullName;
+            document.getElementById('studentId').textContent = data.studentId || 'N/A';
+            document.getElementById('email').textContent = data.email || 'N/A';
+            document.getElementById('phone').textContent = data.phone || 'N/A';
+            
+            // Update academic information
+            document.getElementById('yearLevel').textContent = getYearLevelText(data.yearLevel);
+            document.getElementById('courseName').textContent = data.courseName || 'N/A';
+            document.getElementById('enrollmentDate').textContent = data.enrollmentDate ? new Date(data.enrollmentDate).toLocaleDateString() : 'N/A';
+            
+            // Update statistics (placeholder values for now)
+            document.getElementById('gpa').textContent = '3.8';
+            document.getElementById('units').textContent = '24';
+            document.getElementById('subjects').textContent = '5';
+            document.getElementById('attendance').textContent = '95%';
+        }
+
+        // Update header with real data
+        function updateHeader(data) {
+            const fullName = `${data.firstName} ${data.lastName}`;
+            document.getElementById('headerName').textContent = fullName;
+            document.getElementById('headerAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=4CAF50&color=fff`;
+        }
+
+        // Helper function to convert year level number to text
+        function getYearLevelText(yearLevel) {
+            if (!yearLevel) return 'N/A';
+            const yearTexts = {
+                1: '1st Year',
+                2: '2nd Year', 
+                3: '3rd Year',
+                4: '4th Year',
+                5: '5th Year'
+            };
+            return yearTexts[yearLevel] || `${yearLevel}th Year`;
+        }
+
         // Edit profile button functionality
         document.querySelector('.btn-edit').addEventListener('click', function() {
             alert('Edit Profile feature would open here!');

@@ -8,7 +8,7 @@ namespace StudentPeformanceTracker.Controllers;
 
 [ApiController]
 [ApiVersion("1.0")]
-[Route("api/v{version:apiVersion}/[controller]")]
+[Route("api/v{version:apiVersion}/auth")]
 public class AuthController : ControllerBase
 {
     private readonly AuthService _authService;

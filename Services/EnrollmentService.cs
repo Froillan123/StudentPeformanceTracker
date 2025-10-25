@@ -57,8 +57,9 @@ namespace StudentPeformanceTracker.Services
                 YearLevelId = request.YearLevelId,
                 SemesterId = request.SemesterId,
                 EnrollmentType = request.EnrollmentType,
+                SchoolYear = request.SchoolYear, // Set from request
                 EnrollmentDate = DateTime.UtcNow,
-                Status = "Active"
+                Status = request.Status ?? "Active" // Allow status to be set from request
             };
 
             var created = await _enrollmentRepository.CreateAsync(enrollment);
@@ -95,7 +96,7 @@ namespace StudentPeformanceTracker.Services
                 YearLevelName = enrollment.YearLevel?.LevelName ?? string.Empty,
                 SemesterId = enrollment.SemesterId,
                 SemesterName = enrollment.Semester?.SemesterName ?? string.Empty,
-                SchoolYear = enrollment.Semester?.SchoolYear ?? string.Empty,
+                SchoolYear = enrollment.SchoolYear ?? enrollment.Semester?.SchoolYear ?? string.Empty,
                 EnrollmentType = enrollment.EnrollmentType,
                 EnrollmentDate = enrollment.EnrollmentDate,
                 Status = enrollment.Status,

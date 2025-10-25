@@ -8,7 +8,7 @@ namespace StudentPeformanceTracker.Controllers;
 
 [ApiController]
 [ApiVersion("1.0")]
-[Route("api/v{version:apiVersion}/[controller]")]
+[Route("api/v{version:apiVersion}/course")]
 public class CourseController : ControllerBase
 {
     private readonly ICourseRepository _courseRepository;

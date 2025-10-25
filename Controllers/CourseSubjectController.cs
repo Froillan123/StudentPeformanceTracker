@@ -5,7 +5,7 @@ using StudentPeformanceTracker.Services;
 namespace StudentPeformanceTracker.Controllers
 {
     [ApiController]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/coursesubject")]
     public class CourseSubjectController : ControllerBase
     {
         private readonly CourseSubjectService _courseSubjectService;

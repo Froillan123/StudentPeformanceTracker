@@ -6,7 +6,7 @@ using StudentPeformanceTracker.Services;
 namespace StudentPeformanceTracker.Controllers
 {
     [ApiController]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/section")]
     public class SectionController : ControllerBase
     {
         private readonly SectionService _sectionService;
@@ -48,8 +48,21 @@ namespace StudentPeformanceTracker.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<SectionDto>> Create(Section section)
+        public async Task<ActionResult<SectionDto>> Create(CreateSectionRequest request)
         {
+            var section = new Section
+            {
+                SectionName = request.SectionName,
+                CourseId = request.CourseId,
+                YearLevelId = request.YearLevelId,
+                SemesterId = request.SemesterId,
+                MaxCapacity = request.MaxCapacity,
+                CurrentEnrollment = 0,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
             var created = await _sectionService.CreateAsync(section);
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
@@ -75,10 +88,42 @@ namespace StudentPeformanceTracker.Controllers
         }
 
         [HttpGet("{id}/subjects")]
-        public async Task<ActionResult<IEnumerable<SectionSubject>>> GetSectionSubjects(int id)
+        public async Task<ActionResult<IEnumerable<object>>> GetSectionSubjects(int id)
         {
             var sectionSubjects = await _sectionService.GetSectionSubjectsAsync(id);
-            return Ok(sectionSubjects);
+            var result = sectionSubjects.Select(ss => new
+            {
+                ss.Id,
+                ss.SectionId,
+                SectionName = ss.Section?.SectionName,
+                ss.SubjectId,
+                SubjectName = ss.Subject?.SubjectName,
+                SubjectDescription = ss.Subject?.Description,
+                ss.TeacherId,
+                TeacherName = ss.Teacher != null ? $"{ss.Teacher.FirstName} {ss.Teacher.LastName}" : "Not assigned",
+                ss.ScheduleDay,
+                ss.ScheduleTime,
+                Schedule = !string.IsNullOrEmpty(ss.ScheduleDay) && !string.IsNullOrEmpty(ss.ScheduleTime) 
+                    ? $"{ss.ScheduleDay}: {ss.ScheduleTime}" 
+                    : "TBA",
+                ss.Room,
+                ss.EdpCode,
+                ss.MaxStudents,
+                ss.CurrentEnrollment,
+                ss.IsActive,
+                ss.CreatedAt,
+                ss.UpdatedAt
+            });
+            return Ok(result);
         }
+    }
+
+    public class CreateSectionRequest
+    {
+        public string SectionName { get; set; } = string.Empty;
+        public int CourseId { get; set; }
+        public int YearLevelId { get; set; }
+        public int SemesterId { get; set; }
+        public int MaxCapacity { get; set; }
     }
 }

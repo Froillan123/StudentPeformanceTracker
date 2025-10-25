@@ -2,6 +2,262 @@
     var currentPath = Context.Request.Path.Value?.ToLower() ?? "";
 }
 
+<style>
+    :root {
+        --primary-color: #3498db;
+        --secondary-color: #2c3e50;
+        --success-color: #2ecc71;
+        --warning-color: #f39c12;
+        --danger-color: #e74c3c;
+        --sidebar-width: 250px;
+        --sidebar-collapsed-width: 70px;
+    }
+    
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f8f9fa;
+        color: #333;
+        overflow-x: hidden;
+    }
+    
+    /* Sidebar Styles */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: var(--sidebar-width);
+        background-color: var(--secondary-color);
+        color: white;
+        transition: all 0.3s ease;
+        z-index: 1000;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    }
+    
+    .sidebar.collapsed {
+        width: var(--sidebar-collapsed-width);
+    }
+    
+    .sidebar-header {
+        padding: 1.5rem 1rem;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        text-align: center;
+    }
+    
+    .sidebar-header h3 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+    
+    .sidebar.collapsed .sidebar-header h3 {
+        display: none;
+    }
+    
+    .toggle-btn {
+        position: absolute;
+        top: 1rem;
+        right: -15px;
+        background-color: var(--primary-color);
+        border: none;
+        color: white;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 1001;
+        transition: all 0.3s ease;
+    }
+    
+    .toggle-btn:hover {
+        background-color: var(--primary-color);
+        transform: scale(1.1);
+    }
+    
+    .sidebar-menu {
+        padding: 1rem 0;
+    }
+    
+    .sidebar-menu ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .sidebar-menu li {
+        margin-bottom: 0.5rem;
+    }
+    
+    .sidebar-menu a {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        color: rgba(255,255,255,0.8);
+        text-decoration: none;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+    
+    .sidebar-menu a:hover, .sidebar-menu a.active {
+        background-color: rgba(255,255,255,0.1);
+        color: white;
+        border-left: 4px solid var(--primary-color);
+    }
+    
+    .sidebar-menu i {
+        width: 24px;
+        margin-right: 1rem;
+        text-align: center;
+    }
+    
+    .sidebar.collapsed .sidebar-menu span {
+        display: none;
+    }
+    
+    .sidebar.collapsed .sidebar-menu i {
+        margin-right: 0;
+    }
+    
+    /* Main Content Area */
+    .main-content {
+        margin-left: var(--sidebar-width);
+        transition: all 0.3s ease;
+        min-height: 100vh;
+        background-color: #f8f9fa;
+    }
+    
+    .main-content.expanded {
+        margin-left: var(--sidebar-collapsed-width);
+    }
+    
+    /* Common Admin Styles */
+    .dashboard-header {
+        background-color: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 1rem 0;
+    }
+    
+    .card-custom {
+        background-color: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+        border: none;
+    }
+    
+    .card-custom:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .section-title {
+        color: var(--secondary-color);
+        font-weight: 600;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid var(--primary-color);
+        padding-bottom: 0.5rem;
+    }
+    
+    .table th {
+        background-color: var(--secondary-color);
+        color: white;
+    }
+    
+    .action-btn {
+        padding: 0.25rem 0.5rem;
+        margin: 0 0.1rem;
+        font-size: 0.875rem;
+    }
+    
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    
+    .badge-custom {
+        background-color: var(--primary-color);
+        color: white;
+    }
+    
+    .nav-tabs .nav-link.active {
+        border-bottom: 3px solid var(--primary-color);
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+    
+    .tab-content {
+        padding-top: 1.5rem;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    
+    .quick-action-card {
+        text-align: center;
+        padding: 1.5rem 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .quick-action-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .quick-action-icon {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        color: var(--primary-color);
+    }
+    
+    .search-box {
+        position: relative;
+    }
+    
+    .search-box input {
+        padding-right: 2.5rem;
+    }
+    
+    .search-box i {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+    }
+    
+    .modal-header {
+        background-color: var(--secondary-color);
+        color: white;
+    }
+    
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1055;
+    }
+    
+    .toast {
+        background-color: white;
+        border-left: 4px solid var(--primary-color);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+</style>
+
 <!-- Sidebar Navigation -->
 <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
@@ -46,6 +302,18 @@
                 <a href="/Admin/SubjectManage" class="@(currentPath.Contains("/admin/subjectmanage") ? "active" : "")">
                     <i class="fas fa-book-open"></i>
                     <span>Subjects</span>
+                </a>
+            </li>
+            <li>
+                <a href="/Admin/SectionManage" class="@(currentPath.Contains("/admin/sectionmanage") ? "active" : "")">
+                    <i class="fas fa-users"></i>
+                    <span>Sections</span>
+                </a>
+            </li>
+            <li>
+                <a href="/Admin/EnrollmentManage" class="@(currentPath.Contains("/admin/enrollmentmanage") ? "active" : "")">
+                    <i class="fas fa-user-graduate"></i>
+                    <span>Enrollments</span>
                 </a>
             </li>
             <li>

@@ -13,4 +13,5 @@ public interface ICourseRepository
     Task<bool> ExistsAsync(int id);
     Task<bool> CourseNameExistsAsync(string courseName);
     Task<IEnumerable<Course>> GetByDepartmentIdAsync(int departmentId);
+    Task<int> GetCountAsync();
 }

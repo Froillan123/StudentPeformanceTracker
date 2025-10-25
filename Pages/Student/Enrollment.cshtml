@@ -1,0 +1,1023 @@
+@page "/Student/Enrollment"
+@model StudentPeformanceTracker.Pages.Student.EnrollmentModel
+@{
+    ViewData["Title"] = "Class Enrollment";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] - Student Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --secondary-color: #f5f5f5;
+            --accent-color: #FF9800;
+            --text-color: #333;
+            --border-color: #e0e0e0;
+            --sidebar-width: 250px;
+            --sidebar-collapsed-width: 70px;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9f9f9;
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background-color: var(--primary-color);
+            color: white;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+        
+        .sidebar-header {
+            padding: 1.5rem 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+        
+        .sidebar-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        
+        .sidebar.collapsed .sidebar-header h3 {
+            display: none;
+        }
+        
+        .sidebar-menu {
+            padding: 1rem 0;
+        }
+        
+        .sidebar-menu ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .sidebar-menu li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+            border-left: 4px solid var(--accent-color);
+        }
+        
+        .sidebar-menu i {
+            width: 24px;
+            margin-right: 1rem;
+            text-align: center;
+        }
+        
+        .sidebar.collapsed .sidebar-menu span {
+            display: none;
+        }
+        
+        .sidebar.collapsed .sidebar-menu i {
+            margin-right: 0;
+        }
+        
+        .toggle-btn {
+            position: absolute;
+            top: 1rem;
+            right: -15px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        /* Main Content Area */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            transition: all 0.3s ease;
+            min-height: 100vh;
+            background-color: #f9f9f9;
+        }
+        
+        .main-content.expanded {
+            margin-left: var(--sidebar-collapsed-width);
+        }
+        
+        .dashboard-header {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1rem 0;
+        }
+        
+        .card-custom {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: none;
+        }
+        
+        .section-title {
+            color: var(--text-color);
+            font-weight: 600;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+        }
+        
+        .enrollment-info {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #45a049 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+        
+        .enrollment-info h4 {
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        
+        .enrollment-info .info-item {
+            margin-bottom: 0.5rem;
+        }
+        
+        .enrollment-info .info-item strong {
+            display: inline-block;
+            width: 120px;
+        }
+        
+        .enroll-box {
+            background-color: var(--secondary-color);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .enroll-box h5 {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+        }
+        
+        .edp-input-group {
+            max-width: 500px;
+            margin: 0 auto 1rem;
+        }
+        
+        .class-preview {
+            background-color: white;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            display: none;
+        }
+        
+        .class-preview.show {
+            display: block;
+        }
+        
+        .class-preview h6 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+        
+        .class-preview .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .class-preview .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .enrolled-class-card {
+            background-color: white;
+            border-left: 4px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .enrolled-class-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .enrolled-class-card h6 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .enrolled-class-card .class-details {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .enrolled-class-card .class-details i {
+            width: 20px;
+            color: var(--primary-color);
+        }
+        
+        .badge-enrolled {
+            background-color: var(--primary-color);
+        }
+        
+        .badge-dropped {
+            background-color: #dc3545;
+        }
+        
+        .capacity-indicator {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+        
+        .capacity-available {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .capacity-full {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+    @await Html.PartialAsync("Shared/_StudentNavigation")
+
+    <div class="main-content">
+        <div class="dashboard-header">
+            <div class="container-fluid">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>Class Enrollment</h2>
+                    <div class="d-flex align-items-center">
+                        <span class="me-3" id="studentNameDisplay">Loading...</span>
+                        <img src="~/images/default-avatar.png" alt="Student" class="user-avatar rounded-circle" style="width: 40px; height: 40px;">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container-fluid mt-4">
+            <!-- Active Enrollment Info -->
+            <div class="enrollment-info" id="enrollmentInfo" style="display: none;">
+                <h4><i class="fas fa-id-card me-2"></i>Current Enrollment</h4>
+                <div class="info-item"><strong>Course:</strong> <span id="enrollmentCourse">-</span></div>
+                <div class="info-item"><strong>Year Level:</strong> <span id="enrollmentYearLevel">-</span></div>
+                <div class="info-item"><strong>Semester:</strong> <span id="enrollmentSemester">-</span></div>
+                <div class="info-item"><strong>School Year:</strong> <span id="enrollmentSchoolYear">-</span></div>
+                <div class="info-item"><strong>Status:</strong> <span class="badge bg-light text-dark" id="enrollmentStatus">-</span></div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <ul class="nav nav-tabs mb-4" id="enrollmentTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="search-tab" data-bs-toggle="tab" data-bs-target="#search-pane" type="button" role="tab">
+                        <i class="fas fa-search me-2"></i>Search by EDP Code
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="browse-tab" data-bs-toggle="tab" data-bs-target="#browse-pane" type="button" role="tab">
+                        <i class="fas fa-list me-2"></i>Browse Available Classes
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="section-tab" data-bs-toggle="tab" data-bs-target="#section-pane" type="button" role="tab">
+                        <i class="fas fa-users me-2"></i>Browse by Section
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="enrollmentTabContent">
+                <!-- Search by EDP Code Tab -->
+                <div class="tab-pane fade show active" id="search-pane" role="tabpanel">
+                    <div class="row">
+                        <!-- Enroll in New Class -->
+                        <div class="col-md-6">
+                            <div class="card-custom">
+                                <h5 class="section-title"><i class="fas fa-plus-circle me-2"></i>Enroll in a Class</h5>
+                                <div class="enroll-box">
+                                    <h5>Enter EDP Code</h5>
+                                    <p class="text-muted">Ask your teacher or check the class schedule for the EDP code</p>
+                                    
+                                    <div class="edp-input-group">
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="edpCodeInput" placeholder="Enter EDP Code" maxlength="10">
+                                            <button class="btn btn-primary" onclick="searchClass()">
+                                                <i class="fas fa-search me-2"></i>Search
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Class Preview Box -->
+                                    <div class="class-preview" id="classPreview">
+                                        <h6><i class="fas fa-info-circle me-2"></i>Class Information</h6>
+                                        <div class="detail-row">
+                                            <strong>Subject:</strong>
+                                            <span id="previewSubject">-</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <strong>Section:</strong>
+                                            <span id="previewSection">-</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <strong>Teacher:</strong>
+                                            <span id="previewTeacher">-</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <strong>Schedule:</strong>
+                                            <span id="previewSchedule">-</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <strong>Room:</strong>
+                                            <span id="previewRoom">-</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <strong>Capacity:</strong>
+                                            <span id="previewCapacity">-</span>
+                                        </div>
+                                        <button class="btn btn-success mt-3" onclick="confirmEnrollment()">
+                                            <i class="fas fa-check me-2"></i>Enroll Now
+                                        </button>
+                                        <button class="btn btn-secondary mt-3 ms-2" onclick="cancelPreview()">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Enrolled Classes -->
+                        <div class="col-md-6">
+                            <div class="card-custom">
+                                <h5 class="section-title"><i class="fas fa-list me-2"></i>My Enrolled Classes</h5>
+                                <div id="enrolledClassesContainer">
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-spinner fa-spin fa-2x text-muted mb-2"></i>
+                                        <p class="text-muted">Loading enrolled classes...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Browse Available Classes Tab -->
+                <div class="tab-pane fade" id="browse-pane" role="tabpanel">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card-custom">
+                                <h5 class="section-title"><i class="fas fa-list me-2"></i>Available Classes</h5>
+                                <div class="mb-3">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <strong>Current Enrollment:</strong> <span id="browseEnrollmentInfo">Loading...</span>
+                                        </div>
+                                        <div class="col-md-6 text-end">
+                                            <button class="btn btn-primary btn-sm" onclick="loadBrowseableClasses()">
+                                                <i class="fas fa-refresh me-2"></i>Refresh Classes
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="browseClassesContainer">
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-spinner fa-spin fa-2x text-muted mb-2"></i>
+                                        <p class="text-muted">Loading available classes...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Browse by Section Tab -->
+                <div class="tab-pane fade" id="section-pane" role="tabpanel">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card-custom">
+                                <h5 class="section-title"><i class="fas fa-users me-2"></i>Available Sections</h5>
+                                <div class="mb-3">
+                                    <strong>Select a section to view available classes</strong>
+                                </div>
+                                <div id="sectionsListContainer">
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-spinner fa-spin fa-2x text-muted mb-2"></i>
+                                        <p class="text-muted">Loading sections...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentStudentId = null;
+        let currentEnrollmentId = null;
+        let foundClass = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStudentData();
+        });
+
+        async function loadStudentData() {
+            try {
+                // Try to get student profile
+                let response = await fetch('/api/v1/student/profile');
+                if (!response.ok) {
+                    // Fallback: get from student list (assume first student for demo)
+                    response = await fetch('/api/v1/student');
+                    if (response.ok) {
+                        const students = await response.json();
+                        if (students && students.length > 0) {
+                            currentStudentId = students[0].id;
+                            updateHeader(students[0]);
+                            await loadEnrollmentInfo(currentStudentId);
+                            await loadEnrolledClasses(currentStudentId);
+                        }
+                    }
+                } else {
+                    const studentData = await response.json();
+                    currentStudentId = studentData.id;
+                    updateHeader(studentData);
+                    await loadEnrollmentInfo(currentStudentId);
+                    await loadEnrolledClasses(currentStudentId);
+                }
+            } catch (error) {
+                console.error('Error loading student data:', error);
+            }
+        }
+
+        function updateHeader(data) {
+            const studentName = `${data.firstName || ''} ${data.lastName || ''}`;
+            document.getElementById('studentNameDisplay').textContent = studentName;
+        }
+
+        async function loadEnrollmentInfo(studentId) {
+            try {
+                const response = await fetch(`/api/v1/enrollment/student/${studentId}`);
+                if (response.ok) {
+                    const enrollments = await response.json();
+                    const activeEnrollment = enrollments.find(e => e.status === 'Active');
+                    
+                    if (activeEnrollment) {
+                        currentEnrollmentId = activeEnrollment.id;
+                        displayEnrollmentInfo(activeEnrollment);
+                    } else {
+                        document.getElementById('enrollmentInfo').innerHTML = `
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                You don't have an active enrollment. Please contact the admin to enroll for this semester.
+                            </div>
+                        `;
+                        document.getElementById('enrollmentInfo').style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading enrollment info:', error);
+            }
+        }
+
+        function displayEnrollmentInfo(enrollment) {
+            document.getElementById('enrollmentCourse').textContent = enrollment.courseName || 'N/A';
+            document.getElementById('enrollmentYearLevel').textContent = enrollment.yearLevelName || 'N/A';
+            document.getElementById('enrollmentSemester').textContent = enrollment.semesterName || 'N/A';
+            document.getElementById('enrollmentSchoolYear').textContent = enrollment.schoolYear || 'N/A';
+            document.getElementById('enrollmentStatus').textContent = enrollment.status || 'N/A';
+            document.getElementById('enrollmentInfo').style.display = 'block';
+        }
+
+        async function loadEnrolledClasses(studentId) {
+            try {
+                const response = await fetch(`/api/v1/studentsubject/student/${studentId}/enrolled`);
+                if (response.ok) {
+                    const classes = await response.json();
+                    displayEnrolledClasses(classes);
+                } else {
+                    displayEnrolledClasses([]);
+                }
+            } catch (error) {
+                console.error('Error loading enrolled classes:', error);
+                displayEnrolledClasses([]);
+            }
+        }
+
+        function displayEnrolledClasses(classes) {
+            const container = document.getElementById('enrolledClassesContainer');
+            
+            if (classes.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">You haven't enrolled in any classes yet</p>
+                        <p class="text-muted small">Use the EDP code to enroll in your classes</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = classes.map(cls => `
+                <div class="enrolled-class-card">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="mb-0">${cls.subjectName || 'N/A'}</h6>
+                        <span class="badge badge-${cls.status?.toLowerCase() || 'enrolled'}">${cls.status || 'Enrolled'}</span>
+                    </div>
+                    <div class="class-details">
+                        <div class="mb-1">
+                            <i class="fas fa-users-class"></i>
+                            <strong>Section:</strong> ${cls.sectionName || 'N/A'}
+                        </div>
+                        <div class="mb-1">
+                            <i class="fas fa-user-tie"></i>
+                            <strong>Teacher:</strong> ${cls.teacherName || 'TBA'}
+                        </div>
+                        <div class="mb-1">
+                            <i class="fas fa-clock"></i>
+                            <strong>Schedule:</strong> ${cls.schedule || 'TBA'}
+                        </div>
+                        <div class="mb-1">
+                            <i class="fas fa-door-open"></i>
+                            <strong>Room:</strong> ${cls.room || 'TBA'}
+                        </div>
+                        <div class="mb-1">
+                            <i class="fas fa-barcode"></i>
+                            <strong>EDP Code:</strong> <code>${cls.edpCode || 'N/A'}</code>
+                        </div>
+                        ${cls.grade ? `
+                        <div class="mb-1">
+                            <i class="fas fa-chart-line"></i>
+                            <strong>Grade:</strong> <span class="badge bg-info">${cls.grade}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-danger" onclick="dropClass(${cls.id}, '${cls.subjectName}')">
+                            <i class="fas fa-times me-1"></i>Drop Class
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function searchClass() {
+            const edpCode = document.getElementById('edpCodeInput').value.trim();
+            
+            if (!edpCode) {
+                alert('Please enter an EDP code');
+                return;
+            }
+
+            if (!currentEnrollmentId) {
+                alert('You need an active enrollment to enroll in classes. Please contact the admin.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/sectionsubject/edpcode/${edpCode}`);
+                
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        alert('Invalid EDP code. Class not found.');
+                    } else {
+                        alert('Error searching for class');
+                    }
+                    return;
+                }
+
+                foundClass = await response.json();
+                displayClassPreview(foundClass);
+            } catch (error) {
+                console.error('Error searching class:', error);
+                alert('Error searching for class');
+            }
+        }
+
+        function displayClassPreview(classData) {
+            const current = classData.currentEnrollment || 0;
+            const max = classData.maxStudents || 0;
+            const isFull = current >= max;
+            
+            document.getElementById('previewSubject').textContent = classData.subjectName || 'N/A';
+            document.getElementById('previewSection').textContent = classData.sectionName || 'N/A';
+            document.getElementById('previewTeacher').textContent = classData.teacherName || 'TBA';
+            document.getElementById('previewSchedule').textContent = 
+                (classData.scheduleDay && classData.scheduleTime) 
+                    ? `${classData.scheduleDay} ${classData.scheduleTime}` 
+                    : 'TBA';
+            document.getElementById('previewRoom').textContent = classData.room || 'TBA';
+            
+            const capacityHtml = `
+                <span class="capacity-indicator ${isFull ? 'capacity-full' : 'capacity-available'}">
+                    ${current} / ${max} students
+                </span>
+            `;
+            document.getElementById('previewCapacity').innerHTML = capacityHtml;
+            
+            document.getElementById('classPreview').classList.add('show');
+        }
+
+        function cancelPreview() {
+            document.getElementById('classPreview').classList.remove('show');
+            document.getElementById('edpCodeInput').value = '';
+            foundClass = null;
+        }
+
+        async function confirmEnrollment() {
+            if (!foundClass || !currentStudentId) {
+                alert('Error: Missing enrollment data');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/studentsubject/enroll', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        studentId: currentStudentId,
+                        edpCode: document.getElementById('edpCodeInput').value.trim()
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(result.message || 'Successfully enrolled!');
+                    cancelPreview();
+                    await loadEnrolledClasses(currentStudentId);
+                } else {
+                    const error = await response.json();
+                    alert(error.message || 'Failed to enroll in class');
+                }
+            } catch (error) {
+                console.error('Error enrolling:', error);
+                alert('Error enrolling in class');
+            }
+        }
+
+        async function dropClass(studentSubjectId, subjectName) {
+            if (!confirm(`Are you sure you want to drop ${subjectName}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/studentsubject/${studentSubjectId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(result.message || 'Successfully dropped class');
+                    await loadEnrolledClasses(currentStudentId);
+                } else {
+                    const error = await response.json();
+                    alert(error.message || 'Failed to drop class');
+                }
+            } catch (error) {
+                console.error('Error dropping class:', error);
+                alert('Error dropping class');
+            }
+        }
+
+        // Allow Enter key to search
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('edpCodeInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchClass();
+                }
+            });
+        });
+
+        // Browse tab functions
+        async function loadBrowseableClasses() {
+            if (!currentStudentId) {
+                alert('Student information not available');
+                return;
+            }
+
+            try {
+                // Get student's active enrollment
+                const enrollment = await getActiveEnrollment(currentStudentId);
+                if (!enrollment) {
+                    document.getElementById('browseClassesContainer').innerHTML = 
+                        '<div class="text-center py-4"><p class="text-danger">No active enrollment found</p></div>';
+                    return;
+                }
+
+                // Update enrollment info display
+                document.getElementById('browseEnrollmentInfo').textContent = 
+                    `${enrollment.courseName || 'N/A'} - Year ${enrollment.yearLevelName || 'N/A'} - ${enrollment.semesterName || 'N/A'}`;
+
+                // Fetch available classes
+                const response = await fetch(
+                    `/api/v1/sectionsubject/available?courseId=${enrollment.courseId}&yearLevelId=${enrollment.yearLevelId}&semesterId=${enrollment.semesterId}`
+                );
+                
+                if (response.ok) {
+                    const classes = await response.json();
+                    displayBrowseableClasses(classes);
+                } else {
+                    document.getElementById('browseClassesContainer').innerHTML = 
+                        '<div class="text-center py-4"><p class="text-danger">Failed to load available classes</p></div>';
+                }
+            } catch (error) {
+                console.error('Error loading browseable classes:', error);
+                document.getElementById('browseClassesContainer').innerHTML = 
+                    '<div class="text-center py-4"><p class="text-danger">Error loading available classes</p></div>';
+            }
+        }
+
+        function displayBrowseableClasses(classes) {
+            const container = document.getElementById('browseClassesContainer');
+            
+            if (classes.length === 0) {
+                container.innerHTML = '<div class="text-center py-4"><p class="text-muted">No available classes found for your enrollment</p></div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="row">
+                    ${classes.map(cls => `
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title">${cls.subjectName}</h6>
+                                    <p class="card-text small">
+                                        <strong>Section:</strong> ${cls.sectionName}<br>
+                                        <strong>Teacher:</strong> ${cls.teacherName}<br>
+                                        <strong>Schedule:</strong> ${cls.schedule}<br>
+                                        <strong>Room:</strong> ${cls.room || 'TBA'}<br>
+                                        <strong>EDP Code:</strong> ${cls.edpCode}<br>
+                                        <strong>Available Slots:</strong> 
+                                        <span class="capacity-indicator ${cls.availableSlots > 0 ? 'capacity-available' : 'capacity-full'}">
+                                            ${cls.availableSlots}/${cls.maxStudents}
+                                        </span>
+                                    </p>
+                                    <button class="btn btn-primary btn-sm w-100" 
+                                            onclick="enrollInClass('${cls.edpCode}', '${cls.subjectName}')"
+                                            data-edp-code="${cls.edpCode}"
+                                            ${cls.availableSlots <= 0 ? 'disabled' : ''}>
+                                        <i class="fas fa-plus me-2"></i>Enroll
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        async function enrollInClass(edpCode, subjectName) {
+            if (!currentStudentId) {
+                alert('Student information not available');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to enroll in ${subjectName}?`)) {
+                return;
+            }
+
+            try {
+                // Use existing enrollment logic directly with EDP code
+                const enrollResponse = await fetch('/api/v1/studentsubject/enroll', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        studentId: currentStudentId,
+                        edpCode: edpCode
+                    })
+                });
+
+                if (enrollResponse.ok) {
+                    const result = await enrollResponse.json();
+                    alert(result.message || 'Successfully enrolled!');
+                    await loadBrowseableClasses(); // Refresh the browse list
+                    await loadEnrolledClasses(currentStudentId); // Refresh enrolled classes
+                } else {
+                    const error = await enrollResponse.json();
+                    alert(error.message || 'Failed to enroll in class');
+                }
+            } catch (error) {
+                console.error('Error enrolling in class:', error);
+                alert('Error enrolling in class');
+            }
+        }
+
+        async function getActiveEnrollment(studentId) {
+            try {
+                const response = await fetch(`/api/v1/enrollment/student/${studentId}`);
+                if (response.ok) {
+                    const enrollments = await response.json();
+                    return enrollments.find(e => e.status === 'Active');
+                }
+                return null;
+            } catch (error) {
+                console.error('Error getting active enrollment:', error);
+                return null;
+            }
+        }
+
+        // Load browse classes when browse tab is clicked
+        document.addEventListener('DOMContentLoaded', function() {
+            const browseTab = document.getElementById('browse-tab');
+            browseTab.addEventListener('click', function() {
+                loadBrowseableClasses();
+            });
+        });
+
+        // Section browser functions
+        async function loadSectionBrowser() {
+            if (!currentStudentId) {
+                alert('Student information not available');
+                return;
+            }
+
+            try {
+                const enrollment = await getActiveEnrollment(currentStudentId);
+                if (!enrollment) {
+                    document.getElementById('sectionsListContainer').innerHTML = 
+                        '<div class="text-center py-4"><p class="text-danger">No active enrollment found</p></div>';
+                    return;
+                }
+
+                // Fetch sections for the enrollment's course/year/semester
+                const response = await fetch(
+                    `/api/v1/section/course/${enrollment.courseId}/year/${enrollment.yearLevelId}/semester/${enrollment.semesterId}`
+                );
+                
+                if (response.ok) {
+                    const sections = await response.json();
+                    displaySections(sections);
+                } else {
+                    document.getElementById('sectionsListContainer').innerHTML = 
+                        '<div class="text-center py-4"><p class="text-danger">Failed to load sections</p></div>';
+                }
+            } catch (error) {
+                console.error('Error loading sections:', error);
+                document.getElementById('sectionsListContainer').innerHTML = 
+                    '<div class="text-center py-4"><p class="text-danger">Error loading sections</p></div>';
+            }
+        }
+
+        function displaySections(sections) {
+            const container = document.getElementById('sectionsListContainer');
+            
+            if (sections.length === 0) {
+                container.innerHTML = '<div class="text-center py-4"><p class="text-muted">No sections available</p></div>';
+                return;
+            }
+
+            container.innerHTML = sections.map(section => `
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-users me-2"></i>${section.sectionName}
+                            <span class="badge bg-light text-dark ms-2">${section.currentEnrollment}/${section.maxCapacity} students</span>
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-sm btn-primary" onclick="loadSectionSubjects(${section.id}, '${section.sectionName}')">
+                            <i class="fas fa-list me-2"></i>View Classes
+                        </button>
+                        <div id="section-subjects-${section.id}" class="mt-3" style="display:none;"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadSectionSubjects(sectionId, sectionName) {
+            const container = document.getElementById(`section-subjects-${sectionId}`);
+            container.style.display = 'block';
+            container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+            try {
+                const response = await fetch(`/api/v1/section/${sectionId}/subjects`);
+                if (response.ok) {
+                    const subjects = await response.json();
+                    displaySectionSubjects(container, subjects, sectionName);
+                } else {
+                    container.innerHTML = '<div class="text-danger">Failed to load classes</div>';
+                }
+            } catch (error) {
+                console.error('Error loading section subjects:', error);
+                container.innerHTML = '<div class="text-danger">Error loading classes</div>';
+            }
+        }
+
+        function displaySectionSubjects(container, subjects, sectionName) {
+            if (subjects.length === 0) {
+                container.innerHTML = '<div class="text-muted">No classes assigned to this section yet</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th>Teacher</th>
+                                <th>Schedule</th>
+                                <th>Room</th>
+                                <th>EDP Code</th>
+                                <th>Slots</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${subjects.map(subject => `
+                                <tr>
+                                    <td>${subject.subjectName}</td>
+                                    <td>${subject.teacherName}</td>
+                                    <td>${subject.schedule}</td>
+                                    <td>${subject.room || 'TBA'}</td>
+                                    <td><code>${subject.edpCode}</code></td>
+                                    <td>
+                                        <span class="capacity-indicator ${subject.currentEnrollment < subject.maxStudents ? 'capacity-available' : 'capacity-full'}">
+                                            ${subject.maxStudents - subject.currentEnrollment}/${subject.maxStudents}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-success" 
+                                                onclick="enrollInClass('${subject.edpCode}', '${subject.subjectName}')"
+                                                ${subject.currentEnrollment >= subject.maxStudents ? 'disabled' : ''}>
+                                            <i class="fas fa-plus me-1"></i>Enroll
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        // Load section browser when tab is clicked
+        document.addEventListener('DOMContentLoaded', function() {
+            const sectionTab = document.getElementById('section-tab');
+            if (sectionTab) {
+                sectionTab.addEventListener('click', function() {
+                    loadSectionBrowser();
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+

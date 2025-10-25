@@ -36,4 +36,6 @@ public class StudentSubject
 
     [ForeignKey("EnrollmentId")]
     public Enrollment Enrollment { get; set; } = null!;
+
+    public ICollection<Grade> Grades { get; set; } = new List<Grade>();
 }

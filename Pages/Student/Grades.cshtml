@@ -215,13 +215,19 @@
                     </a>
                 </li>
                 <li>
+                    <a href="/Student/Enrollment">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>Enrollment</span>
+                    </a>
+                </li>
+                <li>
                     <a href="/Student/Announcements">
                         <i class="fas fa-bullhorn"></i>
                         <span>Announcements</span>
                     </a>
                 </li>
                 <li>
-                    <a href="/Profile">
+                    <a href="/Student/Profile">
                         <i class="fas fa-user"></i>
                         <span>Profile</span>
                     </a>
@@ -246,11 +252,11 @@
                     <div class="d-flex align-items-center">
                         <div class="dropdown">
                             <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                <img src="https://ui-avatars.com/api/?name=Marianne+Napisa&background=4CAF50&color=fff" class="user-avatar me-2">
-                                Marianne Napisa
+                                <img src="https://ui-avatars.com/api/?name=Loading&background=4CAF50&color=fff" class="user-avatar me-2" id="headerAvatar">
+                                <span id="headerName">Loading...</span>
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="userDropdown">
-                                <li><a class="dropdown-item" href="/Profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
+                                <li><a class="dropdown-item" href="/Student/Profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
                                 <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="/LoginPage"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
@@ -277,34 +283,12 @@
                                 <th>Status</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="gradesTableBody">
                             <tr>
-                                <td>Data Structures</td>
-                                <td>Assignment #1</td>
-                                <td>92/100</td>
-                                <td>2024-01-10</td>
-                                <td><span class="badge bg-success">Graded</span></td>
-                            </tr>
-                            <tr>
-                                <td>Data Structures</td>
-                                <td>Quiz #1</td>
-                                <td>88/100</td>
-                                <td>2024-01-12</td>
-                                <td><span class="badge bg-success">Graded</span></td>
-                            </tr>
-                            <tr>
-                                <td>Database Systems</td>
-                                <td>Project Proposal</td>
-                                <td>95/100</td>
-                                <td>2024-01-08</td>
-                                <td><span class="badge bg-success">Graded</span></td>
-                            </tr>
-                            <tr>
-                                <td>Web Development</td>
-                                <td>Midterm Exam</td>
-                                <td>87/100</td>
-                                <td>2024-01-15</td>
-                                <td><span class="badge bg-success">Graded</span></td>
+                                <td colspan="5" class="text-center py-4">
+                                    <i class="fas fa-spinner fa-spin fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted">Loading your grades...</p>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -335,6 +319,132 @@
             }
         });
         
+        // Load student data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStudentData();
+        });
+
+        let currentStudentId = null;
+
+        // Load student data from API
+        async function loadStudentData() {
+            try {
+                // Get current user from authenticated API
+                const response = await fetch('/api/v1/student/profile');
+                if (response.ok) {
+                    const studentData = await response.json();
+                    currentStudentId = studentData.id;
+                    updateHeader(studentData);
+                    loadMyGrades(studentData.id);
+                } else {
+                    console.error('Failed to load student data');
+                    // Fallback: try to get from student list
+                    await loadFromStudentList();
+                }
+            } catch (error) {
+                console.error('Error loading student data:', error);
+                await loadFromStudentList();
+            }
+        }
+
+        // Fallback: load from student list
+        async function loadFromStudentList() {
+            try {
+                const response = await fetch('/api/v1/student');
+                if (response.ok) {
+                    const students = await response.json();
+                    if (students.length > 0) {
+                        // Use first student as example (in real app, get current user)
+                        const studentData = students[0];
+                        currentStudentId = studentData.id;
+                        updateHeader(studentData);
+                        loadMyGrades(studentData.id);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading from student list:', error);
+                displayEmptyState();
+            }
+        }
+
+        // Update header with real data
+        function updateHeader(data) {
+            const fullName = `${data.firstName} ${data.lastName}`;
+            document.getElementById('headerName').textContent = fullName;
+            document.getElementById('headerAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=4CAF50&color=fff`;
+        }
+
+        // Load student's grades
+        async function loadMyGrades(studentId) {
+            try {
+                const response = await fetch(`/api/v1/grade/student/${studentId}`);
+                if (response.ok) {
+                    const grades = await response.json();
+                    displayGrades(grades);
+                } else {
+                    console.error('Failed to load grades');
+                    displayEmptyState();
+                }
+            } catch (error) {
+                console.error('Error loading grades:', error);
+                displayEmptyState();
+            }
+        }
+
+        // Display real grades from API
+        function displayGrades(grades) {
+            const tbody = document.getElementById('gradesTableBody');
+            if (!tbody) return;
+
+            if (grades.length === 0) {
+                displayEmptyState();
+                return;
+            }
+
+            tbody.innerHTML = '';
+
+            grades.forEach(grade => {
+                const row = document.createElement('tr');
+                const statusBadge = grade.percentage !== null ? 
+                    '<span class="badge bg-success">Graded</span>' : 
+                    '<span class="badge bg-warning">Pending</span>';
+                
+                const gradeDisplay = grade.percentage !== null ? 
+                    `${grade.score}/${grade.maxScore} (${grade.percentage}%)` : 
+                    `${grade.score}/${grade.maxScore}`;
+                
+                const dateDisplay = grade.dateGiven ? 
+                    new Date(grade.dateGiven).toLocaleDateString() : 
+                    new Date(grade.createdAt).toLocaleDateString();
+                
+                row.innerHTML = `
+                    <td>${grade.subjectName || 'N/A'}</td>
+                    <td>${grade.assessmentName}</td>
+                    <td>${gradeDisplay}</td>
+                    <td>${dateDisplay}</td>
+                    <td>${statusBadge}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // Display empty state
+        function displayEmptyState() {
+            const tbody = document.getElementById('gradesTableBody');
+            if (!tbody) return;
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-4">
+                        <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Grades Available</h5>
+                        <p class="text-muted">You don't have any grades yet. Check back later.</p>
+                    </td>
+                </tr>
+            `;
+        }
+
         // Set active menu item
         document.querySelectorAll('.sidebar-menu a').forEach(item => {
             if (item.getAttribute('href') === window.location.pathname) {

@@ -37,6 +37,11 @@ namespace StudentPeformanceTracker.Repository
             return await _context.StudentSubjects
                 .Include(ss => ss.Student)
                 .Include(ss => ss.SectionSubject)
+                    .ThenInclude(ss => ss.Subject)
+                .Include(ss => ss.SectionSubject)
+                    .ThenInclude(ss => ss.Section)
+                .Include(ss => ss.SectionSubject)
+                    .ThenInclude(ss => ss.Teacher)
                 .Include(ss => ss.Enrollment)
                 .Where(ss => ss.StudentId == studentId)
                 .OrderBy(ss => ss.SectionSubject.Subject.SubjectName)
@@ -75,6 +80,21 @@ namespace StudentPeformanceTracker.Repository
             _context.StudentSubjects.Update(studentSubject);
             await _context.SaveChangesAsync();
             return studentSubject;
+        }
+
+        public async Task<IEnumerable<StudentSubject>> GetBySectionSubjectIdAsync(int sectionSubjectId)
+        {
+            return await _context.StudentSubjects
+                .Include(ss => ss.Student)
+                .Include(ss => ss.SectionSubject)
+                .ThenInclude(ss => ss.Subject)
+                .Include(ss => ss.SectionSubject)
+                .ThenInclude(ss => ss.Section)
+                .Include(ss => ss.Enrollment)
+                .Where(ss => ss.SectionSubjectId == sectionSubjectId)
+                .OrderBy(ss => ss.Student.LastName)
+                .ThenBy(ss => ss.Student.FirstName)
+                .ToListAsync();
         }
 
         public async Task<bool> DeleteAsync(int id)

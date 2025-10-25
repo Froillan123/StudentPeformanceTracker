@@ -187,11 +187,11 @@
                                 <label class="form-label fw-bold">Year Level</label>
                                 <select class="form-select" name="YearLevel" required>
                                     <option value="" disabled selected>Select Year Level</option>
-                                    <option value="1st Year">1st Year</option>
-                                    <option value="2nd Year">2nd Year</option>
-                                    <option value="3rd Year">3rd Year</option>
-                                    <option value="4th Year">4th Year</option>
-                                    <option value="5th Year">5th Year</option>
+                                    <option value="1">1st Year</option>
+                                    <option value="2">2nd Year</option>
+                                    <option value="3">3rd Year</option>
+                                    <option value="4">4th Year</option>
+                                    <option value="5">5th Year</option>
                                 </select>
                             </div>
 
@@ -227,12 +227,19 @@
                             
                             <div class="mb-3">
                                 <label class="form-label fw-bold">
-                                    <i class="fas fa-user-circle me-2"></i>Username
+                                    <i class="fas fa-id-card me-2"></i>Student Number
                                 </label>
                                 <div class="input-group">
-                                    <span class="input-group-text">ucmm |</span>
-                                    <input type="text" class="form-control" name="Username" placeholder="Enter your School ID">
+                                    <span class="input-group-text">ucmm-</span>
+                                    <input type="text" class="form-control" name="StudentNumber" placeholder="Enter your Student Number" required>
                                 </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-user-circle me-2"></i>Username
+                                </label>
+                                <input type="text" class="form-control" name="Username" placeholder="Enter your Username" required>
                             </div>
                             
                             <div class="mb-3">

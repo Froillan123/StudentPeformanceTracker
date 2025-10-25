@@ -5,7 +5,7 @@ using StudentPeformanceTracker.Repository.Interfaces;
 namespace StudentPeformanceTracker.Controllers
 {
     [ApiController]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/semester")]
     public class SemesterController : ControllerBase
     {
         private readonly ISemesterRepository _semesterRepository;

@@ -6,14 +6,16 @@ using StudentPeformanceTracker.Services;
 namespace StudentPeformanceTracker.Controllers
 {
     [ApiController]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/enrollment")]
     public class EnrollmentController : ControllerBase
     {
         private readonly EnrollmentService _enrollmentService;
+        private readonly CourseSubjectService _courseSubjectService;
 
-        public EnrollmentController(EnrollmentService enrollmentService)
+        public EnrollmentController(EnrollmentService enrollmentService, CourseSubjectService courseSubjectService)
         {
             _enrollmentService = enrollmentService;
+            _courseSubjectService = courseSubjectService;
         }
 
         [HttpGet]
@@ -86,6 +88,20 @@ namespace StudentPeformanceTracker.Controllers
         {
             var studentSubjects = await _enrollmentService.GetStudentSubjectsAsync(id);
             return Ok(studentSubjects);
+        }
+
+        [HttpGet("available-subjects")]
+        public async Task<ActionResult> GetAvailableSubjects([FromQuery] int courseId, [FromQuery] int yearLevelId, [FromQuery] int semesterId)
+        {
+            try
+            {
+                var subjects = await _courseSubjectService.GetByCourseYearSemesterAsync(courseId, yearLevelId, semesterId);
+                return Ok(subjects);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error retrieving available subjects", error = ex.Message });
+            }
         }
     }
 }

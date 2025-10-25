@@ -7,7 +7,7 @@ namespace StudentPeformanceTracker.Controllers;
 
 [ApiController]
 [ApiVersion("1.0")]
-[Route("api/v{version:apiVersion}/[controller]")]
+[Route("api/v{version:apiVersion}/yearlevel")]
 public class YearLevelController : ControllerBase
 {
     private readonly IYearLevelRepository _yearLevelRepository;

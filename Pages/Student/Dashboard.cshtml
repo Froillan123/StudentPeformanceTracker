@@ -236,11 +236,11 @@
                     <div class="d-flex align-items-center">
                         <div class="dropdown">
                             <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                <img src="https://ui-avatars.com/api/?name=Marianne+Napisa&background=4CAF50&color=fff" class="user-avatar me-2">
-                                Marianne Napisa
+                                <img src="https://ui-avatars.com/api/?name=Loading&background=4CAF50&color=fff" class="user-avatar me-2" id="headerAvatar">
+                                <span id="headerName">Loading...</span>
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="userDropdown">
-                                <li><a class="dropdown-item" href="/Profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
+                                <li><a class="dropdown-item" href="/Student/Profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
                                 <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="/LoginPage"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
@@ -258,28 +258,28 @@
                 <div class="col-md-3">
                     <div class="stat-card primary">
                         <i class="fas fa-book stat-icon"></i>
-                        <span class="stat-number">5</span>
+                        <span class="stat-number" id="activeClasses">-</span>
                         <span class="stat-label">Active Classes</span>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="stat-card accent">
                         <i class="fas fa-chart-line stat-icon"></i>
-                        <span class="stat-number">87.5</span>
+                        <span class="stat-number" id="averageGrade">-</span>
                         <span class="stat-label">Average Grade</span>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="stat-card info">
                         <i class="fas fa-bullhorn stat-icon"></i>
-                        <span class="stat-number">3</span>
+                        <span class="stat-number" id="announcements">-</span>
                         <span class="stat-label">New Announcements</span>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="stat-card warning">
                         <i class="fas fa-calendar stat-icon"></i>
-                        <span class="stat-number">2</span>
+                        <span class="stat-number" id="upcomingExams">-</span>
                         <span class="stat-label">Upcoming Exams</span>
                     </div>
                 </div>
@@ -300,24 +300,12 @@
                                         <th>Status</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody id="recentActivityBody">
                                     <tr>
-                                        <td>Data Structures</td>
-                                        <td>Assignment #3 Submitted</td>
-                                        <td>2024-01-15</td>
-                                        <td><span class="badge bg-success">Completed</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Database Systems</td>
-                                        <td>Quiz #2</td>
-                                        <td>2024-01-14</td>
-                                        <td><span class="badge bg-success">Completed</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Web Development</td>
-                                        <td>Project Proposal Due</td>
-                                        <td>2024-01-20</td>
-                                        <td><span class="badge bg-warning">Pending</span></td>
+                                        <td colspan="4" class="text-center py-4">
+                                            <i class="fas fa-spinner fa-spin fa-2x text-muted mb-2"></i>
+                                            <p class="text-muted">Loading recent activity...</p>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -338,7 +326,7 @@
                             <a href="/Student/Announcements" class="btn btn-outline-info">
                                 <i class="fas fa-bullhorn me-2"></i>View Announcements
                             </a>
-                            <a href="/Profile" class="btn btn-outline-secondary">
+                            <a href="/Student/Profile" class="btn btn-outline-secondary">
                                 <i class="fas fa-user me-2"></i>Update Profile
                             </a>
                         </div>
@@ -352,7 +340,149 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Additional page-specific JavaScript can go here
+        // Load student data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStudentData();
+        });
+
+        let currentStudentId = null;
+
+        // Load student data from API
+        async function loadStudentData() {
+            try {
+                // Get current user from session/localStorage or API
+                const response = await fetch('/api/v1/student/profile');
+                if (response.ok) {
+                    const studentData = await response.json();
+                    currentStudentId = studentData.id;
+                    updateHeader(studentData);
+                    loadDashboardData(studentData.id);
+                } else {
+                    console.error('Failed to load student data');
+                    // Fallback: try to get from student list
+                    await loadFromStudentList();
+                }
+            } catch (error) {
+                console.error('Error loading student data:', error);
+                await loadFromStudentList();
+            }
+        }
+
+        // Fallback: load from student list
+        async function loadFromStudentList() {
+            try {
+                const response = await fetch('/api/v1/student');
+                if (response.ok) {
+                    const students = await response.json();
+                    if (students.length > 0) {
+                        // Use first student as example (in real app, get current user)
+                        const studentData = students[0];
+                        currentStudentId = studentData.id;
+                        updateHeader(studentData);
+                        loadDashboardData(studentData.id);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading from student list:', error);
+                displayErrorState();
+            }
+        }
+
+        // Update header with real data
+        function updateHeader(data) {
+            const fullName = `${data.firstName} ${data.lastName}`;
+            document.getElementById('headerName').textContent = fullName;
+            document.getElementById('headerAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=4CAF50&color=fff`;
+        }
+
+        // Load dashboard data
+        async function loadDashboardData(studentId) {
+            try {
+                // Update statistics
+                updateStatistics();
+                
+                // Load recent activity
+                loadRecentActivity();
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                displayErrorState();
+            }
+        }
+
+        // Update statistics with real data
+        function updateStatistics() {
+            // For now, show placeholder values
+            document.getElementById('activeClasses').textContent = '5';
+            document.getElementById('averageGrade').textContent = '87.5';
+            document.getElementById('announcements').textContent = '3';
+            document.getElementById('upcomingExams').textContent = '2';
+        }
+
+        // Load recent activity
+        function loadRecentActivity() {
+            const tbody = document.getElementById('recentActivityBody');
+            if (!tbody) return;
+
+            const placeholderActivities = [
+                {
+                    subject: 'Data Structures',
+                    activity: 'Assignment #3 Submitted',
+                    date: '2024-01-15',
+                    status: 'Completed'
+                },
+                {
+                    subject: 'Database Systems',
+                    activity: 'Quiz #2',
+                    date: '2024-01-14',
+                    status: 'Completed'
+                },
+                {
+                    subject: 'Web Development',
+                    activity: 'Project Proposal Due',
+                    date: '2024-01-20',
+                    status: 'Pending'
+                }
+            ];
+
+            tbody.innerHTML = '';
+
+            placeholderActivities.forEach(activity => {
+                const row = document.createElement('tr');
+                const statusBadge = activity.status === 'Completed' ? 
+                    '<span class="badge bg-success">Completed</span>' : 
+                    '<span class="badge bg-warning">Pending</span>';
+                
+                row.innerHTML = `
+                    <td>${activity.subject}</td>
+                    <td>${activity.activity}</td>
+                    <td>${activity.date}</td>
+                    <td>${statusBadge}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // Display error state
+        function displayErrorState() {
+            document.getElementById('activeClasses').textContent = '-';
+            document.getElementById('averageGrade').textContent = '-';
+            document.getElementById('announcements').textContent = '-';
+            document.getElementById('upcomingExams').textContent = '-';
+            
+            const tbody = document.getElementById('recentActivityBody');
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center py-4">
+                            <i class="fas fa-exclamation-triangle fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Unable to load data</h5>
+                            <p class="text-muted">Please try refreshing the page.</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
     </script>
 </body>
 </html>

@@ -60,14 +60,18 @@ namespace StudentPeformanceTracker.Repository
         {
             _context.Sections.Add(section);
             await _context.SaveChangesAsync();
-            return section;
+
+            // Reload with includes to populate navigation properties
+            return await GetByIdAsync(section.Id) ?? section;
         }
 
         public async Task<Section> UpdateAsync(Section section)
         {
             _context.Sections.Update(section);
             await _context.SaveChangesAsync();
-            return section;
+
+            // Reload with includes to populate navigation properties
+            return await GetByIdAsync(section.Id) ?? section;
         }
 
         public async Task<bool> DeleteAsync(int id)

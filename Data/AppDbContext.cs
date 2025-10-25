@@ -27,6 +27,7 @@ namespace StudentPeformanceTracker.Data
         public DbSet<TeacherSubject> TeacherSubjects { get; set; }
         public DbSet<Enrollment> Enrollments { get; set; }
         public DbSet<StudentSubject> StudentSubjects { get; set; }
+        public DbSet<Grade> Grades { get; set; }
 
 
 

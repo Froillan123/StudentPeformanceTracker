@@ -66,6 +66,13 @@ builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
 builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
 builder.Services.AddScoped<IYearLevelRepository, YearLevelRepository>();
 builder.Services.AddScoped<ICourseSubjectRepository, CourseSubjectRepository>();
+builder.Services.AddScoped<IGradeRepository, GradeRepository>();
+builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
+builder.Services.AddScoped<ISectionRepository, SectionRepository>();
+builder.Services.AddScoped<ISectionSubjectRepository, SectionSubjectRepository>();
+builder.Services.AddScoped<IStudentSubjectRepository, StudentSubjectRepository>();
+builder.Services.AddScoped<ISemesterRepository, SemesterRepository>();
+builder.Services.AddScoped<ITeacherSubjectRepository, TeacherSubjectRepository>();
 
 // Register services
 builder.Services.AddSingleton<JwtService>();
@@ -75,6 +82,9 @@ builder.Services.AddScoped<UserManagementService>();
 
 // Register new services for course and subject management
 builder.Services.AddScoped<CourseSubjectService>();
+builder.Services.AddScoped<ReportService>();
+builder.Services.AddScoped<SectionService>();
+builder.Services.AddScoped<EnrollmentService>();
 
 // JWT Authentication configuration
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
@@ -128,8 +138,13 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("TeacherOrAdmin", policy => policy.RequireRole("Teacher", "Admin"));
 });
 
-// Add Controllers for API endpoints
-builder.Services.AddControllers();
+// Add Controllers for API endpoints with JSON options to handle circular references
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+    });
 
 // Add API Versioning
 builder.Services.AddApiVersioning(options =>

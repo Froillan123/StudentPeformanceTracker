@@ -1,0 +1,609 @@
+@page "/Admin/EnrollmentManage"
+@model StudentPeformanceTracker.Pages.Admin.EnrollmentManageModel
+@{
+    ViewData["Title"] = "Enrollment Management";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] - Admin Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        
+        .dashboard-header {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1rem 0;
+        }
+        
+        .card-custom {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: none;
+        }
+        
+        .section-title {
+            color: var(--secondary-color);
+            font-weight: 600;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+        }
+        
+        .table th {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .action-btn {
+            padding: 0.25rem 0.5rem;
+            margin: 0 0.1rem;
+            font-size: 0.875rem;
+        }
+        
+        .badge-active { background-color: var(--success-color); }
+        .badge-completed { background-color: var(--secondary-color); }
+        .badge-dropped { background-color: var(--danger-color); }
+        .badge-pending { background-color: var(--warning-color); }
+    </style>
+</head>
+<body>
+    @await Html.PartialAsync("Shared/_AdminNavigation")
+
+    <div class="main-content">
+        <div class="dashboard-header">
+            <div class="container-fluid">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0"><i class="fas fa-user-graduate me-2"></i>Enrollment Management</h2>
+                    <div>
+                        <img src="~/images/default-avatar.png" alt="Admin" class="user-avatar">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container-fluid mt-4">
+            <div class="card-custom">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="section-title mb-0">All Enrollments</h5>
+                    <button class="btn btn-primary" onclick="openCreateEnrollmentModal()">
+                        <i class="fas fa-plus me-2"></i>Create Enrollment
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Student Name</th>
+                                <th>Course</th>
+                                <th>Year Level</th>
+                                <th>Semester</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>School Year</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="enrollmentTableBody">
+                            <tr>
+                                <td colspan="9" class="text-center py-4">
+                                    <i class="fas fa-spinner fa-spin fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted">Loading enrollments...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Enrollment Modal -->
+    <div class="modal fade" id="createEnrollmentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create Enrollment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createEnrollmentForm">
+                        <div class="mb-3">
+                            <label for="studentSelect" class="form-label">Student</label>
+                            <select class="form-select" id="studentSelect" required>
+                                <option value="">Loading students...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="courseSelect" class="form-label">Course</label>
+                            <select class="form-select" id="courseSelect" required>
+                                <option value="">Loading courses...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="yearLevelSelect" class="form-label">Year Level</label>
+                            <select class="form-select" id="yearLevelSelect" required>
+                                <option value="">Loading year levels...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="semesterSelect" class="form-label">Semester</label>
+                            <select class="form-select" id="semesterSelect" required>
+                                <option value="">Loading semesters...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="enrollmentType" class="form-label">Enrollment Type</label>
+                            <select class="form-select" id="enrollmentType" required>
+                                <option value="Regular">Regular</option>
+                                <option value="Irregular">Irregular</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="schoolYear" class="form-label">School Year</label>
+                            <input type="text" class="form-control" id="schoolYear" placeholder="e.g., 2024-2025" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="createEnrollment()">Create Enrollment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Enrollment Modal -->
+    <div class="modal fade" id="editEnrollmentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Enrollment Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editEnrollmentForm">
+                        <input type="hidden" id="editEnrollmentId">
+                        <div class="mb-3">
+                            <label for="editStatus" class="form-label">Status</label>
+                            <select class="form-select" id="editStatus" required>
+                                <option value="Active">Active</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Dropped">Dropped</option>
+                                <option value="Pending">Pending</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="updateEnrollmentStatus()">Update Status</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Class Assignment Modal -->
+    <div class="modal fade" id="classAssignmentModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Assign Classes to Student</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Student:</strong> <span id="assignmentStudentName"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Enrollment:</strong> <span id="assignmentEnrollmentInfo"></span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Available Classes:</label>
+                        <div id="availableClassesContainer" class="row">
+                            <!-- Classes will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="assignSelectedClasses()">Assign Selected Classes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let createEnrollmentModal, editEnrollmentModal, classAssignmentModal;
+        let currentEnrollmentData = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            createEnrollmentModal = new bootstrap.Modal(document.getElementById('createEnrollmentModal'));
+            editEnrollmentModal = new bootstrap.Modal(document.getElementById('editEnrollmentModal'));
+            classAssignmentModal = new bootstrap.Modal(document.getElementById('classAssignmentModal'));
+            
+            loadEnrollments();
+        });
+
+        async function loadEnrollments() {
+            try {
+                const response = await fetch('/api/v1/enrollment');
+                if (response.ok) {
+                    const enrollments = await response.json();
+                    displayEnrollments(enrollments);
+                } else {
+                    showError('Failed to load enrollments');
+                }
+            } catch (error) {
+                console.error('Error loading enrollments:', error);
+                showError('Error loading enrollments');
+            }
+        }
+
+        function displayEnrollments(enrollments) {
+            const tbody = document.getElementById('enrollmentTableBody');
+            if (enrollments.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="text-center py-4">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No enrollments found</p>
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            tbody.innerHTML = enrollments.map(enrollment => `
+                <tr>
+                    <td>${enrollment.studentIdNumber || 'N/A'}</td>
+                    <td>${enrollment.studentName || 'N/A'}</td>
+                    <td>${enrollment.courseName || 'N/A'}</td>
+                    <td>${enrollment.yearLevelName || 'N/A'}</td>
+                    <td>${enrollment.semesterName || 'N/A'}</td>
+                    <td>${enrollment.enrollmentType || 'Regular'}</td>
+                    <td><span class="badge badge-${enrollment.status?.toLowerCase() || 'pending'}">${enrollment.status || 'Pending'}</span></td>
+                    <td>${enrollment.schoolYear || 'N/A'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning action-btn" onclick="openEditEnrollmentModal(${enrollment.id}, '${enrollment.status}')">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn btn-sm btn-danger action-btn" onclick="deleteEnrollment(${enrollment.id})">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function showError(message) {
+            const tbody = document.getElementById('enrollmentTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="text-center py-4 text-danger">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                        <p>${message}</p>
+                    </td>
+                </tr>`;
+        }
+
+        async function openCreateEnrollmentModal() {
+            // Load dropdowns
+            await Promise.all([
+                loadStudents(),
+                loadCourses(),
+                loadYearLevels(),
+                loadSemesters()
+            ]);
+            createEnrollmentModal.show();
+        }
+
+        async function loadStudents() {
+            try {
+                const response = await fetch('/api/v1/student');
+                if (response.ok) {
+                    const students = await response.json();
+                    const select = document.getElementById('studentSelect');
+                    select.innerHTML = '<option value="">Select a student</option>' +
+                        students.map(s => `<option value="${s.id}">${s.studentId || s.id} - ${s.firstName} ${s.lastName}</option>`).join('');
+                }
+            } catch (error) {
+                console.error('Error loading students:', error);
+            }
+        }
+
+        async function loadCourses() {
+            try {
+                const response = await fetch('/api/v1/course');
+                if (response.ok) {
+                    const courses = await response.json();
+                    const select = document.getElementById('courseSelect');
+                    select.innerHTML = '<option value="">Select a course</option>' +
+                        courses.map(c => `<option value="${c.id}">${c.courseName}</option>`).join('');
+                }
+            } catch (error) {
+                console.error('Error loading courses:', error);
+            }
+        }
+
+        async function loadYearLevels() {
+            try {
+                const response = await fetch('/api/v1/yearlevel');
+                if (response.ok) {
+                    const yearLevels = await response.json();
+                    const select = document.getElementById('yearLevelSelect');
+                    select.innerHTML = '<option value="">Select year level</option>' +
+                        yearLevels.map(yl => `<option value="${yl.id}">${yl.levelName}</option>`).join('');
+                }
+            } catch (error) {
+                console.error('Error loading year levels:', error);
+            }
+        }
+
+        async function loadSemesters() {
+            try {
+                const response = await fetch('/api/v1/semester');
+                if (response.ok) {
+                    const semesters = await response.json();
+                    const select = document.getElementById('semesterSelect');
+                    select.innerHTML = '<option value="">Select semester</option>' +
+                        semesters.map(s => `<option value="${s.id}">${s.semesterName}</option>`).join('');
+                }
+            } catch (error) {
+                console.error('Error loading semesters:', error);
+            }
+        }
+
+        async function createEnrollment() {
+            const studentId = document.getElementById('studentSelect').value;
+            const courseId = document.getElementById('courseSelect').value;
+            const yearLevelId = document.getElementById('yearLevelSelect').value;
+            const semesterId = document.getElementById('semesterSelect').value;
+            const enrollmentType = document.getElementById('enrollmentType').value;
+            const schoolYear = document.getElementById('schoolYear').value;
+
+            if (!studentId || !courseId || !yearLevelId || !semesterId || !schoolYear) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/enrollment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        studentId: parseInt(studentId),
+                        courseId: parseInt(courseId),
+                        yearLevelId: parseInt(yearLevelId),
+                        semesterId: parseInt(semesterId),
+                        enrollmentType: enrollmentType,
+                        schoolYear: schoolYear,
+                        status: 'Active'
+                    })
+                });
+
+                if (response.ok) {
+                    const enrollment = await response.json();
+                    createEnrollmentModal.hide();
+                    document.getElementById('createEnrollmentForm').reset();
+                    
+                    // Store enrollment data for class assignment
+                    currentEnrollmentData = {
+                        id: enrollment.id,
+                        studentId: parseInt(studentId),
+                        courseId: parseInt(courseId),
+                        yearLevelId: parseInt(yearLevelId),
+                        semesterId: parseInt(semesterId)
+                    };
+                    
+                    // Show class assignment modal
+                    await showClassAssignmentModal();
+                } else {
+                    const error = await response.json();
+                    alert('Failed to create enrollment: ' + (error.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error creating enrollment:', error);
+                alert('Error creating enrollment');
+            }
+        }
+
+        function openEditEnrollmentModal(enrollmentId, currentStatus) {
+            document.getElementById('editEnrollmentId').value = enrollmentId;
+            document.getElementById('editStatus').value = currentStatus;
+            editEnrollmentModal.show();
+        }
+
+        async function updateEnrollmentStatus() {
+            const enrollmentId = document.getElementById('editEnrollmentId').value;
+            const status = document.getElementById('editStatus').value;
+
+            try {
+                const response = await fetch(`/api/v1/enrollment/${enrollmentId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: status })
+                });
+
+                if (response.ok) {
+                    editEnrollmentModal.hide();
+                    loadEnrollments();
+                    alert('Enrollment status updated successfully!');
+                } else {
+                    const error = await response.json();
+                    alert('Failed to update enrollment: ' + (error.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error updating enrollment:', error);
+                alert('Error updating enrollment');
+            }
+        }
+
+        async function deleteEnrollment(enrollmentId) {
+            if (!confirm('Are you sure you want to delete this enrollment?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/enrollment/${enrollmentId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    loadEnrollments();
+                    alert('Enrollment deleted successfully!');
+                } else {
+                    const error = await response.json();
+                    alert('Failed to delete enrollment: ' + (error.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error deleting enrollment:', error);
+                alert('Error deleting enrollment');
+            }
+        }
+
+        async function showClassAssignmentModal() {
+            if (!currentEnrollmentData) return;
+
+            // Get student name
+            const studentSelect = document.getElementById('studentSelect');
+            const selectedOption = studentSelect.options[studentSelect.selectedIndex];
+            const studentName = selectedOption.text;
+            
+            // Get course name
+            const courseSelect = document.getElementById('courseSelect');
+            const courseOption = courseSelect.options[courseSelect.selectedIndex];
+            const courseName = courseOption.text;
+
+            document.getElementById('assignmentStudentName').textContent = studentName;
+            document.getElementById('assignmentEnrollmentInfo').textContent = `${courseName} - ${currentEnrollmentData.yearLevelId} - ${currentEnrollmentData.semesterId}`;
+
+            // Load available classes
+            await loadAvailableClasses();
+            classAssignmentModal.show();
+        }
+
+        async function loadAvailableClasses() {
+            if (!currentEnrollmentData) return;
+
+            try {
+                const response = await fetch(
+                    `/api/v1/sectionsubject/available?courseId=${currentEnrollmentData.courseId}&yearLevelId=${currentEnrollmentData.yearLevelId}&semesterId=${currentEnrollmentData.semesterId}`
+                );
+                
+                if (response.ok) {
+                    const classes = await response.json();
+                    displayAvailableClasses(classes);
+                } else {
+                    document.getElementById('availableClassesContainer').innerHTML = 
+                        '<div class="col-12"><p class="text-danger">Failed to load available classes</p></div>';
+                }
+            } catch (error) {
+                console.error('Error loading available classes:', error);
+                document.getElementById('availableClassesContainer').innerHTML = 
+                    '<div class="col-12"><p class="text-danger">Error loading available classes</p></div>';
+            }
+        }
+
+        function displayAvailableClasses(classes) {
+            const container = document.getElementById('availableClassesContainer');
+            
+            if (classes.length === 0) {
+                container.innerHTML = '<div class="col-12"><p class="text-muted">No available classes found for this course/year/semester</p></div>';
+                return;
+            }
+
+            container.innerHTML = classes.map(cls => `
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="${cls.id}" id="class_${cls.id}">
+                                <label class="form-check-label" for="class_${cls.id}">
+                                    <h6 class="card-title">${cls.subjectName}</h6>
+                                </label>
+                            </div>
+                            <p class="card-text small">
+                                <strong>Section:</strong> ${cls.sectionName}<br>
+                                <strong>Teacher:</strong> ${cls.teacherName}<br>
+                                <strong>Schedule:</strong> ${cls.schedule}<br>
+                                <strong>Room:</strong> ${cls.room || 'TBA'}<br>
+                                <strong>EDP Code:</strong> ${cls.edpCode}<br>
+                                <strong>Available Slots:</strong> ${cls.availableSlots}/${cls.maxStudents}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function assignSelectedClasses() {
+            if (!currentEnrollmentData) return;
+
+            const checkboxes = document.querySelectorAll('#availableClassesContainer input[type="checkbox"]:checked');
+            const selectedClassIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+            if (selectedClassIds.length === 0) {
+                alert('Please select at least one class to assign');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/studentsubject/admin-assign', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        studentId: currentEnrollmentData.studentId,
+                        enrollmentId: currentEnrollmentData.id,
+                        sectionSubjectIds: selectedClassIds
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    classAssignmentModal.hide();
+                    loadEnrollments();
+                    
+                    let message = `Successfully assigned ${result.successfullyAssigned} out of ${result.totalRequested} classes.`;
+                    if (result.errors && result.errors.length > 0) {
+                        message += '\n\nErrors:\n' + result.errors.join('\n');
+                    }
+                    alert(message);
+                } else {
+                    const error = await response.json();
+                    alert('Failed to assign classes: ' + (error.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error assigning classes:', error);
+                alert('Error assigning classes');
+            }
+        }
+    </script>
+</body>
+</html>
+

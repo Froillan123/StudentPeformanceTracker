@@ -19,19 +19,22 @@ public class AdminController : ControllerBase
     private readonly ITeacherRepository _teacherRepository;
     private readonly IStudentRepository _studentRepository;
     private readonly IDepartmentRepository _departmentRepository;
+    private readonly ICourseRepository _courseRepository;
 
     public AdminController(
         IAdminRepository adminRepository,
         IUserRepository userRepository,
         ITeacherRepository teacherRepository,
         IStudentRepository studentRepository,
-        IDepartmentRepository departmentRepository)
+        IDepartmentRepository departmentRepository,
+        ICourseRepository courseRepository)
     {
         _adminRepository = adminRepository;
         _userRepository = userRepository;
         _teacherRepository = teacherRepository;
         _studentRepository = studentRepository;
         _departmentRepository = departmentRepository;
+        _courseRepository = courseRepository;
     }
 
     [HttpGet("profile")]
@@ -146,6 +149,50 @@ public class AdminController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, new { message = "Error updating admin profile", error = ex.Message });
+        }
+    }
+
+    [HttpGet("dashboard-stats")]
+    public async Task<ActionResult<object>> GetDashboardStats()
+    {
+        try
+        {
+            // Get current user ID from JWT token to verify admin access
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Unauthorized(new { message = "Invalid user token" });
+            }
+
+            // Verify admin exists
+            var admin = await _adminRepository.GetByUserIdAsync(userId);
+            if (admin == null)
+            {
+                return NotFound(new { message = "Admin profile not found" });
+            }
+
+            // Get statistics from database
+            var totalStudents = await _studentRepository.GetCountAsync();
+            var totalTeachers = await _teacherRepository.GetCountAsync();
+            var activeCourses = await _courseRepository.GetCountAsync();
+
+            // Count inactive users as pending issues (users awaiting approval)
+            var allUsers = await _userRepository.GetAllAsync();
+            var pendingIssues = allUsers.Count(u => u.Status != "Active");
+
+            var result = new
+            {
+                TotalStudents = totalStudents,
+                TotalTeachers = totalTeachers,
+                ActiveCourses = activeCourses,
+                PendingIssues = pendingIssues
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving dashboard statistics", error = ex.Message });
         }
     }
 }

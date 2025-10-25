@@ -84,11 +84,7 @@ public class UserManagementController : ControllerBase
                 return NotFound(new { message = "User not found" });
             }
 
-            if (user.Status == "Active")
-            {
-                return BadRequest(new { message = "User is already active" });
-            }
-
+            // Allow re-activation - just update the status
             var success = await _userManagementService.ActivateUserAsync(userId);
             if (!success)
             {
@@ -114,11 +110,7 @@ public class UserManagementController : ControllerBase
                 return NotFound(new { message = "User not found" });
             }
 
-            if (user.Status == "Inactive")
-            {
-                return BadRequest(new { message = "User is already inactive" });
-            }
-
+            // Allow re-deactivation - just update the status
             var success = await _userManagementService.DeactivateUserAsync(userId);
             if (!success)
             {
@@ -144,19 +136,28 @@ public class UserManagementController : ControllerBase
                 return NotFound(new { message = "User not found" });
             }
 
-            var result = new
+            // Build base result
+            var result = new Dictionary<string, object>
             {
-                user.Id,
-                user.Username,
-                user.Role,
-                user.Status,
-                user.CreatedAt,
-                user.UpdatedAt,
-                Email = GetUserEmail(user),
-                FirstName = GetUserFirstName(user),
-                LastName = GetUserLastName(user),
-                Phone = GetUserPhone(user)
+                ["id"] = user.Id,
+                ["username"] = user.Username,
+                ["role"] = user.Role,
+                ["status"] = user.Status,
+                ["createdAt"] = user.CreatedAt,
+                ["updatedAt"] = user.UpdatedAt,
+                ["email"] = GetUserEmail(user),
+                ["firstName"] = GetUserFirstName(user),
+                ["lastName"] = GetUserLastName(user),
+                ["phone"] = GetUserPhone(user) ?? "N/A"
             };
+
+            // Add student-specific fields if user is a student
+            if (user.Role == "Student" && user.Student != null)
+            {
+                result["studentId"] = user.Student.StudentId ?? "N/A";
+                result["yearLevel"] = user.Student.YearLevel ?? 0;
+                result["courseName"] = user.Student.Course?.CourseName ?? "N/A";
+            }
 
             return Ok(result);
         }

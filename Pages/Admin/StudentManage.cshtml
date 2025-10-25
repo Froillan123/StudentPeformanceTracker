@@ -16,190 +16,8 @@
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root {
-            --primary-color: #3498db;
-            --secondary-color: #2c3e50;
-            --success-color: #2ecc71;
-            --warning-color: #f39c12;
-            --danger-color: #e74c3c;
-            --sidebar-width: 250px;
-            --sidebar-collapsed-width: 70px;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
-            color: #333;
-            overflow-x: hidden;
-        }
-        
-        /* Sidebar Styles */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            width: var(--sidebar-width);
-            background-color: var(--secondary-color);
-            color: white;
-            transition: all 0.3s ease;
-            z-index: 1000;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-        }
-        
-        .sidebar.collapsed {
-            width: var(--sidebar-collapsed-width);
-        }
-        
-        .sidebar-header {
-            padding: 1.5rem 1rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            text-align: center;
-        }
-        
-        .sidebar-header h3 {
-            margin: 0;
-            font-size: 1.2rem;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-        }
-        
-        .sidebar.collapsed .sidebar-header h3 {
-            display: none;
-        }
-        
-        .sidebar-menu {
-            padding: 1rem 0;
-        }
-        
-        .sidebar-menu ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        
-        .sidebar-menu li {
-            margin-bottom: 0.5rem;
-        }
-        
-        .sidebar-menu a {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            color: rgba(255,255,255,0.8);
-            text-decoration: none;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-            overflow: hidden;
-        }
-        
-        .sidebar-menu a:hover, .sidebar-menu a.active {
-            background-color: rgba(255,255,255,0.1);
-            color: white;
-            border-left: 4px solid var(--primary-color);
-        }
-        
-        .sidebar-menu i {
-            width: 24px;
-            margin-right: 1rem;
-            text-align: center;
-        }
-        
-        .sidebar.collapsed .sidebar-menu span {
-            display: none;
-        }
-        
-        .sidebar.collapsed .sidebar-menu i {
-            margin-right: 0;
-        }
-        
-        .toggle-btn {
-            position: absolute;
-            top: 1rem;
-            right: -15px;
-            background-color: var(--secondary-color);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        
-        /* Main Content Area */
-        .main-content {
-            margin-left: var(--sidebar-width);
-            transition: all 0.3s ease;
-            min-height: 100vh;
-            background-color: #f8f9fa;
-        }
-        
-        .main-content.expanded {
-            margin-left: var(--sidebar-collapsed-width);
-        }
-        
-        .dashboard-header {
-            background-color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 1rem 0;
-        }
-        
-        .card-custom {
-            background-color: white;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            transition: all 0.3s ease;
-            border: none;
-        }
-        
-        .section-title {
-            color: var(--secondary-color);
-            font-weight: 600;
-            margin-bottom: 1rem;
-            border-bottom: 2px solid var(--primary-color);
-            padding-bottom: 0.5rem;
-        }
-        
-        .table th {
-            background-color: var(--secondary-color);
-            color: white;
-        }
-        
-        .action-btn {
-            padding: 0.25rem 0.5rem;
-            margin: 0 0.1rem;
-            font-size: 0.875rem;
-        }
-        
-        .search-box {
-            position: relative;
-        }
-        
-        .search-box input {
-            padding-right: 2.5rem;
-        }
-        
-        .search-box i {
-            position: absolute;
-            right: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #6c757d;
-        }
-        
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
+        /* Student Management specific styles only */
+        /* No specific styles needed - all common styles are in shared navigation */
     </style>
 </head>
 <body>
@@ -261,49 +79,8 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td>ucmn-22686570</td>
-                                <td>Marianne Napisa</td>
-                                <td>marianne@example.com</td>
-                                <td>3rd Year</td>
-                                <td>BSIT</td>
-                                <td><span class="badge bg-success">Active</span></td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-primary action-btn" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-outline-warning action-btn" title="View Details">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-outline-danger action-btn" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>ucmn-22686571</td>
-                                <td>John Smith</td>
-                                <td>john@example.com</td>
-                                <td>2nd Year</td>
-                                <td>BSCS</td>
-                                <td><span class="badge bg-success">Active</span></td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-primary action-btn" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-outline-warning action-btn" title="View Details">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-outline-danger action-btn" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
+                        <tbody id="studentTableBody">
+                            <!-- Students will be loaded here via JavaScript -->
                         </tbody>
                     </table>
                 </div>
@@ -333,9 +110,10 @@
             }
         });
         
-        // Load admin data on page load
+        // Load admin data and students on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadAdminData();
+            loadStudents();
         });
 
         // Load admin data from API
@@ -358,6 +136,189 @@
             const fullName = `${data.firstName} ${data.lastName}`;
             document.getElementById('headerName').textContent = fullName;
             document.getElementById('headerAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=3498db&color=fff`;
+        }
+
+        // Load students from API
+        async function loadStudents() {
+            try {
+                const response = await fetch('/api/v1/student');
+                if (response.ok) {
+                    const students = await response.json();
+                    displayStudents(students);
+                } else {
+                    console.error('Failed to load students');
+                    showErrorState();
+                }
+            } catch (error) {
+                console.error('Error loading students:', error);
+                showErrorState();
+            }
+        }
+
+        // Display students in the table
+        function displayStudents(students) {
+            const tbody = document.getElementById('studentTableBody');
+            if (!tbody) return;
+
+            // Clear existing rows
+            tbody.innerHTML = '';
+
+            if (students.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-4">
+                            <i class="fas fa-user-graduate fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No students found.</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // Debug: Log the first student to see the actual data structure
+            if (students.length > 0) {
+                console.log('First student data:', students[0]);
+            }
+
+            students.forEach(student => {
+                const row = document.createElement('tr');
+                const statusBadge = student.status === 'Active' 
+                    ? '<span class="badge bg-success">Active</span>' 
+                    : '<span class="badge bg-warning">Inactive</span>';
+                
+                const yearLevelText = getYearLevelText(student.yearLevel);
+                const actionButtons = getStudentActionButtons(student);
+
+                row.innerHTML = `
+                    <td>${student.studentId || 'N/A'}</td>
+                    <td>${student.firstName} ${student.lastName}</td>
+                    <td>${student.email || 'N/A'}</td>
+                    <td>${yearLevelText}</td>
+                    <td>${student.courseName || 'N/A'}</td>
+                    <td>${statusBadge}</td>
+                    <td>${actionButtons}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Get year level text
+        function getYearLevelText(yearLevel) {
+            const yearTexts = {
+                1: '1st Year',
+                2: '2nd Year', 
+                3: '3rd Year',
+                4: '4th Year',
+                5: '5th Year'
+            };
+            return yearTexts[yearLevel] || 'N/A';
+        }
+
+        // Get student action buttons HTML
+        function getStudentActionButtons(student) {
+            let buttons = '';
+            
+            // Check if student is inactive (case-insensitive)
+            if (student.status && student.status.toLowerCase() === 'inactive') {
+                buttons += `
+                    <button class="btn btn-outline-success action-btn" title="Activate Student" onclick="activateStudent(${student.userId})">
+                        <i class="fas fa-check"></i>
+                    </button>
+                `;
+            } else {
+                buttons += `
+                    <button class="btn btn-outline-warning action-btn" title="Deactivate Student" onclick="deactivateStudent(${student.userId})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+            }
+            
+            buttons += `
+                <button class="btn btn-outline-primary action-btn" title="Edit Student" onclick="editStudent(${student.id})">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-outline-info action-btn" title="View Details" onclick="viewStudent(${student.id})">
+                    <i class="fas fa-eye"></i>
+                </button>
+            `;
+            
+            return `<div class="btn-group btn-group-sm">${buttons}</div>`;
+        }
+
+        // Show error state
+        function showErrorState() {
+            const tbody = document.getElementById('studentTableBody');
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-4">
+                            <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                            <p class="text-danger">Error loading students. Please try again.</p>
+                            <button class="btn btn-outline-primary" onclick="loadStudents()">
+                                <i class="fas fa-refresh me-2"></i>Retry
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Activate student (uses userId to update User status)
+        async function activateStudent(userId) {
+            if (confirm('Are you sure you want to activate this student?')) {
+                try {
+                    const response = await fetch(`/api/v1/user-management/${userId}/activate`, {
+                        method: 'PUT'
+                    });
+                    
+                    if (response.ok) {
+                        alert('Student activated successfully!');
+                        loadStudents(); // Reload the list
+                    } else {
+                        const error = await response.json();
+                        console.error('Activation error:', error);
+                        alert(`Failed to activate student: ${error.message || 'Unknown error'}`);
+                    }
+                } catch (error) {
+                    console.error('Error activating student:', error);
+                    alert('Error activating student');
+                }
+            }
+        }
+
+        // Deactivate student (uses userId to update User status)
+        async function deactivateStudent(userId) {
+            if (confirm('Are you sure you want to deactivate this student?')) {
+                try {
+                    const response = await fetch(`/api/v1/user-management/${userId}/deactivate`, {
+                        method: 'PUT'
+                    });
+                    
+                    if (response.ok) {
+                        alert('Student deactivated successfully!');
+                        loadStudents(); // Reload the list
+                    } else {
+                        const error = await response.json();
+                        console.error('Deactivation error:', error);
+                        alert(`Failed to deactivate student: ${error.message || 'Unknown error'}`);
+                    }
+                } catch (error) {
+                    console.error('Error deactivating student:', error);
+                    alert('Error deactivating student');
+                }
+            }
+        }
+
+        // Edit student
+        function editStudent(studentId) {
+            alert(`Edit student with ID: ${studentId}`);
+            // TODO: Implement edit functionality
+        }
+
+        // View student details
+        function viewStudent(studentId) {
+            alert(`View student details for ID: ${studentId}`);
+            // TODO: Implement view details functionality
         }
 
         // Set active menu item

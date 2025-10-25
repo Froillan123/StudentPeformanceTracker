@@ -78,4 +78,9 @@ public class CourseRepository : ICourseRepository
             .Where(c => c.DepartmentId == departmentId)
             .ToListAsync();
     }
+
+    public async Task<int> GetCountAsync()
+    {
+        return await _context.Courses.CountAsync();
+    }
 }

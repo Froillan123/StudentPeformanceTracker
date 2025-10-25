@@ -18,6 +18,7 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.Student)
+                .ThenInclude(s => s!.Course)
             .Include(u => u.Teacher)
             .Include(u => u.Admin)
             .FirstOrDefaultAsync(u => u.Id == id);
@@ -27,6 +28,7 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.Student)
+                .ThenInclude(s => s!.Course)
             .Include(u => u.Teacher)
             .Include(u => u.Admin)
             .FirstOrDefaultAsync(u => u.Username == username);
@@ -36,6 +38,7 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.Student)
+                .ThenInclude(s => s!.Course)
             .FirstOrDefaultAsync(u => u.Username == usernameOrStudentId ||
                 (u.Student != null && u.Student.StudentId == usernameOrStudentId));
     }
@@ -44,6 +47,7 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.Student)
+                .ThenInclude(s => s!.Course)
             .Include(u => u.Teacher)
             .Include(u => u.Admin)
             .ToListAsync();
@@ -104,6 +108,7 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.Student)
+                .ThenInclude(s => s!.Course)
             .Include(u => u.Teacher)
             .Include(u => u.Admin)
             .Where(u => u.Status == status)

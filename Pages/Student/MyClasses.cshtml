@@ -204,6 +204,12 @@
                     </a>
                 </li>
                 <li>
+                    <a href="/Student/Enrollment">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>Enrollment</span>
+                    </a>
+                </li>
+                <li>
                     <a href="/Student/Grades">
                         <i class="fas fa-chart-line"></i>
                         <span>Grades</span>
@@ -216,7 +222,7 @@
                     </a>
                 </li>
                 <li>
-                    <a href="/Profile">
+                    <a href="/Student/Profile">
                         <i class="fas fa-user"></i>
                         <span>Profile</span>
                     </a>
@@ -241,11 +247,11 @@
                     <div class="d-flex align-items-center">
                         <div class="dropdown">
                             <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                <img src="https://ui-avatars.com/api/?name=Marianne+Napisa&background=4CAF50&color=fff" class="user-avatar me-2">
-                                Marianne Napisa
+                                <img src="https://ui-avatars.com/api/?name=Loading&background=4CAF50&color=fff" class="user-avatar me-2" id="headerAvatar">
+                                <span id="headerName">Loading...</span>
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="userDropdown">
-                                <li><a class="dropdown-item" href="/Profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
+                                <li><a class="dropdown-item" href="/Student/Profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
                                 <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="/LoginPage"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
@@ -261,54 +267,10 @@
             <!-- Classes List -->
             <div class="card-custom">
                 <h3 class="section-title">My Classes</h3>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Data Structures and Algorithms</h5>
-                                <p class="card-text">CS-301</p>
-                                <p class="card-text"><strong>Instructor:</strong> Dr. Sarah Johnson</p>
-                                <p class="card-text"><strong>Schedule:</strong> Mon/Wed/Fri 10:00-11:00</p>
-                                <p class="card-text"><strong>Room:</strong> CS-101</p>
-                                <span class="badge bg-success">Active</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Database Systems</h5>
-                                <p class="card-text">CS-302</p>
-                                <p class="card-text"><strong>Instructor:</strong> Prof. Michael Chen</p>
-                                <p class="card-text"><strong>Schedule:</strong> Tue/Thu 2:00-3:30</p>
-                                <p class="card-text"><strong>Room:</strong> CS-102</p>
-                                <span class="badge bg-success">Active</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Web Development</h5>
-                                <p class="card-text">CS-303</p>
-                                <p class="card-text"><strong>Instructor:</strong> Dr. Emily Rodriguez</p>
-                                <p class="card-text"><strong>Schedule:</strong> Mon/Wed 1:00-2:30</p>
-                                <p class="card-text"><strong>Room:</strong> CS-103</p>
-                                <span class="badge bg-success">Active</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Software Engineering</h5>
-                                <p class="card-text">CS-304</p>
-                                <p class="card-text"><strong>Instructor:</strong> Prof. David Kim</p>
-                                <p class="card-text"><strong>Schedule:</strong> Tue/Thu 10:00-11:30</p>
-                                <p class="card-text"><strong>Room:</strong> CS-104</p>
-                                <span class="badge bg-success">Active</span>
-                            </div>
-                        </div>
+                <div class="row" id="classesContainer">
+                    <div class="col-12 text-center py-5">
+                        <i class="fas fa-spinner fa-spin fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Loading your classes...</p>
                     </div>
                 </div>
             </div>
@@ -337,6 +299,129 @@
             }
         });
         
+        // Load student data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStudentData();
+        });
+
+        let currentStudentId = null;
+
+        // Load student data from API
+        async function loadStudentData() {
+            try {
+                // Get current user from session/localStorage or API
+                const response = await fetch('/api/v1/student/profile');
+                if (response.ok) {
+                    const studentData = await response.json();
+                    currentStudentId = studentData.id;
+                    updateHeader(studentData);
+                    loadMyClasses(studentData.id);
+                } else {
+                    console.error('Failed to load student data');
+                    // Fallback: try to get from student list
+                    await loadFromStudentList();
+                }
+            } catch (error) {
+                console.error('Error loading student data:', error);
+                await loadFromStudentList();
+            }
+        }
+
+        // Fallback: load from student list
+        async function loadFromStudentList() {
+            try {
+                const response = await fetch('/api/v1/student');
+                if (response.ok) {
+                    const students = await response.json();
+                    if (students.length > 0) {
+                        // Use first student as example (in real app, get current user)
+                        const studentData = students[0];
+                        currentStudentId = studentData.id;
+                        updateHeader(studentData);
+                        loadMyClasses(studentData.id);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading from student list:', error);
+                displayEmptyState();
+            }
+        }
+
+        // Update header with real data
+        function updateHeader(data) {
+            const fullName = `${data.firstName} ${data.lastName}`;
+            document.getElementById('headerName').textContent = fullName;
+            document.getElementById('headerAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=4CAF50&color=fff`;
+        }
+
+        // Load student's enrolled classes
+        async function loadMyClasses(studentId) {
+            try {
+                const response = await fetch(`/api/v1/studentsubject/student/${studentId}/enrolled`);
+                if (response.ok) {
+                    const classes = await response.json();
+                    if (classes && classes.length > 0) {
+                        displayClasses(classes);
+                    } else {
+                        displayEmptyState();
+                    }
+                } else {
+                    displayEmptyState();
+                }
+            } catch (error) {
+                console.error('Error loading classes:', error);
+                displayEmptyState();
+            }
+        }
+
+        // Display enrolled classes
+        function displayClasses(classes) {
+            const container = document.getElementById('classesContainer');
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            classes.forEach(cls => {
+                const col = document.createElement('div');
+                col.className = 'col-md-6 mb-3';
+                
+                col.innerHTML = `
+                    <div class="card h-100 shadow-sm border-start border-4 border-success">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title text-primary mb-0">${cls.subjectName || 'N/A'}</h5>
+                                <span class="badge bg-${cls.status?.toLowerCase() === 'enrolled' ? 'success' : 'secondary'}">${cls.status || 'Enrolled'}</span>
+                            </div>
+                            <p class="card-text">
+                                <i class="fas fa-users-class me-2 text-primary"></i><strong>Section:</strong> ${cls.sectionName || 'N/A'}<br>
+                                <i class="fas fa-chalkboard-teacher me-2 text-primary"></i><strong>Teacher:</strong> ${cls.teacherName || 'TBA'}<br>
+                                <i class="fas fa-calendar-alt me-2 text-primary"></i><strong>Schedule:</strong> ${cls.schedule || 'TBA'}<br>
+                                <i class="fas fa-door-open me-2 text-primary"></i><strong>Room:</strong> ${cls.room || 'TBA'}<br>
+                                <i class="fas fa-barcode me-2 text-primary"></i><strong>EDP Code:</strong> <code>${cls.edpCode || 'N/A'}</code>
+                                ${cls.grade ? `<br><i class="fas fa-chart-line me-2 text-primary"></i><strong>Grade:</strong> <span class="badge bg-info">${cls.grade}</span>` : ''}
+                            </p>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(col);
+            });
+        }
+
+        // Display empty state
+        function displayEmptyState() {
+            const container = document.getElementById('classesContainer');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-book fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">No Classes Enrolled</h4>
+                    <p class="text-muted">You are not enrolled in any classes yet. Please contact the admin.</p>
+                </div>
+            `;
+        }
+
         // Set active menu item
         document.querySelectorAll('.sidebar-menu a').forEach(item => {
             if (item.getAttribute('href') === window.location.pathname) {

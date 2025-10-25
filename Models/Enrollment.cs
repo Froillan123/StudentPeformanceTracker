@@ -29,6 +29,9 @@ public class Enrollment
     [MaxLength(20)]
     public string Status { get; set; } = "Active"; // "Active", "Completed", "Dropped"
 
+    [MaxLength(20)]
+    public string? SchoolYear { get; set; } // e.g., "2024-2025"
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

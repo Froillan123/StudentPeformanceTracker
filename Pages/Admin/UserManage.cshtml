@@ -16,190 +16,8 @@
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root {
-            --primary-color: #3498db;
-            --secondary-color: #2c3e50;
-            --success-color: #2ecc71;
-            --warning-color: #f39c12;
-            --danger-color: #e74c3c;
-            --sidebar-width: 250px;
-            --sidebar-collapsed-width: 70px;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
-            color: #333;
-            overflow-x: hidden;
-        }
-        
-        /* Sidebar Styles */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            width: var(--sidebar-width);
-            background-color: var(--secondary-color);
-            color: white;
-            transition: all 0.3s ease;
-            z-index: 1000;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-        }
-        
-        .sidebar.collapsed {
-            width: var(--sidebar-collapsed-width);
-        }
-        
-        .sidebar-header {
-            padding: 1.5rem 1rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            text-align: center;
-        }
-        
-        .sidebar-header h3 {
-            margin: 0;
-            font-size: 1.2rem;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-        }
-        
-        .sidebar.collapsed .sidebar-header h3 {
-            display: none;
-        }
-        
-        .sidebar-menu {
-            padding: 1rem 0;
-        }
-        
-        .sidebar-menu ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        
-        .sidebar-menu li {
-            margin-bottom: 0.5rem;
-        }
-        
-        .sidebar-menu a {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            color: rgba(255,255,255,0.8);
-            text-decoration: none;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-            overflow: hidden;
-        }
-        
-        .sidebar-menu a:hover, .sidebar-menu a.active {
-            background-color: rgba(255,255,255,0.1);
-            color: white;
-            border-left: 4px solid var(--primary-color);
-        }
-        
-        .sidebar-menu i {
-            width: 24px;
-            margin-right: 1rem;
-            text-align: center;
-        }
-        
-        .sidebar.collapsed .sidebar-menu span {
-            display: none;
-        }
-        
-        .sidebar.collapsed .sidebar-menu i {
-            margin-right: 0;
-        }
-        
-        .toggle-btn {
-            position: absolute;
-            top: 1rem;
-            right: -15px;
-            background-color: var(--secondary-color);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        
-        /* Main Content Area */
-        .main-content {
-            margin-left: var(--sidebar-width);
-            transition: all 0.3s ease;
-            min-height: 100vh;
-            background-color: #f8f9fa;
-        }
-        
-        .main-content.expanded {
-            margin-left: var(--sidebar-collapsed-width);
-        }
-        
-        .dashboard-header {
-            background-color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 1rem 0;
-        }
-        
-        .card-custom {
-            background-color: white;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            transition: all 0.3s ease;
-            border: none;
-        }
-        
-        .section-title {
-            color: var(--secondary-color);
-            font-weight: 600;
-            margin-bottom: 1rem;
-            border-bottom: 2px solid var(--primary-color);
-            padding-bottom: 0.5rem;
-        }
-        
-        .table th {
-            background-color: var(--secondary-color);
-            color: white;
-        }
-        
-        .action-btn {
-            padding: 0.25rem 0.5rem;
-            margin: 0 0.1rem;
-            font-size: 0.875rem;
-        }
-        
-        .search-box {
-            position: relative;
-        }
-        
-        .search-box input {
-            padding-right: 2.5rem;
-        }
-        
-        .search-box i {
-            position: absolute;
-            right: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #6c757d;
-        }
-        
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
+        /* User Management specific styles only */
+        /* No specific styles needed - all common styles are in shared navigation */
     </style>
 </head>
 <body>
@@ -306,6 +124,25 @@
         </main>
     </div>
 
+    <!-- View Details Modal -->
+    <div class="modal fade" id="viewDetailsModal" tabindex="-1" aria-labelledby="viewDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewDetailsModalLabel">User Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="userDetailsContent">
+                    <!-- User details will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="editUserBtn" style="display: none;">Edit User</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     
@@ -373,7 +210,9 @@
         // Load users from API
         async function loadUsers() {
             try {
+                // Load users from user-management API (includes all roles with proper status)
                 const response = await fetch('/api/v1/user-management/active');
+
                 if (response.ok) {
                     const users = await response.json();
                     displayUsers(users);
@@ -551,8 +390,147 @@
         }
 
         // View user details
-        function viewUser(userId) {
-            alert(`View user details for ID: ${userId}`);
+        async function viewUser(userId) {
+            try {
+                // Try to get user details from user management API first
+                let userDetails = null;
+                try {
+                    const response = await fetch(`/api/v1/user-management/${userId}`);
+                    if (response.ok) {
+                        userDetails = await response.json();
+                    }
+                } catch (error) {
+                    console.log('User not found in user management, trying student API...');
+                }
+                
+                // If not found in user management, try student API
+                if (!userDetails) {
+                    try {
+                        const response = await fetch(`/api/v1/student/${userId}`);
+                        if (response.ok) {
+                            const student = await response.json();
+                            userDetails = {
+                                id: student.id,
+                                username: student.studentId || 'N/A',
+                                email: student.email,
+                                firstName: student.firstName,
+                                lastName: student.lastName,
+                                role: 'Student',
+                                status: student.status || 'Active',
+                                phone: student.phone,
+                                studentId: student.studentId,
+                                yearLevel: student.yearLevel,
+                                courseName: student.courseName
+                            };
+                        }
+                    } catch (error) {
+                        console.error('Error fetching student details:', error);
+                    }
+                }
+                
+                if (userDetails) {
+                    showUserDetailsModal(userDetails);
+                } else {
+                    alert('User details not found');
+                }
+            } catch (error) {
+                console.error('Error loading user details:', error);
+                alert('Error loading user details');
+            }
+        }
+        
+        // Show user details in modal
+        function showUserDetailsModal(user) {
+            const modal = new bootstrap.Modal(document.getElementById('viewDetailsModal'));
+            const content = document.getElementById('userDetailsContent');
+            
+            let detailsHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary mb-3">Basic Information</h6>
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>Username/ID:</strong></td>
+                                <td>${user.username}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Name:</strong></td>
+                                <td>${user.firstName} ${user.lastName}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Email:</strong></td>
+                                <td>${user.email || 'N/A'}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Phone:</strong></td>
+                                <td>${user.phone || 'N/A'}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Role:</strong></td>
+                                <td>${getRoleBadge(user.role)}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Status:</strong></td>
+                                <td>${user.status === 'Active' ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-warning">Inactive</span>'}</td>
+                            </tr>
+            `;
+            
+            // Add student-specific information if it's a student
+            if (user.role === 'Student') {
+                const yearLevelText = getYearLevelText(user.yearLevel);
+                detailsHTML += `
+                            <tr>
+                                <td><strong>Student ID:</strong></td>
+                                <td>${user.studentId || 'N/A'}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Year Level:</strong></td>
+                                <td>${yearLevelText}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Course:</strong></td>
+                                <td>${user.courseName || 'N/A'}</td>
+                            </tr>
+                `;
+            }
+            
+            detailsHTML += `
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-primary mb-3">Account Information</h6>
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>User ID:</strong></td>
+                                <td>${user.id}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Registration Date:</strong></td>
+                                <td>${new Date(user.createdAt).toLocaleDateString()}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Last Updated:</strong></td>
+                                <td>${user.updatedAt ? new Date(user.updatedAt).toLocaleDateString() : 'N/A'}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            content.innerHTML = detailsHTML;
+            modal.show();
+        }
+        
+        // Get year level text (helper function for modal)
+        function getYearLevelText(yearLevel) {
+            const yearTexts = {
+                1: '1st Year',
+                2: '2nd Year', 
+                3: '3rd Year',
+                4: '4th Year',
+                5: '5th Year'
+            };
+            return yearTexts[yearLevel] || 'N/A';
         }
     </script>
 </body>

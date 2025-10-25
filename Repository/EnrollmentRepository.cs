@@ -76,7 +76,9 @@ namespace StudentPeformanceTracker.Repository
         {
             _context.Enrollments.Add(enrollment);
             await _context.SaveChangesAsync();
-            return enrollment;
+            
+            // Reload with navigation properties
+            return await GetByIdAsync(enrollment.Id) ?? enrollment;
         }
 
         public async Task<Enrollment> UpdateAsync(Enrollment enrollment)

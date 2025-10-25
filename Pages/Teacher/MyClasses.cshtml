@@ -214,70 +214,10 @@
             <!-- Classes List -->
             <div class="card-custom">
                 <h3 class="section-title">My Classes</h3>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Data Structures and Algorithms</h5>
-                                <p class="card-text">CS-301</p>
-                                <p class="card-text"><strong>Students:</strong> 30</p>
-                                <p class="card-text"><strong>Schedule:</strong> Mon/Wed/Fri 10:00-11:00</p>
-                                <p class="card-text"><strong>Room:</strong> CS-101</p>
-                                <span class="badge bg-success">Active</span>
-                                <div class="mt-2">
-                                    <button class="btn btn-sm btn-primary">View Students</button>
-                                    <button class="btn btn-sm btn-outline-primary">Manage</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Database Systems</h5>
-                                <p class="card-text">CS-302</p>
-                                <p class="card-text"><strong>Students:</strong> 28</p>
-                                <p class="card-text"><strong>Schedule:</strong> Tue/Thu 2:00-3:30</p>
-                                <p class="card-text"><strong>Room:</strong> CS-102</p>
-                                <span class="badge bg-success">Active</span>
-                                <div class="mt-2">
-                                    <button class="btn btn-sm btn-primary">View Students</button>
-                                    <button class="btn btn-sm btn-outline-primary">Manage</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Web Development</h5>
-                                <p class="card-text">CS-303</p>
-                                <p class="card-text"><strong>Students:</strong> 25</p>
-                                <p class="card-text"><strong>Schedule:</strong> Mon/Wed 1:00-2:30</p>
-                                <p class="card-text"><strong>Room:</strong> CS-103</p>
-                                <span class="badge bg-success">Active</span>
-                                <div class="mt-2">
-                                    <button class="btn btn-sm btn-primary">View Students</button>
-                                    <button class="btn btn-sm btn-outline-primary">Manage</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Software Engineering</h5>
-                                <p class="card-text">CS-304</p>
-                                <p class="card-text"><strong>Students:</strong> 22</p>
-                                <p class="card-text"><strong>Schedule:</strong> Tue/Thu 10:00-11:30</p>
-                                <p class="card-text"><strong>Room:</strong> CS-104</p>
-                                <span class="badge bg-success">Active</span>
-                                <div class="mt-2">
-                                    <button class="btn btn-sm btn-primary">View Students</button>
-                                    <button class="btn btn-sm btn-outline-primary">Manage</button>
-                                </div>
-                            </div>
-                        </div>
+                <div class="row" id="classesContainer">
+                    <div class="col-12 text-center py-5">
+                        <i class="fas fa-spinner fa-spin fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Loading your classes...</p>
                     </div>
                 </div>
             </div>
@@ -311,13 +251,17 @@
             loadTeacherData();
         });
 
+        let currentTeacherId = null;
+
         // Load teacher data from API
         async function loadTeacherData() {
             try {
                 const response = await fetch('/api/v1/teacher/profile');
                 if (response.ok) {
                     const teacherData = await response.json();
+                    currentTeacherId = teacherData.id;
                     updateHeader(teacherData);
+                    loadMyClasses(teacherData.id);
                 } else {
                     console.error('Failed to load teacher data');
                 }
@@ -331,6 +275,77 @@
             const fullName = `${data.firstName} ${data.lastName}`;
             document.getElementById('headerName').textContent = fullName;
             document.getElementById('headerAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2196F3&color=fff`;
+        }
+
+        // Load teacher's assigned classes
+        async function loadMyClasses(teacherId) {
+            try {
+                const response = await fetch(`/api/v1/sectionsubject/teacher/${teacherId}`);
+                if (response.ok) {
+                    const classes = await response.json();
+                    displayClasses(classes);
+                } else {
+                    console.error('Failed to load classes');
+                    displayEmptyState();
+                }
+            } catch (error) {
+                console.error('Error loading classes:', error);
+                displayEmptyState();
+            }
+        }
+
+        // Display classes
+        function displayClasses(classes) {
+            const container = document.getElementById('classesContainer');
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            if (classes.length === 0) {
+                displayEmptyState();
+                return;
+            }
+
+            classes.forEach(cls => {
+                const col = document.createElement('div');
+                col.className = 'col-md-6 col-lg-4 mb-3';
+                
+                col.innerHTML = `
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary">${cls.subjectName || 'Unknown Subject'}</h5>
+                            <p class="card-text">
+                                <i class="fas fa-users me-2"></i><strong>Section:</strong> ${cls.sectionName || 'N/A'}<br>
+                                <i class="fas fa-calendar-alt me-2"></i><strong>Schedule:</strong> ${cls.schedule || 'TBA'}<br>
+                                <i class="fas fa-code me-2"></i><strong>EDP Code:</strong> ${cls.edpCode || 'N/A'}<br>
+                                <i class="fas fa-user-graduate me-2"></i><strong>Students:</strong> ${cls.studentCount || 0}
+                            </p>
+                            <span class="badge bg-success mb-2">Active</span>
+                            <div class="mt-3">
+                                <a href="/Teacher/Grades?sectionSubjectId=${cls.id}" class="btn btn-sm btn-primary w-100">
+                                    <i class="fas fa-chart-line me-2"></i>Manage Grades
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(col);
+            });
+        }
+
+        // Display empty state
+        function displayEmptyState() {
+            const container = document.getElementById('classesContainer');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-chalkboard-teacher fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">No Classes Assigned</h4>
+                    <p class="text-muted">You don't have any classes assigned yet. Please contact the admin.</p>
+                </div>
+            `;
         }
 
         // Set active menu item

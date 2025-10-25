@@ -19,5 +19,11 @@ namespace StudentPeformanceTracker.DTO
         [Required]
         [StringLength(20)]
         public string EnrollmentType { get; set; } = "Regular";
+
+        [StringLength(20)]
+        public string SchoolYear { get; set; } = string.Empty;
+
+        [StringLength(20)]
+        public string? Status { get; set; } = "Active";
     }
 }

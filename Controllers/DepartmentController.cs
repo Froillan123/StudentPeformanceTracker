@@ -7,7 +7,7 @@ namespace StudentPeformanceTracker.Controllers;
 
 [ApiController]
 [ApiVersion("1.0")]
-[Route("api/v{version:apiVersion}/[controller]")]
+[Route("api/v{version:apiVersion}/department")]
 public class DepartmentController : ControllerBase
 {
     private readonly IDepartmentRepository _departmentRepository;

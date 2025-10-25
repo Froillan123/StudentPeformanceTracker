@@ -32,7 +32,10 @@ namespace StudentPeformanceTracker.Pages
         public int CourseId { get; set; }
 
         [BindProperty]
-        public string YearLevel { get; set; } = string.Empty;
+        public int YearLevel { get; set; }
+
+        [BindProperty]
+        public string StudentNumber { get; set; } = string.Empty;
 
         [BindProperty]
         public string Email { get; set; } = string.Empty;
@@ -70,13 +73,13 @@ namespace StudentPeformanceTracker.Pages
                 if (string.IsNullOrEmpty(FirstName) || string.IsNullOrEmpty(LastName) || 
                     string.IsNullOrEmpty(Email) || string.IsNullOrEmpty(Username) || 
                     string.IsNullOrEmpty(Password) || CourseId == 0 || 
-                    string.IsNullOrEmpty(YearLevel))
+                    YearLevel == 0 || string.IsNullOrEmpty(StudentNumber))
                 {
                     ErrorMessage = "Please fill in all required fields.";
                     return Page();
                 }
 
-                // Create registration request
+                // Create registration request matching StudentRegisterRequest
                 var registrationData = new
                 {
                     Username = Username,
@@ -85,10 +88,9 @@ namespace StudentPeformanceTracker.Pages
                     FirstName = FirstName,
                     LastName = LastName,
                     Phone = ContactNumber,
-                    StudentNumber = Username, // Use username as student number
-                    YearLevel = int.Parse(YearLevel.Split(' ')[0]), // Extract number from "1st Year"
-                    CourseId = CourseId, // Use selected course ID
-                    Role = "Student"
+                    StudentNumber = StudentNumber,
+                    YearLevel = YearLevel,
+                    CourseId = CourseId
                 };
 
                 // Call API to register student
