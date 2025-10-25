@@ -100,6 +100,42 @@ public class CourseController : ControllerBase
         }
     }
 
+    [HttpGet("{id}/subjects")]
+    public async Task<ActionResult<IEnumerable<object>>> GetCourseSubjects(int id)
+    {
+        try
+        {
+            var course = await _courseRepository.GetByIdAsync(id);
+            if (course == null)
+            {
+                return NotFound(new { message = "Course not found" });
+            }
+
+            // Get course subjects with related data
+            var courseSubjects = course.CourseSubjects?.Select(cs => new
+            {
+                cs.Id,
+                SubjectId = cs.SubjectId,
+                SubjectName = cs.Subject?.SubjectName,
+                Units = cs.Subject?.Units,
+                YearLevelId = cs.YearLevelId,
+                YearLevelName = cs.YearLevel?.LevelName,
+                SemesterId = cs.SemesterId,
+                SemesterName = cs.Semester?.SemesterName,
+                SchoolYear = cs.Semester?.SchoolYear,
+                IsRequired = cs.IsRequired,
+                cs.CreatedAt,
+                cs.UpdatedAt
+            }) ?? Enumerable.Empty<object>();
+
+            return Ok(courseSubjects);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving course subjects", error = ex.Message });
+        }
+    }
+
     [HttpPost]
     [Authorize(Policy = "AdminOnly")]
     public async Task<ActionResult<object>> CreateCourse([FromBody] CreateCourseRequest request)

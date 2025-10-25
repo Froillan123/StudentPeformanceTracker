@@ -62,11 +62,19 @@ builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
 
+// Register new repositories for course and subject management
+builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
+builder.Services.AddScoped<IYearLevelRepository, YearLevelRepository>();
+builder.Services.AddScoped<ICourseSubjectRepository, CourseSubjectRepository>();
+
 // Register services
 builder.Services.AddSingleton<JwtService>();
 builder.Services.AddSingleton<RedisService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UserManagementService>();
+
+// Register new services for course and subject management
+builder.Services.AddScoped<CourseSubjectService>();
 
 // JWT Authentication configuration
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")

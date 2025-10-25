@@ -51,4 +51,7 @@ public class Teacher
 
     // Many-to-many relationship with Departments through TeacherDepartments
     public ICollection<TeacherDepartment> TeacherDepartments { get; set; } = new List<TeacherDepartment>();
+
+    public ICollection<SectionSubject> SectionSubjects { get; set; } = new List<SectionSubject>();
+    public ICollection<TeacherSubject> TeacherSubjects { get; set; } = new List<TeacherSubject>();
 }

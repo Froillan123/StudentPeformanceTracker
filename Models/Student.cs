@@ -37,6 +37,9 @@ public class Student
 
     public DateTime? EnrollmentDate { get; set; }
 
+    [MaxLength(20)]
+    public string EnrollmentType { get; set; } = "Regular"; // "Regular" or "Irregular"
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
@@ -47,4 +50,7 @@ public class Student
 
     [ForeignKey("CourseId")]
     public Course? Course { get; set; }
+
+    public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
+    public ICollection<StudentSubject> StudentSubjects { get; set; } = new List<StudentSubject>();
 }

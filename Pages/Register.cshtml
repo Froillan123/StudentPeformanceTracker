@@ -170,16 +170,16 @@
                             </div>
 
                             <div class="mb-3">
+                                <label class="form-label fw-bold">Department</label>
+                                <select class="form-select" name="DepartmentId" id="departmentSelect" required onchange="loadCourses()">
+                                    <option value="" disabled selected>Select your Department</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
                                 <label class="form-label fw-bold">Course</label>
-                                <select class="form-select" name="Course" required>
+                                <select class="form-select" name="CourseId" id="courseSelect" required disabled>
                                     <option value="" disabled selected>Select your Course</option>
-                                    <option value="BSIT">BS Information Technology</option>
-                                    <option value="BSCS">BS Computer Science</option>
-                                    <option value="BSIS">BS Information Systems</option>
-                                    <option value="BSECE">BS Electronics Engineering</option>
-                                    <option value="BSBA">BS Business Administration</option>
-                                    <option value="BSED">Bachelor of Secondary Education</option>
-                                    <option value="BEED">Bachelor of Elementary Education</option>
                                 </select>
                             </div>
 
@@ -318,7 +318,74 @@
             
             const submitButton = step2Section.querySelector('button[type="submit"]');
             submitButton.parentNode.insertBefore(backButton, submitButton.nextSibling);
+
+            // Load departments on page load
+            loadDepartments();
         });
+
+        // Load departments from API
+        async function loadDepartments() {
+            try {
+                const response = await fetch('/api/v1/department');
+                if (response.ok) {
+                    const departments = await response.json();
+                    const departmentSelect = document.getElementById('departmentSelect');
+                    
+                    // Clear existing options except the first one
+                    while (departmentSelect.children.length > 1) {
+                        departmentSelect.removeChild(departmentSelect.lastChild);
+                    }
+                    
+                    departments.forEach(dept => {
+                        const option = document.createElement('option');
+                        option.value = dept.id;
+                        option.textContent = dept.departmentName;
+                        departmentSelect.appendChild(option);
+                    });
+                } else {
+                    console.error('Failed to load departments');
+                }
+            } catch (error) {
+                console.error('Error loading departments:', error);
+            }
+        }
+
+        // Load courses based on selected department
+        async function loadCourses() {
+            const departmentId = document.getElementById('departmentSelect').value;
+            const courseSelect = document.getElementById('courseSelect');
+            
+            if (!departmentId) {
+                courseSelect.disabled = true;
+                courseSelect.innerHTML = '<option value="" disabled selected>Select your Course</option>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/course/department/${departmentId}`);
+                if (response.ok) {
+                    const courses = await response.json();
+                    
+                    // Clear existing options except the first one
+                    courseSelect.innerHTML = '<option value="" disabled selected>Select your Course</option>';
+                    
+                    courses.forEach(course => {
+                        const option = document.createElement('option');
+                        option.value = course.id;
+                        option.textContent = course.courseName;
+                        courseSelect.appendChild(option);
+                    });
+                    
+                    courseSelect.disabled = false;
+                } else {
+                    console.error('Failed to load courses');
+                    courseSelect.disabled = true;
+                }
+            } catch (error) {
+                console.error('Error loading courses:', error);
+                courseSelect.disabled = true;
+            }
+        }
     </script>
 </body>
 </html>

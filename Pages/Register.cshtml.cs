@@ -26,7 +26,10 @@ namespace StudentPeformanceTracker.Pages
         public DateTime? DateOfBirth { get; set; }
 
         [BindProperty]
-        public string Course { get; set; } = string.Empty;
+        public int DepartmentId { get; set; }
+
+        [BindProperty]
+        public int CourseId { get; set; }
 
         [BindProperty]
         public string YearLevel { get; set; } = string.Empty;
@@ -66,7 +69,7 @@ namespace StudentPeformanceTracker.Pages
                 // Validate required fields
                 if (string.IsNullOrEmpty(FirstName) || string.IsNullOrEmpty(LastName) || 
                     string.IsNullOrEmpty(Email) || string.IsNullOrEmpty(Username) || 
-                    string.IsNullOrEmpty(Password) || string.IsNullOrEmpty(Course) || 
+                    string.IsNullOrEmpty(Password) || CourseId == 0 || 
                     string.IsNullOrEmpty(YearLevel))
                 {
                     ErrorMessage = "Please fill in all required fields.";
@@ -84,7 +87,7 @@ namespace StudentPeformanceTracker.Pages
                     Phone = ContactNumber,
                     StudentNumber = Username, // Use username as student number
                     YearLevel = int.Parse(YearLevel.Split(' ')[0]), // Extract number from "1st Year"
-                    CourseId = 1, // Default course ID - should be mapped from Course selection
+                    CourseId = CourseId, // Use selected course ID
                     Role = "Student"
                 };
 

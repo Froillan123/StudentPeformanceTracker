@@ -17,6 +17,17 @@ namespace StudentPeformanceTracker.Data
         public DbSet<Department> Departments { get; set; }
         public DbSet<TeacherDepartment> TeacherDepartments { get; set; }
 
+        // New entities for course and subject management
+        public DbSet<YearLevel> YearLevels { get; set; }
+        public DbSet<Semester> Semesters { get; set; }
+        public DbSet<Subject> Subjects { get; set; }
+        public DbSet<CourseSubject> CourseSubjects { get; set; }
+        public DbSet<Section> Sections { get; set; }
+        public DbSet<SectionSubject> SectionSubjects { get; set; }
+        public DbSet<TeacherSubject> TeacherSubjects { get; set; }
+        public DbSet<Enrollment> Enrollments { get; set; }
+        public DbSet<StudentSubject> StudentSubjects { get; set; }
+
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -119,6 +130,62 @@ namespace StudentPeformanceTracker.Data
                     .WithMany(d => d.TeacherDepartments)
                     .HasForeignKey(td => td.DepartmentId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // YearLevel configuration
+            modelBuilder.Entity<YearLevel>(entity =>
+            {
+                entity.HasIndex(e => e.LevelNumber).IsUnique();
+            });
+
+            // Semester configuration
+            modelBuilder.Entity<Semester>(entity =>
+            {
+                entity.HasIndex(e => e.SemesterCode).IsUnique();
+                entity.HasIndex(e => new { e.SemesterCode, e.SchoolYear }).IsUnique();
+            });
+
+            // Subject configuration
+            modelBuilder.Entity<Subject>(entity =>
+            {
+                // No unique indexes needed for Subject
+            });
+
+            // CourseSubject configuration
+            modelBuilder.Entity<CourseSubject>(entity =>
+            {
+                entity.HasIndex(e => new { e.CourseId, e.SubjectId, e.YearLevelId, e.SemesterId }).IsUnique();
+            });
+
+            // Section configuration
+            modelBuilder.Entity<Section>(entity =>
+            {
+                entity.HasIndex(e => new { e.SectionName, e.CourseId, e.YearLevelId, e.SemesterId }).IsUnique();
+            });
+
+            // SectionSubject configuration
+            modelBuilder.Entity<SectionSubject>(entity =>
+            {
+                entity.HasIndex(e => e.EdpCode).IsUnique();
+                entity.HasIndex(e => new { e.SectionId, e.SubjectId }).IsUnique();
+            });
+
+            // TeacherSubject configuration
+            modelBuilder.Entity<TeacherSubject>(entity =>
+            {
+                entity.HasIndex(e => new { e.TeacherId, e.SectionSubjectId }).IsUnique();
+            });
+
+            // Enrollment configuration
+            modelBuilder.Entity<Enrollment>(entity =>
+            {
+                entity.HasIndex(e => new { e.StudentId, e.CourseId, e.YearLevelId, e.SemesterId }).IsUnique();
+            });
+
+            // StudentSubject configuration
+            modelBuilder.Entity<StudentSubject>(entity =>
+            {
+                entity.HasIndex(e => new { e.StudentId, e.SectionSubjectId }).IsUnique();
             });
 
         }

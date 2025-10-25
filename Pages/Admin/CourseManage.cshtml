@@ -252,12 +252,6 @@
 
         <!-- Page Content -->
         <main class="container my-4">
-            <!-- Demo Notice -->
-            <div class="demo-notice">
-                <i class="fas fa-info-circle me-2"></i>
-                <strong>Demo Mode:</strong> This is a frontend demonstration. Form submissions and data operations are not functional.
-            </div>
-
             <!-- Department Filter Section -->
             <div class="card-custom">
                 <h3 class="section-title">Filter Courses</h3>
@@ -283,125 +277,14 @@
                 </div>
             </div>
 
-            <!-- Course Form Section -->
+            <!-- Add Course Button -->
             <div class="card-custom">
-                <h3 class="section-title">Add New Course</h3>
-                
-                <form method="post" id="courseForm">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="courseCode" class="form-label">Course Code</label>
-                                <input type="text" class="form-control" id="courseCode" name="courseCode" placeholder="e.g., CS-101">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="courseName" class="form-label">Course Name</label>
-                                <input type="text" class="form-control" id="courseName" name="courseName" placeholder="e.g., Introduction to Computer Science">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="departmentId" class="form-label">Department</label>
-                                <select class="form-select" id="departmentId" name="departmentId">
-                                    <option value="">Select Department</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="credits" class="form-label">Credits</label>
-                                <select class="form-select" id="credits" name="credits">
-                                    <option value="1">1 Credit</option>
-                                    <option value="2">2 Credits</option>
-                                    <option value="3" selected>3 Credits</option>
-                                    <option value="4">4 Credits</option>
-                                    <option value="5">5 Credits</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="level" class="form-label">Course Level</label>
-                                <select class="form-select" id="level" name="level">
-                                    <option value="100">100 Level (Introductory)</option>
-                                    <option value="200">200 Level (Intermediate)</option>
-                                    <option value="300">300 Level (Advanced)</option>
-                                    <option value="400">400 Level (Senior)</option>
-                                    <option value="500">500 Level (Graduate)</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="instructor" class="form-label">Instructor</label>
-                                <select class="form-select" id="instructor" name="instructor">
-                                    <option value="">Select Instructor</option>
-                                    <option value="1">Dr. Sarah Johnson</option>
-                                    <option value="2">Prof. Michael Chen</option>
-                                    <option value="3">Dr. Emily Rodriguez</option>
-                                    <option value="4">Prof. David Kim</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="semester" class="form-label">Semester</label>
-                                <select class="form-select" id="semester" name="semester">
-                                    <option value="1st Semester 2023-2024">1st Semester 2023-2024</option>
-                                    <option value="2nd Semester 2023-2024">2nd Semester 2023-2024</option>
-                                    <option value="Summer 2024">Summer 2024</option>
-                                    <option value="1st Semester 2024-2025">1st Semester 2024-2025</option>
-                                    <option value="2nd Semester 2024-2025">2nd Semester 2024-2025</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="capacity" class="form-label">Class Capacity</label>
-                                <input type="number" class="form-control" id="capacity" name="capacity" min="1" max="500" value="30">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="schedule" class="form-label">Schedule</label>
-                                <input type="text" class="form-control" id="schedule" name="schedule" placeholder="e.g., Mon/Wed/Fri 10:00-11:00">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="status" class="form-label">Status</label>
-                                <select class="form-select" id="status" name="status">
-                                    <option value="Active">Active</option>
-                                    <option value="Inactive">Inactive</option>
-                                    <option value="Archived">Archived</option>
-                                    <option value="Cancelled">Cancelled</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="description" class="form-label">Course Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="4" placeholder="Enter course description..."></textarea>
-                    </div>
-                    
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-primary" onclick="showDemoAlert()">
-                            <i class="fas fa-plus me-2"></i>Add Course
-                        </button>
-                    </div>
-                </form>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3 class="section-title mb-0">Course Management</h3>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+                        <i class="fas fa-plus me-2"></i>Add New Course
+                    </button>
+                </div>
             </div>
 
             <!-- Courses List -->
@@ -417,22 +300,17 @@
                     <table class="table table-striped table-hover">
                         <thead>
                             <tr>
-                                <th>Course Code</th>
                                 <th>Course Name</th>
+                                <th>Description</th>
                                 <th>Department</th>
-                                <th>Credits</th>
-                                <th>Level</th>
-                                <th>Instructor</th>
-                                <th>Semester</th>
-                                <th>Capacity</th>
-                                <th>Status</th>
+                                <th>Subjects</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             <!-- Empty table for demo -->
                             <tr>
-                                <td colspan="10" class="text-center py-4">
+                                <td colspan="5" class="text-center py-4">
                                     <i class="fas fa-book fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">No courses found. Add your first course using the form above.</p>
                                 </td>
@@ -442,6 +320,130 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Add Course Modal -->
+    <div class="modal fade" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addCourseModalLabel">Add New Course</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="courseForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="courseName" class="form-label">Course Name *</label>
+                                    <input type="text" class="form-control" id="courseName" name="courseName" placeholder="e.g., Bachelor of Science in Computer Science" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="departmentId" class="form-label">Department *</label>
+                                    <select class="form-select" id="departmentId" name="departmentId" required>
+                                        <option value="">Select Department</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Enter course description..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="createCourse()">
+                        <i class="fas fa-plus me-2"></i>Add Course
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Subjects Management Modal -->
+    <div class="modal fade" id="courseSubjectsModal" tabindex="-1" aria-labelledby="courseSubjectsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="courseSubjectsModalLabel">Manage Course Subjects</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold mb-3">Current Subjects</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Subject</th>
+                                            <th>Units</th>
+                                            <th>Year</th>
+                                            <th>Semester</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="courseSubjectsTableBody">
+                                        <!-- Course subjects will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold mb-3">Add New Subject</h6>
+                            <form id="addCourseSubjectForm">
+                                <input type="hidden" id="courseSubjectsCourseId">
+                                <div class="mb-3">
+                                    <label for="subjectSelect" class="form-label">Select Subject</label>
+                                    <select class="form-select" id="subjectSelect" required>
+                                        <option value="">Choose a subject...</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="yearLevelSelect" class="form-label">Year Level</label>
+                                    <select class="form-select" id="yearLevelSelect" required>
+                                        <option value="">Select year level...</option>
+                                        <option value="1">1st Year</option>
+                                        <option value="2">2nd Year</option>
+                                        <option value="3">3rd Year</option>
+                                        <option value="4">4th Year</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="semesterSelect" class="form-label">Semester</label>
+                                    <select class="form-select" id="semesterSelect" required>
+                                        <option value="">Select semester...</option>
+                                        <option value="1">1st Semester</option>
+                                        <option value="2">2nd Semester</option>
+                                        <option value="3">Summer</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="isRequired" checked>
+                                        <label class="form-check-label" for="isRequired">
+                                            Required Subject
+                                        </label>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-primary" onclick="addCourseSubject()">
+                                    <i class="fas fa-plus me-2"></i>Add Subject
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Bootstrap JS Bundle with Popper -->
@@ -480,11 +482,13 @@
             });
         });
 
-        // Load admin data, departments and courses on page load
+        // Load admin data, departments, courses, subjects, and year levels on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadAdminData();
             loadDepartments();
             loadCourses();
+            loadSubjects();
+            loadYearLevels();
         });
 
         // Load admin data from API
@@ -515,7 +519,7 @@
                 const response = await fetch('/api/v1/department');
                 if (response.ok) {
                     const departments = await response.json();
-                    const departmentSelects = document.querySelectorAll('#departmentId, #filterDepartment');
+                    const departmentSelects = document.querySelectorAll('#departmentId, #filterDepartment, #editDepartmentId');
                     
                     departmentSelects.forEach(select => {
                         // Clear existing options except the first one
@@ -553,6 +557,134 @@
             }
         }
 
+        // Load subjects from API
+        async function loadSubjects() {
+            try {
+                const response = await fetch('/api/v1/subject');
+                if (response.ok) {
+                    const subjects = await response.json();
+                    console.log('Subjects loaded:', subjects);
+                    populateSubjectDropdown(subjects);
+                } else {
+                    console.error('Failed to load subjects');
+                }
+            } catch (error) {
+                console.error('Error loading subjects:', error);
+            }
+        }
+
+        // Load subject count for a specific course
+        async function loadSubjectCount(courseId) {
+            try {
+                const response = await fetch(`/api/v1/subject?courseId=${courseId}`);
+                if (response.ok) {
+                    const subjects = await response.json();
+                    const count = subjects.length;
+                    const badge = document.getElementById(`subjectCount-${courseId}`);
+                    if (badge) {
+                        badge.textContent = `${count} subjects`;
+                        badge.className = count > 0 ? 'badge bg-success' : 'badge bg-info';
+                    }
+                } else {
+                    const badge = document.getElementById(`subjectCount-${courseId}`);
+                    if (badge) {
+                        badge.textContent = '0 subjects';
+                        badge.className = 'badge bg-info';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading subject count:', error);
+                const badge = document.getElementById(`subjectCount-${courseId}`);
+                if (badge) {
+                    badge.textContent = '0 subjects';
+                    badge.className = 'badge bg-info';
+                }
+            }
+        }
+
+        // Load year levels from API
+        async function loadYearLevels() {
+            try {
+                const response = await fetch('/api/v1/yearlevel');
+                if (response.ok) {
+                    const yearLevels = await response.json();
+                    console.log('Year levels loaded:', yearLevels);
+                    populateYearLevelDropdown(yearLevels);
+                } else {
+                    console.error('Failed to load year levels');
+                }
+            } catch (error) {
+                console.error('Error loading year levels:', error);
+            }
+        }
+
+        // Populate year level dropdown
+        function populateYearLevelDropdown(yearLevels) {
+            const yearLevelSelect = document.getElementById('yearLevelSelect');
+            if (!yearLevelSelect) return;
+
+            // Clear existing options except the first one
+            while (yearLevelSelect.children.length > 1) {
+                yearLevelSelect.removeChild(yearLevelSelect.lastChild);
+            }
+
+            yearLevels.forEach(yearLevel => {
+                const option = document.createElement('option');
+                option.value = yearLevel.id;
+                option.textContent = yearLevel.levelName;
+                yearLevelSelect.appendChild(option);
+            });
+        }
+
+        // Populate subject dropdown
+        function populateSubjectDropdown(subjects) {
+            const subjectSelect = document.getElementById('subjectSelect');
+            if (!subjectSelect) return;
+
+            // Clear existing options except the first one
+            while (subjectSelect.children.length > 1) {
+                subjectSelect.removeChild(subjectSelect.lastChild);
+            }
+
+            subjects.forEach(subject => {
+                const option = document.createElement('option');
+                option.value = subject.id;
+                option.textContent = `${subject.id} - ${subject.subjectName}`;
+                subjectSelect.appendChild(option);
+            });
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} border-0`;
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            // Add to page
+            document.body.appendChild(toast);
+            
+            // Initialize and show toast
+            const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
+            bsToast.show();
+            
+            // Remove toast after it's hidden
+            toast.addEventListener('hidden.bs.toast', () => {
+                toast.remove();
+            });
+        }
+
         // Display courses in the table
         function displayCourses(courses) {
             const tbody = document.querySelector('tbody');
@@ -564,7 +696,7 @@
             if (courses.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="10" class="text-center py-4">
+                        <td colspan="5" class="text-center py-4">
                             <i class="fas fa-book fa-3x text-muted mb-3"></i>
                             <p class="text-muted">No courses found. Add your first course using the form above.</p>
                         </td>
@@ -576,22 +708,19 @@
             courses.forEach(course => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><span class="course-code">${course.courseName}</span></td>
-                    <td>${course.description || 'N/A'}</td>
+                    <td><strong>${course.courseName}</strong></td>
+                    <td>${course.description || 'No description'}</td>
                     <td>${course.departmentName || 'No Department'}</td>
-                    <td>N/A</td>
-                    <td>N/A</td>
-                    <td>N/A</td>
-                    <td>N/A</td>
-                    <td>N/A</td>
-                    <td><span class="badge bg-success">Active</span></td>
+                    <td>
+                        <span class="badge bg-info" id="subjectCount-${course.id}">Loading...</span>
+                    </td>
                     <td>
                         <div class="btn-group btn-group-sm">
                             <button class="btn btn-outline-primary action-btn" title="Edit" onclick="editCourse(${course.id})">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-outline-warning action-btn" title="Toggle Status">
-                                <i class="fas fa-sync-alt"></i>
+                            <button class="btn btn-outline-info action-btn" title="Manage Subjects" onclick="manageCourseSubjects(${course.id}, '${course.courseName}')">
+                                <i class="fas fa-book"></i>
                             </button>
                             <button class="btn btn-outline-danger action-btn" title="Delete" onclick="deleteCourse(${course.id})">
                                 <i class="fas fa-trash"></i>
@@ -600,6 +729,9 @@
                     </td>
                 `;
                 tbody.appendChild(row);
+                
+                // Load subject count for this course
+                loadSubjectCount(course.id);
             });
 
             // Update total count
@@ -637,21 +769,336 @@
             loadCourses();
         }
 
-        // Demo alert function
-        function showDemoAlert() {
-            alert('This is a demo. In a real application, this would submit the form data to the server.');
-            return false;
+        // Create course function
+        async function createCourse() {
+            const courseName = document.getElementById('courseName').value;
+            const description = document.getElementById('description').value;
+            const departmentId = document.getElementById('departmentId').value;
+
+            if (!courseName.trim()) {
+                showToast('Course name is required', 'error');
+                return;
+            }
+
+            const courseData = {
+                courseName: courseName,
+                description: description,
+                departmentId: departmentId ? parseInt(departmentId) : null
+            };
+
+            try {
+                const response = await fetch('/api/v1/course', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(courseData)
+                });
+
+                if (response.ok) {
+                    // Clear form and close modal
+                    document.getElementById('courseForm').reset();
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addCourseModal'));
+                    modal.hide();
+                    loadCourses(); // Refresh the course list
+                    showToast('Course created successfully!', 'success');
+                } else {
+                    const error = await response.json();
+                    showToast(error.message || 'Failed to create course', 'error');
+                }
+            } catch (error) {
+                console.error('Error creating course:', error);
+                showToast('Error creating course', 'error');
+            }
         }
 
         // Edit course function
         function editCourse(courseId) {
-            alert(`Edit course with ID: ${courseId}`);
+            // Load course data and open edit modal
+            loadCourseForEdit(courseId);
+        }
+
+        // Load course data for editing
+        async function loadCourseForEdit(courseId) {
+            try {
+                const response = await fetch(`/api/v1/course/${courseId}`);
+                if (response.ok) {
+                    const course = await response.json();
+                    openEditModal(course);
+                } else {
+                    showToast('Failed to load course data', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading course:', error);
+                showToast('Error loading course data', 'error');
+            }
+        }
+
+        // Open edit modal with course data
+        function openEditModal(course) {
+            // Create edit modal if it doesn't exist
+            if (!document.getElementById('editCourseModal')) {
+                createEditModal();
+            }
+
+            // Populate form with course data
+            document.getElementById('editCourseId').value = course.id;
+            document.getElementById('editCourseName').value = course.courseName;
+            document.getElementById('editDescription').value = course.description || '';
+            document.getElementById('editDepartmentId').value = course.departmentId || '';
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('editCourseModal'));
+            modal.show();
+        }
+
+        // Create edit modal
+        function createEditModal() {
+            const modalHtml = `
+                <div class="modal fade" id="editCourseModal" tabindex="-1" aria-labelledby="editCourseModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="editCourseModalLabel">Edit Course</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="editCourseForm">
+                                    <input type="hidden" id="editCourseId">
+                                    <div class="mb-3">
+                                        <label for="editCourseName" class="form-label">Course Name *</label>
+                                        <input type="text" class="form-control" id="editCourseName" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="editDepartmentId" class="form-label">Department *</label>
+                                        <select class="form-select" id="editDepartmentId" required>
+                                            <option value="">Select Department</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="editDescription" class="form-label">Description</label>
+                                        <textarea class="form-control" id="editDescription" rows="3"></textarea>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary" onclick="updateCourse()">Update Course</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        // Update course
+        async function updateCourse() {
+            const courseId = document.getElementById('editCourseId').value;
+            const courseName = document.getElementById('editCourseName').value;
+            const description = document.getElementById('editDescription').value;
+            const departmentId = document.getElementById('editDepartmentId').value;
+
+            if (!courseName.trim()) {
+                showToast('Course name is required', 'error');
+                return;
+            }
+
+            const courseData = {
+                courseName: courseName,
+                description: description,
+                departmentId: departmentId ? parseInt(departmentId) : null
+            };
+
+            try {
+                const response = await fetch(`/api/v1/course/${courseId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(courseData)
+                });
+
+                if (response.ok) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editCourseModal'));
+                    modal.hide();
+                    loadCourses(); // Refresh the course list
+                    showToast('Course updated successfully!', 'success');
+                } else {
+                    const error = await response.json();
+                    showToast(error.message || 'Failed to update course', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating course:', error);
+                showToast('Error updating course', 'error');
+            }
         }
 
         // Delete course function
-        function deleteCourse(courseId) {
-            if (confirm('Are you sure you want to delete this course?')) {
-                alert(`Delete course with ID: ${courseId}`);
+        async function deleteCourse(courseId) {
+            if (confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
+                try {
+                    const response = await fetch(`/api/v1/course/${courseId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (response.ok) {
+                        loadCourses(); // Refresh the course list
+                        showToast('Course deleted successfully!', 'success');
+                    } else {
+                        const error = await response.json();
+                        showToast(error.message || 'Failed to delete course', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error deleting course:', error);
+                    showToast('Error deleting course', 'error');
+                }
+            }
+        }
+
+        // Manage course subjects
+        function manageCourseSubjects(courseId, courseName) {
+            // Open modal for course subject management
+            const modal = new bootstrap.Modal(document.getElementById('courseSubjectsModal'));
+            document.getElementById('courseSubjectsModalLabel').textContent = `Manage Subjects - ${courseName}`;
+            document.getElementById('courseSubjectsCourseId').value = courseId;
+            
+            // Load course subjects
+            loadCourseSubjects(courseId);
+            modal.show();
+        }
+
+        // Load course subjects
+        async function loadCourseSubjects(courseId) {
+            try {
+                const response = await fetch(`/api/v1/coursesubject/course/${courseId}`);
+                if (response.ok) {
+                    const subjects = await response.json();
+                    displayCourseSubjects(subjects);
+                } else {
+                    console.error('Failed to load course subjects');
+                }
+            } catch (error) {
+                console.error('Error loading course subjects:', error);
+            }
+        }
+
+        // Refresh subject count for a course
+        async function refreshSubjectCount(courseId) {
+            await loadSubjectCount(courseId);
+        }
+
+        // Display course subjects
+        function displayCourseSubjects(subjects) {
+            const tbody = document.getElementById('courseSubjectsTableBody');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            if (subjects.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <i class="fas fa-book fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">No subjects assigned to this course.</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            subjects.forEach(subject => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><span class="badge bg-secondary">${subject.subjectId}</span></td>
+                    <td>${subject.subjectName}</td>
+                    <td>${subject.units || 'N/A'}</td>
+                    <td>${subject.yearLevelName}</td>
+                    <td>${subject.semesterName}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-danger btn-sm" onclick="removeCourseSubject(${subject.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Add course subject
+        async function addCourseSubject() {
+            const courseId = document.getElementById('courseSubjectsCourseId').value;
+            const subjectId = document.getElementById('subjectSelect').value;
+            const yearLevelId = document.getElementById('yearLevelSelect').value;
+            const semesterId = document.getElementById('semesterSelect').value;
+            const isRequired = document.getElementById('isRequired').checked;
+
+            if (!subjectId || !yearLevelId || !semesterId) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+
+            const courseSubjectData = {
+                courseId: parseInt(courseId),
+                subjectId: parseInt(subjectId),
+                yearLevelId: parseInt(yearLevelId),
+                semesterId: parseInt(semesterId),
+                isRequired: isRequired
+            };
+
+            try {
+                const response = await fetch('/api/v1/coursesubject', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(courseSubjectData)
+                });
+
+                if (response.ok) {
+                    // Clear form
+                    document.getElementById('addCourseSubjectForm').reset();
+                    // Refresh the course subjects list
+                    loadCourseSubjects(courseId);
+                    // Refresh subject count
+                    refreshSubjectCount(courseId);
+                    showToast('Subject added to course successfully!', 'success');
+                } else {
+                    const error = await response.json();
+                    showToast(error.message || 'Failed to add subject to course', 'error');
+                }
+            } catch (error) {
+                console.error('Error adding course subject:', error);
+                showToast('Error adding subject to course', 'error');
+            }
+        }
+
+        // Remove course subject
+        async function removeCourseSubject(courseSubjectId) {
+            if (confirm('Are you sure you want to remove this subject from the course?')) {
+                try {
+                    const response = await fetch(`/api/v1/coursesubject/${courseSubjectId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (response.ok) {
+                        // Get the course ID to refresh the list
+                        const courseId = document.getElementById('courseSubjectsCourseId').value;
+                        // Refresh the course subjects list
+                        loadCourseSubjects(courseId);
+                        // Refresh subject count
+                        refreshSubjectCount(courseId);
+                        showToast('Subject removed from course successfully!', 'success');
+                    } else {
+                        const error = await response.json();
+                        showToast(error.message || 'Failed to remove subject from course', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error removing course subject:', error);
+                    showToast('Error removing subject from course', 'error');
+                }
             }
         }
 
