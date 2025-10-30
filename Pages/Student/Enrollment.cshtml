@@ -265,7 +265,12 @@
         .badge-enrolled {
             background-color: var(--primary-color);
         }
-        
+
+        .badge-pending {
+            background-color: #ffc107;
+            color: #000;
+        }
+
         .badge-dropped {
             background-color: #dc3545;
         }
@@ -347,7 +352,7 @@
                 <div class="tab-pane fade show active" id="search-pane" role="tabpanel">
                     <div class="row">
                         <!-- Enroll in New Class -->
-                        <div class="col-md-6">
+                        <div class="col-md-6" id="enrollColumn">
                             <div class="card-custom">
                                 <h5 class="section-title"><i class="fas fa-plus-circle me-2"></i>Enroll in a Class</h5>
                                 <div class="enroll-box">
@@ -402,7 +407,7 @@
                         </div>
 
                         <!-- Enrolled Classes -->
-                        <div class="col-md-6">
+                        <div class="col-md-6" id="enrolledColumn">
                             <div class="card-custom">
                                 <h5 class="section-title"><i class="fas fa-list me-2"></i>My Enrolled Classes</h5>
                                 <div id="enrolledClassesContainer">
@@ -473,6 +478,8 @@
         let currentStudentId = null;
         let currentEnrollmentId = null;
         let foundClass = null;
+        let enrolledSectionSubjectIds = new Set();
+        let selectedSubjects = []; // array of { sectionId, sectionSubjectId, subjectName, units }
 
         document.addEventListener('DOMContentLoaded', function() {
             loadStudentData();
@@ -516,8 +523,8 @@
                 const response = await fetch(`/api/v1/enrollment/student/${studentId}`);
                 if (response.ok) {
                     const enrollments = await response.json();
-                    const activeEnrollment = enrollments.find(e => e.status === 'Active');
-                    
+                    const activeEnrollment = enrollments.find(e => e.status === 'Active' || e.status === 'Pending');
+
                     if (activeEnrollment) {
                         currentEnrollmentId = activeEnrollment.id;
                         displayEnrollmentInfo(activeEnrollment);
@@ -550,6 +557,7 @@
                 const response = await fetch(`/api/v1/studentsubject/student/${studentId}/enrolled`);
                 if (response.ok) {
                     const classes = await response.json();
+                    enrolledSectionSubjectIds = new Set((classes || []).map(c => c.sectionSubjectId));
                     displayEnrolledClasses(classes);
                 } else {
                     displayEnrolledClasses([]);
@@ -571,6 +579,7 @@
                         <p class="text-muted small">Use the EDP code to enroll in your classes</p>
                     </div>
                 `;
+                enforceTabsForEnrollment(false);
                 return;
             }
 
@@ -615,6 +624,40 @@
                     </div>
                 </div>
             `).join('');
+            enforceTabsForEnrollment(true);
+        }
+
+        function enforceTabsForEnrollment(hasEnrolled){
+            try {
+                const enrollCol = document.querySelector('#search-pane #enrollColumn');
+                const browseTabBtn = document.getElementById('browse-tab');
+                const sectionTabBtn = document.getElementById('section-tab');
+                const browsePane = document.getElementById('browse-pane');
+                const sectionPane = document.getElementById('section-pane');
+
+                if (hasEnrolled){
+                    if (enrollCol) enrollCol.style.display = 'none';
+                    if (browseTabBtn) browseTabBtn.style.display = 'none';
+                    if (sectionTabBtn) sectionTabBtn.style.display = 'none';
+                    if (browsePane) browsePane.style.display = 'none';
+                    if (sectionPane) sectionPane.style.display = 'none';
+
+                    // Ensure the Search tab (with My Enrolled Classes) is active
+                    const searchTabBtn = document.getElementById('search-tab');
+                    if (searchTabBtn && typeof bootstrap !== 'undefined'){
+                        const tab = new bootstrap.Tab(searchTabBtn);
+                        tab.show();
+                    }
+                } else {
+                    if (enrollCol) enrollCol.style.display = '';
+                    if (browseTabBtn) browseTabBtn.style.display = '';
+                    if (sectionTabBtn) sectionTabBtn.style.display = '';
+                    if (browsePane) browsePane.style.display = '';
+                    if (sectionPane) sectionPane.style.display = '';
+                }
+            } catch (e) {
+                console.warn('enforceTabsForEnrollment failed', e);
+            }
         }
 
         async function searchClass() {
@@ -622,11 +665,6 @@
             
             if (!edpCode) {
                 alert('Please enter an EDP code');
-                return;
-            }
-
-            if (!currentEnrollmentId) {
-                alert('You need an active enrollment to enroll in classes. Please contact the admin.');
                 return;
             }
 
@@ -687,6 +725,20 @@
             }
 
             try {
+                // Ensure active enrollment exists (auto-create using section details if missing)
+                if (!currentEnrollmentId) {
+                    const sectionId = foundClass.sectionId || foundClass.section?.id;
+                    if (!sectionId) {
+                        alert('Cannot determine section for this class.');
+                        return;
+                    }
+                    const ensured = await ensureActiveEnrollmentFromSection(sectionId);
+                    if (!ensured) {
+                        alert('Unable to create an active enrollment. Please contact the admin.');
+                        return;
+                    }
+                }
+                
                 const response = await fetch('/api/v1/studentsubject/enroll', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -823,7 +875,7 @@
             `;
         }
 
-        async function enrollInClass(edpCode, subjectName) {
+        async function enrollInClass(edpCode, subjectName, sectionIdFromCaller) {
             if (!currentStudentId) {
                 alert('Student information not available');
                 return;
@@ -834,6 +886,27 @@
             }
 
             try {
+                // Ensure active enrollment exists (auto-create using section for this class if missing)
+                if (!currentEnrollmentId) {
+                    let sectionId = sectionIdFromCaller;
+                    if (!sectionId) {
+                        // Resolve via EDP lookup
+                        const ssResp = await fetch(`/api/v1/sectionsubject/edpcode/${edpCode}`);
+                        if (ssResp.ok) {
+                            const ss = await ssResp.json();
+                            sectionId = ss.sectionId || ss.section?.id;
+                        }
+                    }
+                    if (!sectionId) {
+                        alert('Unable to determine section for this class.');
+                        return;
+                    }
+                    const ensured = await ensureActiveEnrollmentFromSection(sectionId);
+                    if (!ensured) {
+                        alert('Unable to create an active enrollment. Please contact the admin.');
+                        return;
+                    }
+                }
                 // Use existing enrollment logic directly with EDP code
                 const enrollResponse = await fetch('/api/v1/studentsubject/enroll', {
                     method: 'POST',
@@ -859,12 +932,44 @@
             }
         }
 
+        // Helper: ensure there is an active enrollment for the student's course/year/semester inferred from a Section
+        async function ensureActiveEnrollmentFromSection(sectionId) {
+            try {
+                const secResp = await fetch(`/api/v1/section/${sectionId}`);
+                if (!secResp.ok) return false;
+                const section = await secResp.json();
+                // Build school year if provided by section.semesterName context is not guaranteed; allow empty
+                const createResp = await fetch('/api/v1/enrollment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        studentId: currentStudentId,
+                        courseId: section.courseId,
+                        yearLevelId: section.yearLevelId,
+                        semesterId: section.semesterId,
+                        enrollmentType: 'Regular',
+                        schoolYear: section.schoolYear || '',
+                        status: 'Pending'
+                    })
+                });
+                if (!createResp.ok) return false;
+                const created = await createResp.json();
+                currentEnrollmentId = created.id;
+                // Update header/info panel
+                await loadEnrollmentInfo(currentStudentId);
+                return true;
+            } catch (e) {
+                console.error('ensureActiveEnrollmentFromSection error', e);
+                return false;
+            }
+        }
+
         async function getActiveEnrollment(studentId) {
             try {
                 const response = await fetch(`/api/v1/enrollment/student/${studentId}`);
                 if (response.ok) {
                     const enrollments = await response.json();
-                    return enrollments.find(e => e.status === 'Active');
+                    return enrollments.find(e => (e.status || '').toLowerCase() === 'active' || (e.status || '').toLowerCase() === 'pending');
                 }
                 return null;
             } catch (error) {
@@ -890,23 +995,29 @@
 
             try {
                 const enrollment = await getActiveEnrollment(currentStudentId);
+                let sections = [];
                 if (!enrollment) {
-                    document.getElementById('sectionsListContainer').innerHTML = 
-                        '<div class="text-center py-4"><p class="text-danger">No active enrollment found</p></div>';
-                    return;
-                }
-
-                // Fetch sections for the enrollment's course/year/semester
-                const response = await fetch(
-                    `/api/v1/section/course/${enrollment.courseId}/year/${enrollment.yearLevelId}/semester/${enrollment.semesterId}`
-                );
-                
-                if (response.ok) {
-                    const sections = await response.json();
-                    displaySections(sections);
+                    // Fallback: load all sections (paginated result)
+                    const respAll = await fetch('/api/v1/section?page=1&pageSize=1000');
+                    if (respAll.ok) {
+                        const result = await respAll.json();
+                        sections = (result.data || []).map(x => x);
+                    }
                 } else {
+                    // Fetch sections for the enrollment's course/year/semester
+                    const response = await fetch(
+                        `/api/v1/section/course/${enrollment.courseId}/year/${enrollment.yearLevelId}/semester/${enrollment.semesterId}`
+                    );
+                    if (response.ok) {
+                        sections = await response.json();
+                    }
+                }
+                
+                if (!sections || sections.length === 0) {
                     document.getElementById('sectionsListContainer').innerHTML = 
-                        '<div class="text-center py-4"><p class="text-danger">Failed to load sections</p></div>';
+                        '<div class="text-center py-4"><p class="text-muted">No sections available</p></div>';
+                } else {
+                    displaySections(sections);
                 }
             } catch (error) {
                 console.error('Error loading sections:', error);
@@ -950,7 +1061,7 @@
                 const response = await fetch(`/api/v1/section/${sectionId}/subjects`);
                 if (response.ok) {
                     const subjects = await response.json();
-                    displaySectionSubjects(container, subjects, sectionName);
+                    displaySectionSubjects(container, subjects, sectionName, sectionId);
                 } else {
                     container.innerHTML = '<div class="text-danger">Failed to load classes</div>';
                 }
@@ -960,7 +1071,7 @@
             }
         }
 
-        function displaySectionSubjects(container, subjects, sectionName) {
+        function displaySectionSubjects(container, subjects, sectionName, sectionId) {
             if (subjects.length === 0) {
                 container.innerHTML = '<div class="text-muted">No classes assigned to this section yet</div>';
                 return;
@@ -971,6 +1082,7 @@
                     <table class="table table-sm table-hover">
                         <thead>
                             <tr>
+                                <th style="width:36px;"></th>
                                 <th>Subject</th>
                                 <th>Teacher</th>
                                 <th>Schedule</th>
@@ -983,6 +1095,12 @@
                         <tbody>
                             ${subjects.map(subject => `
                                 <tr>
+                                    <td>
+                                        <input type="checkbox" 
+                                               onchange="toggleSelectSubject(${sectionId}, ${subject.id}, '${subject.subjectName}', ${subject.units || 3}, this)"
+                                               ${isAlreadySelected(subject.id) ? 'checked' : ''}
+                                               ${enrolledSectionSubjectIds.has(subject.id) ? 'disabled' : ''} />
+                                    </td>
                                     <td>${subject.subjectName}</td>
                                     <td>${subject.teacherName}</td>
                                     <td>${subject.schedule}</td>
@@ -994,9 +1112,9 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-success" 
-                                                onclick="enrollInClass('${subject.edpCode}', '${subject.subjectName}')"
-                                                ${subject.currentEnrollment >= subject.maxStudents ? 'disabled' : ''}>
+                        <button class="btn btn-sm btn-success" 
+                                onclick="enrollInClass('${subject.edpCode}', '${subject.subjectName}', ${sectionId})"
+                                                ${subject.currentEnrollment >= subject.maxStudents || enrolledSectionSubjectIds.has(subject.id) ? 'disabled' : ''}>
                                             <i class="fas fa-plus me-1"></i>Enroll
                                         </button>
                                     </td>
@@ -1004,17 +1122,165 @@
                             `).join('')}
                         </tbody>
                     </table>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="selectEntireSection(${sectionId})">
+                            <i class="fas fa-check-double me-1"></i>Select Entire Section
+                        </button>
+                        <small class="text-muted">Tip: Use checkboxes to add to your selection before proceeding.</small>
+                    </div>
                 </div>
             `;
+            renderSelectedSummary();
         }
 
-        // Load section browser when tab is clicked
+        function isAlreadySelected(sectionSubjectId){
+            return selectedSubjects.some(s => s.sectionSubjectId === sectionSubjectId);
+        }
+
+        function totalSelectedUnits(){
+            return selectedSubjects.reduce((sum, s) => sum + (s.units || 0), 0);
+        }
+
+        function toggleSelectSubject(sectionId, sectionSubjectId, subjectName, units, checkbox){
+            if (checkbox.checked){
+                const nextUnits = totalSelectedUnits() + (units || 0);
+                if (nextUnits > 12){
+                    checkbox.checked = false;
+                    alert('Maximum of 12 units reached.');
+                    return;
+                }
+                if (!isAlreadySelected(sectionSubjectId)){
+                    selectedSubjects.push({ sectionId, sectionSubjectId, subjectName, units: units || 0 });
+                }
+            } else {
+                selectedSubjects = selectedSubjects.filter(s => s.sectionSubjectId !== sectionSubjectId);
+            }
+            renderSelectedSummary();
+        }
+
+        function selectEntireSection(sectionId){
+            const rows = document.querySelectorAll(`#section-subjects-${sectionId} tbody tr`);
+            let addedAny = false;
+            rows.forEach(row => {
+                const checkbox = row.querySelector('input[type="checkbox"]');
+                if (!checkbox) return;
+                if (!checkbox.checked){
+                    // simulate checking with unit guard
+                    const onclickAttr = checkbox.getAttribute('onchange');
+                }
+            });
+            // Safer approach: read from dataset we injected in toggle handler args via attributes already
+            const inputs = document.querySelectorAll(`#section-subjects-${sectionId} input[type="checkbox"]`);
+            for (const cb of inputs){
+                if (cb.checked) continue;
+                const args = cb.getAttribute('onchange');
+                // Parse units from attribute quickly
+                // onchange="toggleSelectSubject(sectionId, sectionSubjectId, 'name', units, this)"
+                // We cannot reliably parse; instead, trigger click and let guard handle
+                cb.click();
+                addedAny = true;
+                if (totalSelectedUnits() >= 12) break;
+            }
+            if (!addedAny){
+                renderSelectedSummary();
+            }
+        }
+
+        async function proceedToPending(){
+            if (selectedSubjects.length === 0){
+                alert('Select subjects first.');
+                return;
+            }
+            // Ensure active enrollment exists and matches the selected section's course/year/semester
+            try {
+                const first = selectedSubjects[0];
+                const sectionResp = await fetch(`/api/v1/section/${first.sectionId}`);
+                if (!sectionResp.ok){
+                    alert('Unable to fetch section details.');
+                    return;
+                }
+                const section = await sectionResp.json();
+                const active = await getActiveEnrollment(currentStudentId);
+                const matches = !!active && active.courseId === section.courseId && active.yearLevelId === section.yearLevelId && active.semesterId === section.semesterId;
+                if (!matches){
+                    const ensured = await ensureActiveEnrollmentFromSection(first.sectionId);
+                    if (!ensured){
+                        alert('Unable to initialize a matching active enrollment.');
+                        return;
+                    }
+                }
+            } catch(err){
+                console.error('ensure enrollment before pending', err);
+                alert('Error preparing enrollment.');
+                return;
+            }
+            for (const s of selectedSubjects){
+                try{
+                    const r = await fetch('/api/v1/studentsubject/select', {
+                        method:'POST',
+                        headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({ studentId: currentStudentId, sectionSubjectId: s.sectionSubjectId })
+                    });
+                    if (!r.ok){
+                        const e = await r.json().catch(()=>({}));
+                        console.warn('Select failed', e);
+                        alert(e.message || 'Failed to add a subject to pending selections.');
+                    }
+                }catch(err){ console.error('select error', err); }
+            }
+            alert('Subjects submitted for approval.');
+            selectedSubjects = [];
+            renderSelectedSummary();
+        }
+
+        function renderSelectedSummary(){
+            const hostId = 'selectedSummaryHost';
+            let host = document.getElementById(hostId);
+            if (!host){
+                host = document.createElement('div');
+                host.id = hostId;
+                document.querySelector('#section-pane .card-custom')?.appendChild(host);
+            }
+            const units = totalSelectedUnits();
+            host.innerHTML = `
+                <div class="card-custom mt-3">
+                    <h5 class="section-title"><i class="fas fa-shopping-cart me-2"></i>Selected Subjects</h5>
+                    ${selectedSubjects.length === 0 ? '<p class="text-muted">No subjects selected.</p>' : `
+                    <ul class="list-group list-group-flush">
+                        ${selectedSubjects.map(s => `
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                ${s.subjectName}
+                                <span class="badge bg-light text-dark">${s.units} units</span>
+                                <button class="btn btn-sm btn-outline-danger" onclick="removeSelected(${s.sectionSubjectId})">Remove</button>
+                            </li>`).join('')}
+                    </ul>`}
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div><strong>Total Units:</strong> ${units}/12 ${units>=12 ? '<span class="text-danger ms-2">Maximum reached</span>':''}</div>
+                        <button class="btn btn-primary" ${units===0? 'disabled':''} onclick="proceedToPending()">
+                            <i class="fas fa-paper-plane me-1"></i>Proceed to Enrollment
+                        </button>
+                    </div>
+                </div>`;
+        }
+
+        function removeSelected(sectionSubjectId){
+            selectedSubjects = selectedSubjects.filter(s => s.sectionSubjectId !== sectionSubjectId);
+            // Uncheck any matching checkbox in the DOM
+            const cb = document.querySelector(`input[type="checkbox"][onchange*=", ${sectionSubjectId}, "]`);
+            if (cb) cb.checked = false;
+            renderSelectedSummary();
+        }
+
+        // Load section browser when tab is clicked and auto-load if tab already active
         document.addEventListener('DOMContentLoaded', function() {
             const sectionTab = document.getElementById('section-tab');
             if (sectionTab) {
                 sectionTab.addEventListener('click', function() {
                     loadSectionBrowser();
                 });
+                if (sectionTab.classList.contains('active')) {
+                    loadSectionBrowser();
+                }
             }
         });
     </script>

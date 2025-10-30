@@ -77,7 +77,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <h2 class="mb-0"><i class="fas fa-user-graduate me-2"></i>Enrollment Management</h2>
                     <div>
-                        <img src="~/images/default-avatar.png" alt="Admin" class="user-avatar">
+                        <img src="~/images/gradia_logo.png" alt="Admin" class="user-avatar">
                     </div>
                 </div>
             </div>
@@ -290,6 +290,11 @@
                     <td><span class="badge badge-${enrollment.status?.toLowerCase() || 'pending'}">${enrollment.status || 'Pending'}</span></td>
                     <td>${enrollment.schoolYear || 'N/A'}</td>
                     <td>
+                        ${(enrollment.status === 'Pending') ? `
+                            <button class="btn btn-sm btn-success action-btn" onclick="acceptEnrollment(${enrollment.id})">
+                                <i class="fas fa-check"></i> Accept
+                            </button>
+                        ` : ''}
                         <button class="btn btn-sm btn-warning action-btn" onclick="openEditEnrollmentModal(${enrollment.id}, '${enrollment.status}')">
                             <i class="fas fa-edit"></i> Edit
                         </button>
@@ -327,7 +332,8 @@
             try {
                 const response = await fetch('/api/v1/student');
                 if (response.ok) {
-                    const students = await response.json();
+                    let studentsRaw = await response.json();
+                    let students = Array.isArray(studentsRaw) ? studentsRaw : (Array.isArray(studentsRaw.data) ? studentsRaw.data : []);
                     const select = document.getElementById('studentSelect');
                     select.innerHTML = '<option value="">Select a student</option>' +
                         students.map(s => `<option value="${s.id}">${s.studentId || s.id} - ${s.firstName} ${s.lastName}</option>`).join('');
@@ -341,7 +347,8 @@
             try {
                 const response = await fetch('/api/v1/course');
                 if (response.ok) {
-                    const courses = await response.json();
+                    let coursesRaw = await response.json();
+                    let courses = Array.isArray(coursesRaw) ? coursesRaw : (Array.isArray(coursesRaw.data) ? coursesRaw.data : []);
                     const select = document.getElementById('courseSelect');
                     select.innerHTML = '<option value="">Select a course</option>' +
                         courses.map(c => `<option value="${c.id}">${c.courseName}</option>`).join('');
@@ -355,7 +362,8 @@
             try {
                 const response = await fetch('/api/v1/yearlevel');
                 if (response.ok) {
-                    const yearLevels = await response.json();
+                    let yearLevelsRaw = await response.json();
+                    let yearLevels = Array.isArray(yearLevelsRaw) ? yearLevelsRaw : (Array.isArray(yearLevelsRaw.data) ? yearLevelsRaw.data : []);
                     const select = document.getElementById('yearLevelSelect');
                     select.innerHTML = '<option value="">Select year level</option>' +
                         yearLevels.map(yl => `<option value="${yl.id}">${yl.levelName}</option>`).join('');
@@ -369,7 +377,8 @@
             try {
                 const response = await fetch('/api/v1/semester');
                 if (response.ok) {
-                    const semesters = await response.json();
+                    let semestersRaw = await response.json();
+                    let semesters = Array.isArray(semestersRaw) ? semestersRaw : (Array.isArray(semestersRaw.data) ? semestersRaw.data : []);
                     const select = document.getElementById('semesterSelect');
                     select.innerHTML = '<option value="">Select semester</option>' +
                         semesters.map(s => `<option value="${s.id}">${s.semesterName}</option>`).join('');
@@ -403,7 +412,7 @@
                         semesterId: parseInt(semesterId),
                         enrollmentType: enrollmentType,
                         schoolYear: schoolYear,
-                        status: 'Active'
+                        status: 'Pending'
                     })
                 });
 
@@ -444,8 +453,8 @@
             const status = document.getElementById('editStatus').value;
 
             try {
-                const response = await fetch(`/api/v1/enrollment/${enrollmentId}`, {
-                    method: 'PUT',
+                const response = await fetch(`/api/v1/enrollment/${enrollmentId}/status`, {
+                    method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: status })
                 });
@@ -601,6 +610,29 @@
             } catch (error) {
                 console.error('Error assigning classes:', error);
                 alert('Error assigning classes');
+            }
+        }
+
+        /**
+        * Quickly accept (approve) a pending enrollment
+        */
+        async function acceptEnrollment(enrollmentId) {
+            if (!confirm('Accept this enrollment? This will approve all pending subjects.')) return;
+            try {
+                const response = await fetch(`/api/v1/enrollment/${enrollmentId}/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (response.ok) {
+                    loadEnrollments();
+                    alert('Enrollment approved successfully!');
+                } else {
+                    const error = await response.json();
+                    alert('Failed to approve enrollment: ' + (error.message || 'Unknown error'));
+                }
+            } catch (err) {
+                alert('Error approving enrollment');
+                console.error('Error approving enrollment', err);
             }
         }
     </script>

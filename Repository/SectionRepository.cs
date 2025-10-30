@@ -51,7 +51,7 @@ namespace StudentPeformanceTracker.Repository
                 .Include(s => s.Course)
                 .Include(s => s.YearLevel)
                 .Include(s => s.Semester)
-                .Where(s => s.CourseId == courseId && s.YearLevelId == yearLevelId && s.SemesterId == semesterId)
+                .Where(s => s.CourseId == courseId && s.YearLevelId == yearLevelId && s.SemesterId == semesterId && s.IsActive)
                 .OrderBy(s => s.SectionName)
                 .ToListAsync();
         }

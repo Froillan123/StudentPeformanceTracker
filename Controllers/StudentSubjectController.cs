@@ -59,6 +59,167 @@ namespace StudentPeformanceTracker.Controllers
         }
 
         /// <summary>
+        /// Select a class for pending enrollment (cart-style). Does not consume capacity.
+        /// Enforces 12-unit cap across Pending + Enrolled for the student's active enrollment.
+        /// </summary>
+        [HttpPost("select")]
+        public async Task<ActionResult<object>> SelectPending([FromBody] SelectStudentSubjectRequest request)
+        {
+            try
+            {
+                // Validate section subject
+                var sectionSubject = await _sectionSubjectRepository.GetByIdAsync(request.SectionSubjectId);
+                if (sectionSubject == null)
+                {
+                    return NotFound(new { message = "Class not found." });
+                }
+
+                // Get student's active or pending enrollment
+                var enrollments = await _enrollmentRepository.GetByStudentIdAsync(request.StudentId);
+                var activeEnrollment = enrollments.FirstOrDefault(e => (e.Status ?? string.Empty) == "Active" || (e.Status ?? string.Empty) == "Pending");
+                if (activeEnrollment == null)
+                {
+                    return BadRequest(new { message = "No active or pending enrollment found." });
+                }
+
+                // Validate course/year/semester match
+                if (sectionSubject.Section == null ||
+                    sectionSubject.Section.CourseId != activeEnrollment.CourseId ||
+                    sectionSubject.Section.YearLevelId != activeEnrollment.YearLevelId ||
+                    sectionSubject.Section.SemesterId != activeEnrollment.SemesterId)
+                {
+                    return BadRequest(new { message = "This class is not for your current enrollment." });
+                }
+
+                // Check duplicate selection/enrollment
+                var existing = await _studentSubjectRepository.GetByStudentAndSectionSubjectAsync(request.StudentId, request.SectionSubjectId);
+                if (existing != null)
+                {
+                    return BadRequest(new { message = "Already selected or enrolled in this class." });
+                }
+
+                // Compute current total units (Pending + Enrolled) for this enrollment
+                var allForStudent = await _studentSubjectRepository.GetByStudentIdAsync(request.StudentId);
+                var currentUnits = allForStudent
+                    .Where(ss => ss.EnrollmentId == activeEnrollment.Id && (ss.Status == "Pending" || ss.Status == "Enrolled"))
+                    .Select(ss => ss.SectionSubject?.Subject?.Units ?? 0)
+                    .Sum();
+
+                var candidateUnits = sectionSubject.Subject?.Units ?? 0;
+                if (currentUnits + candidateUnits > 12)
+                {
+                    return BadRequest(new { message = "Adding this class exceeds the 12-unit limit." });
+                }
+
+                // Prevent same subject across different sections in the same enrollment (Pending or Enrolled)
+                var candidateSubjectId = sectionSubject.Subject?.Id;
+                if (candidateSubjectId.HasValue)
+                {
+                    var hasSameSubject = allForStudent.Any(ss =>
+                        ss.EnrollmentId == activeEnrollment.Id &&
+                        (ss.Status == "Pending" || ss.Status == "Enrolled") &&
+                        ss.SectionSubject?.Subject?.Id == candidateSubjectId.Value);
+                    if (hasSameSubject)
+                    {
+                        return BadRequest(new { message = "You already selected or enrolled in this subject." });
+                    }
+                }
+
+                // Create pending record and reserve slot by incrementing capacity
+                var pending = new StudentSubject
+                {
+                    StudentId = request.StudentId,
+                    SectionSubjectId = request.SectionSubjectId,
+                    EnrollmentId = activeEnrollment.Id,
+                    Status = "Pending",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                var created = await _studentSubjectRepository.CreateAsync(pending);
+
+                // Increment capacity to reserve the slot
+                sectionSubject.CurrentEnrollment++;
+                sectionSubject.UpdatedAt = DateTime.UtcNow;
+                await _sectionSubjectRepository.UpdateAsync(sectionSubject);
+
+                var reloaded = await _studentSubjectRepository.GetByIdAsync(created.Id);
+
+                return Ok(new
+                {
+                    reloaded!.Id,
+                    reloaded.StudentId,
+                    reloaded.SectionSubjectId,
+                    reloaded.EnrollmentId,
+                    SubjectName = reloaded.SectionSubject?.Subject?.SubjectName,
+                    Units = reloaded.SectionSubject?.Subject?.Units ?? 0,
+                    SectionName = reloaded.SectionSubject?.Section?.SectionName,
+                    reloaded.Status
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error selecting class", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Get pending selections for a student
+        /// </summary>
+        [HttpGet("pending/student/{studentId}")]
+        public async Task<ActionResult<IEnumerable<object>>> GetPendingForStudent(int studentId)
+        {
+            try
+            {
+                var all = await _studentSubjectRepository.GetByStudentIdAsync(studentId);
+                var pending = all.Where(ss => ss.Status == "Pending");
+                var result = pending.Select(ss => new
+                {
+                    ss.Id,
+                    ss.StudentId,
+                    ss.SectionSubjectId,
+                    ss.EnrollmentId,
+                    SubjectName = ss.SectionSubject?.Subject?.SubjectName,
+                    Units = ss.SectionSubject?.Subject?.Units ?? 0,
+                    SectionName = ss.SectionSubject?.Section?.SectionName,
+                    ss.Status,
+                    ss.CreatedAt
+                });
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error retrieving pending selections", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Remove a pending selection (cart item)
+        /// </summary>
+        [HttpDelete("pending/{id}")]
+        public async Task<ActionResult> DeletePending(int id)
+        {
+            try
+            {
+                var ss = await _studentSubjectRepository.GetByIdAsync(id);
+                if (ss == null)
+                {
+                    return NotFound(new { message = "Pending selection not found." });
+                }
+                if (ss.Status != "Pending")
+                {
+                    return BadRequest(new { message = "Only pending selections can be removed." });
+                }
+                await _studentSubjectRepository.DeleteAsync(id);
+                return Ok(new { message = "Pending selection removed." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error removing pending selection", error = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Get all enrolled classes for a student
         /// </summary>
         [HttpGet("student/{studentId}/enrolled")]
@@ -67,7 +228,9 @@ namespace StudentPeformanceTracker.Controllers
             try
             {
                 var studentSubjects = await _studentSubjectRepository.GetByStudentIdAsync(studentId);
-                var result = studentSubjects.Select(ss => new
+                var result = studentSubjects
+                    .Where(ss => ss.Status == "Enrolled" || ss.Status == "Pending")
+                    .Select(ss => new
                 {
                     ss.Id,
                     ss.StudentId,
@@ -122,13 +285,13 @@ namespace StudentPeformanceTracker.Controllers
                     return BadRequest(new { message = "You are already enrolled in this class." });
                 }
 
-                // Get student's active enrollment
+                // Get student's active or pending enrollment
                 var enrollments = await _enrollmentRepository.GetByStudentIdAsync(request.StudentId);
-                var activeEnrollment = enrollments.FirstOrDefault(e => e.Status == "Active");
-                
+                var activeEnrollment = enrollments.FirstOrDefault(e => e.Status == "Active" || e.Status == "Pending");
+
                 if (activeEnrollment == null)
                 {
-                    return BadRequest(new { message = "No active enrollment found. Please contact the admin." });
+                    return BadRequest(new { message = "No active or pending enrollment found. Please contact the admin." });
                 }
 
                 // Load section details for validation
@@ -382,6 +545,12 @@ namespace StudentPeformanceTracker.Controllers
     {
         public int StudentId { get; set; }
         public string EdpCode { get; set; } = string.Empty;
+    }
+
+    public class SelectStudentSubjectRequest
+    {
+        public int StudentId { get; set; }
+        public int SectionSubjectId { get; set; }
     }
 
     public class AdminAssignRequest

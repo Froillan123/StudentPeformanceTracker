@@ -24,6 +24,6 @@ namespace StudentPeformanceTracker.DTO
         public string SchoolYear { get; set; } = string.Empty;
 
         [StringLength(20)]
-        public string? Status { get; set; } = "Active";
+        public string? Status { get; set; } = "Pending";
     }
 }

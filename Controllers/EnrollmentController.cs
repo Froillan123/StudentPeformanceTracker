@@ -11,11 +11,20 @@ namespace StudentPeformanceTracker.Controllers
     {
         private readonly EnrollmentService _enrollmentService;
         private readonly CourseSubjectService _courseSubjectService;
+        private readonly Repository.Interfaces.IStudentSubjectRepository _studentSubjectRepository;
+        private readonly Repository.Interfaces.ISectionSubjectRepository _sectionSubjectRepository;
+        private readonly Repository.Interfaces.IEnrollmentRepository _enrollmentRepository;
 
-        public EnrollmentController(EnrollmentService enrollmentService, CourseSubjectService courseSubjectService)
+        public EnrollmentController(EnrollmentService enrollmentService, CourseSubjectService courseSubjectService,
+            Repository.Interfaces.IStudentSubjectRepository studentSubjectRepository,
+            Repository.Interfaces.ISectionSubjectRepository sectionSubjectRepository,
+            Repository.Interfaces.IEnrollmentRepository enrollmentRepository)
         {
             _enrollmentService = enrollmentService;
             _courseSubjectService = courseSubjectService;
+            _studentSubjectRepository = studentSubjectRepository;
+            _sectionSubjectRepository = sectionSubjectRepository;
+            _enrollmentRepository = enrollmentRepository;
         }
 
         [HttpGet]
@@ -38,6 +47,91 @@ namespace StudentPeformanceTracker.Controllers
             };
 
             return Ok(paginatedResult);
+        }
+
+        [HttpGet("{enrollmentId}/pending")]
+        public async Task<ActionResult<object>> GetPendingByEnrollment(int enrollmentId)
+        {
+            var items = await _studentSubjectRepository.GetByEnrollmentIdAsync(enrollmentId);
+            var pending = items.Where(ss => ss.Status == "Pending");
+            var list = pending.Select(ss => new
+            {
+                ss.Id,
+                ss.StudentId,
+                ss.SectionSubjectId,
+                SubjectName = ss.SectionSubject?.Subject?.SubjectName,
+                Units = ss.SectionSubject?.Subject?.Units ?? 0,
+                SectionName = ss.SectionSubject?.Section?.SectionName,
+                ss.Status
+            }).ToList();
+            var totalUnits = list.Sum(x => x.Units);
+            return Ok(new { totalUnits, data = list });
+        }
+
+        [HttpPost("{enrollmentId}/approve")]
+        public async Task<ActionResult> ApprovePending(int enrollmentId)
+        {
+            var enrollment = await _enrollmentRepository.GetByIdAsync(enrollmentId);
+            if (enrollment == null) return NotFound(new { message = "Enrollment not found" });
+
+            var items = await _studentSubjectRepository.GetByEnrollmentIdAsync(enrollmentId);
+            var pending = items.Where(ss => ss.Status == "Pending").ToList();
+
+            foreach (var ss in pending)
+            {
+                var sectionSubject = await _sectionSubjectRepository.GetByIdAsync(ss.SectionSubjectId);
+                if (sectionSubject == null) continue;
+                if (sectionSubject.CurrentEnrollment > sectionSubject.MaxStudents)
+                {
+                    return BadRequest(new { message = $"Class {sectionSubject.Subject?.SubjectName} is already full." });
+                }
+                // Promote to Enrolled (capacity was already incremented during pending selection)
+                ss.Status = "Enrolled";
+                ss.UpdatedAt = DateTime.UtcNow;
+                await _studentSubjectRepository.UpdateAsync(ss);
+            }
+
+            if (enrollment.Status == "Pending")
+            {
+                enrollment.Status = "Active";
+                enrollment.UpdatedAt = DateTime.UtcNow;
+                await _enrollmentRepository.UpdateAsync(enrollment);
+            }
+
+            return Ok(new { message = "Enrollment approved.", approved = pending.Count });
+        }
+
+        [HttpPost("{enrollmentId}/reject")]
+        public async Task<ActionResult> RejectPending(int enrollmentId)
+        {
+            var items = await _studentSubjectRepository.GetByEnrollmentIdAsync(enrollmentId);
+            var pending = items.Where(ss => ss.Status == "Pending").ToList();
+            foreach (var ss in pending)
+            {
+                // Decrement capacity to free up the reserved slot
+                var sectionSubject = await _sectionSubjectRepository.GetByIdAsync(ss.SectionSubjectId);
+                if (sectionSubject != null)
+                {
+                    sectionSubject.CurrentEnrollment--;
+                    sectionSubject.UpdatedAt = DateTime.UtcNow;
+                    await _sectionSubjectRepository.UpdateAsync(sectionSubject);
+                }
+                await _studentSubjectRepository.DeleteAsync(ss.Id);
+            }
+            return Ok(new { message = "Pending selections rejected.", removed = pending.Count });
+        }
+
+        public class UpdateEnrollmentStatusRequest { public string Status { get; set; } = "Active"; }
+
+        [HttpPatch("{id}/status")]
+        public async Task<ActionResult> PatchStatus(int id, [FromBody] UpdateEnrollmentStatusRequest request)
+        {
+            var enrollment = await _enrollmentRepository.GetByIdAsync(id);
+            if (enrollment == null) return NotFound(new { message = "Enrollment not found" });
+            enrollment.Status = request.Status;
+            enrollment.UpdatedAt = DateTime.UtcNow;
+            await _enrollmentRepository.UpdateAsync(enrollment);
+            return Ok(new { message = "Status updated", enrollmentId = id, status = enrollment.Status });
         }
 
         [HttpGet("{id}")]

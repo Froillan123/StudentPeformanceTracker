@@ -27,7 +27,7 @@ public class Enrollment
     public DateTime EnrollmentDate { get; set; } = DateTime.UtcNow;
 
     [MaxLength(20)]
-    public string Status { get; set; } = "Active"; // "Active", "Completed", "Dropped"
+    public string Status { get; set; } = "Pending"; // "Pending", "Active", "Completed", "Dropped"
 
     [MaxLength(20)]
     public string? SchoolYear { get; set; } // e.g., "2024-2025"
