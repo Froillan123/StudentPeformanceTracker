@@ -16,4 +16,5 @@ public interface ITeacherRepository
     Task<bool> EmailExistsAsync(string email);
     Task<int> GetCountAsync();
     Task<int> GetCountByDepartmentAsync(int departmentId);
+    Task<(IEnumerable<Teacher> Items, int TotalCount)> GetPaginatedAsync(int page, int pageSize);
 }

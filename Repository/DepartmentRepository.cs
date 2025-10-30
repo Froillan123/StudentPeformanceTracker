@@ -92,4 +92,22 @@ public class DepartmentRepository : IDepartmentRepository
     {
         return await _context.Departments.CountAsync();
     }
+
+    public async Task<(IEnumerable<Department> Items, int TotalCount)> GetPaginatedAsync(int page, int pageSize)
+    {
+        var query = _context.Departments
+            .Include(d => d.TeacherDepartments)
+                .ThenInclude(td => td.Teacher)
+            .AsQueryable();
+        
+        var totalCount = await query.CountAsync();
+        
+        var items = await query
+            .OrderBy(d => d.DepartmentName)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+        
+        return (items, totalCount);
+    }
 }

@@ -253,10 +253,10 @@
 
         async function loadEnrollments() {
             try {
-                const response = await fetch('/api/v1/enrollment');
+                const response = await fetch('/api/v1/enrollment?page=1&pageSize=10');
                 if (response.ok) {
-                    const enrollments = await response.json();
-                    displayEnrollments(enrollments);
+                    const result = await response.json();
+                    displayEnrollments(result.data);
                 } else {
                     showError('Failed to load enrollments');
                 }

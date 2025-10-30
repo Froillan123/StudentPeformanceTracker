@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using StudentPeformanceTracker.Models;
 using StudentPeformanceTracker.Repository.Interfaces;
 using System.Security.Claims;
 
@@ -71,11 +72,11 @@ public class StudentController : ControllerBase
     /// </summary>
     [HttpGet]
     [Authorize(Policy = "AdminOnly")]
-    public async Task<ActionResult<IEnumerable<object>>> GetStudents()
+    public async Task<ActionResult<object>> GetStudents([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         try
         {
-            var students = await _studentRepository.GetAllAsync();
+            var (students, totalCount) = await _studentRepository.GetPaginatedAsync(page, pageSize);
             var result = students.Select(s => new
             {
                 s.Id,
@@ -93,7 +94,19 @@ public class StudentController : ControllerBase
                 Status = s.User?.Status ?? "Unknown"
             });
 
-            return Ok(result);
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            var paginatedResult = new PaginatedResult<object>
+            {
+                Data = result,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages,
+                HasPreviousPage = page > 1,
+                HasNextPage = page < totalPages
+            };
+
+            return Ok(paginatedResult);
         }
         catch (Exception ex)
         {

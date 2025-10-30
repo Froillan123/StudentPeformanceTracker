@@ -17,10 +17,25 @@ namespace StudentPeformanceTracker.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<SectionDto>>> GetAll()
+        public async Task<ActionResult<object>> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             var sections = await _sectionService.GetAllAsync();
-            return Ok(sections);
+            var totalCount = sections.Count();
+            var paginatedSections = sections.Skip((page - 1) * pageSize).Take(pageSize);
+            
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            var paginatedResult = new PaginatedResult<object>
+            {
+                Data = paginatedSections,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages,
+                HasPreviousPage = page > 1,
+                HasNextPage = page < totalPages
+            };
+
+            return Ok(paginatedResult);
         }
 
         [HttpGet("{id}")]

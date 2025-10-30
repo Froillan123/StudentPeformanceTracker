@@ -19,19 +19,24 @@ public class SubjectController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<object>>> GetSubjects([FromQuery] int? courseId = null)
+    public async Task<ActionResult<object>> GetSubjects([FromQuery] int? courseId = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         try
         {
             IEnumerable<Subject> subjects;
+            int totalCount;
             
             if (courseId.HasValue)
             {
                 subjects = await _subjectRepository.GetByCourseIdAsync(courseId.Value);
+                totalCount = subjects.Count();
+                subjects = subjects.Skip((page - 1) * pageSize).Take(pageSize);
             }
             else
             {
-                subjects = await _subjectRepository.GetAllAsync();
+                var (subjectsResult, totalCountResult) = await _subjectRepository.GetPaginatedAsync(page, pageSize);
+                subjects = subjectsResult;
+                totalCount = totalCountResult;
             }
             
             var result = subjects.Select(s => new
@@ -48,7 +53,19 @@ public class SubjectController : ControllerBase
                 s.UpdatedAt
             });
 
-            return Ok(result);
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            var paginatedResult = new PaginatedResult<object>
+            {
+                Data = result,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages,
+                HasPreviousPage = page > 1,
+                HasNextPage = page < totalPages
+            };
+
+            return Ok(paginatedResult);
         }
         catch (Exception ex)
         {

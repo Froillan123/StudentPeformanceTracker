@@ -18,4 +18,5 @@ public interface IStudentRepository
     Task<bool> EmailExistsAsync(string email);
     Task<bool> StudentIdExistsAsync(string studentId);
     Task<int> GetCountAsync();
+    Task<(IEnumerable<Student> Items, int TotalCount)> GetPaginatedAsync(int page, int pageSize);
 }

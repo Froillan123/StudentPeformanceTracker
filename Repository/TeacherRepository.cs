@@ -113,4 +113,24 @@ public class TeacherRepository : ITeacherRepository
     {
         return await _context.Teachers.CountAsync(t => t.TeacherDepartments.Any(td => td.DepartmentId == departmentId));
     }
+
+    public async Task<(IEnumerable<Teacher> Items, int TotalCount)> GetPaginatedAsync(int page, int pageSize)
+    {
+        var query = _context.Teachers
+            .Include(t => t.User)
+            .Include(t => t.TeacherDepartments)
+                .ThenInclude(td => td.Department)
+            .AsQueryable();
+        
+        var totalCount = await query.CountAsync();
+        
+        var items = await query
+            .OrderBy(t => t.LastName)
+            .ThenBy(t => t.FirstName)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+        
+        return (items, totalCount);
+    }
 }

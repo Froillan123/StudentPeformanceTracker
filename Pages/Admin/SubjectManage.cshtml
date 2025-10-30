@@ -92,15 +92,26 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Empty table for demo -->
                             <tr>
                                 <td colspan="7" class="text-center py-4">
-                                    <i class="fas fa-book fa-3x text-muted mb-3"></i>
-                                    <p class="text-muted">No subjects found. Add your first subject using the form above.</p>
+                                    <i class="fas fa-spinner fa-spin fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted">Loading subjects...</p>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
+                </div>
+                
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted">
+                        Showing <span id="showingFrom">0</span> to <span id="showingTo">0</span> of <span id="totalCount">0</span> entries
+                    </div>
+                    <nav>
+                        <ul class="pagination mb-0" id="pagination">
+                            <!-- Pagination buttons will be generated here -->
+                        </ul>
+                    </nav>
                 </div>
             </div>
         </main>
@@ -217,6 +228,13 @@
             });
         });
 
+        // Pagination variables
+        let currentPage = 1;
+        const pageSize = 10;
+        let totalPages = 0;
+        let totalCount = 0;
+        let loadedCourses = [];
+
         // Load admin data, courses, and subjects on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadAdminData();
@@ -251,7 +269,9 @@
             try {
                 const response = await fetch('/api/v1/course');
                 if (response.ok) {
-                    const courses = await response.json();
+                    const result = await response.json();
+                    const courses = Array.isArray(result) ? result : (result.data || []);
+                    loadedCourses = courses;
                     populateCourseDropdown(courses);
                 } else {
                     console.error('Failed to load courses');
@@ -281,12 +301,16 @@
         }
 
         // Load subjects from API
-        async function loadSubjects() {
+        async function loadSubjects(page = 1) {
             try {
-                const response = await fetch('/api/v1/subject');
+                currentPage = page;
+                const response = await fetch(`/api/v1/subject?page=${page}&pageSize=${pageSize}`);
                 if (response.ok) {
-                    const subjects = await response.json();
-                    displaySubjects(subjects);
+                    const result = await response.json();
+                    totalPages = result.totalPages;
+                    totalCount = result.totalCount;
+                    displaySubjects(result.data);
+                    updatePagination();
                 } else {
                     console.error('Failed to load subjects');
                 }
@@ -460,6 +484,10 @@
             // Create edit modal if it doesn't exist
             if (!document.getElementById('editSubjectModal')) {
                 createEditModal();
+                // populate courses into newly created select
+                if (loadedCourses && loadedCourses.length) {
+                    populateCourseDropdown(loadedCourses);
+                }
             }
 
             // Populate form with subject data
@@ -619,6 +647,51 @@
                     showToast('Error deleting subject', 'error');
                 }
             }
+        }
+
+        // Pagination functions
+        function updatePagination() {
+            const showingFrom = totalCount > 0 ? (currentPage - 1) * pageSize + 1 : 0;
+            const showingTo = Math.min(currentPage * pageSize, totalCount);
+            
+            document.getElementById('showingFrom').textContent = showingFrom;
+            document.getElementById('showingTo').textContent = showingTo;
+            document.getElementById('totalCount').textContent = totalCount;
+            
+            renderPaginationButtons();
+        }
+
+        function renderPaginationButtons() {
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+            
+            // Previous button
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" onclick="goToPage(${currentPage - 1}); return false;">Previous</a>`;
+            pagination.appendChild(prevLi);
+            
+            // Page numbers (show max 5 pages)
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const li = document.createElement('li');
+                li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                li.innerHTML = `<a class="page-link" href="#" onclick="goToPage(${i}); return false;">${i}</a>`;
+                pagination.appendChild(li);
+            }
+            
+            // Next button
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" onclick="goToPage(${currentPage + 1}); return false;">Next</a>`;
+            pagination.appendChild(nextLi);
+        }
+
+        function goToPage(page) {
+            if (page < 1 || page > totalPages) return;
+            loadSubjects(page);
         }
 
         // Search functionality

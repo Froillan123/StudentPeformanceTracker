@@ -14,4 +14,5 @@ public interface ICourseRepository
     Task<bool> CourseNameExistsAsync(string courseName);
     Task<IEnumerable<Course>> GetByDepartmentIdAsync(int departmentId);
     Task<int> GetCountAsync();
+    Task<(IEnumerable<Course> Items, int TotalCount)> GetPaginatedAsync(int page, int pageSize);
 }

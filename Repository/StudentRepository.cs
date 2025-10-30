@@ -117,4 +117,22 @@ public class StudentRepository : IStudentRepository
     {
         return await _context.Students.CountAsync();
     }
+
+    public async Task<(IEnumerable<Student> Items, int TotalCount)> GetPaginatedAsync(int page, int pageSize)
+    {
+        var query = _context.Students
+            .Include(s => s.User)
+            .Include(s => s.Course)
+            .AsQueryable();
+        
+        var totalCount = await query.CountAsync();
+        
+        var items = await query
+            .OrderBy(s => s.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+        
+        return (items, totalCount);
+    }
 }

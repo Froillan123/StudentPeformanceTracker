@@ -83,4 +83,21 @@ public class CourseRepository : ICourseRepository
     {
         return await _context.Courses.CountAsync();
     }
+
+    public async Task<(IEnumerable<Course> Items, int TotalCount)> GetPaginatedAsync(int page, int pageSize)
+    {
+        var query = _context.Courses
+            .Include(c => c.Department)
+            .AsQueryable();
+        
+        var totalCount = await query.CountAsync();
+        
+        var items = await query
+            .OrderBy(c => c.CourseName)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+        
+        return (items, totalCount);
+    }
 }

@@ -1,6 +1,8 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using StudentPeformanceTracker.Data;
 using StudentPeformanceTracker.DTO;
 using StudentPeformanceTracker.Models;
 using StudentPeformanceTracker.Repository.Interfaces;
@@ -20,21 +22,23 @@ public class TeacherController : ControllerBase
     private readonly IDepartmentRepository _departmentRepository;
     private readonly IUserRepository _userRepository;
     private readonly AuthService _authService;
+    private readonly AppDbContext _context;
 
-    public TeacherController(ITeacherRepository teacherRepository, IDepartmentRepository departmentRepository, IUserRepository userRepository, AuthService authService)
+    public TeacherController(ITeacherRepository teacherRepository, IDepartmentRepository departmentRepository, IUserRepository userRepository, AuthService authService, AppDbContext context)
     {
         _teacherRepository = teacherRepository;
         _departmentRepository = departmentRepository;
         _userRepository = userRepository;
         _authService = authService;
+        _context = context;
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<object>>> GetTeachers()
+    public async Task<ActionResult<object>> GetTeachers([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         try
         {
-            var teachers = await _teacherRepository.GetAllAsync();
+            var (teachers, totalCount) = await _teacherRepository.GetPaginatedAsync(page, pageSize);
             var result = teachers.Select(t => new
             {
                 t.Id,
@@ -57,7 +61,19 @@ public class TeacherController : ControllerBase
                 t.UpdatedAt
             });
 
-            return Ok(result);
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            var paginatedResult = new PaginatedResult<object>
+            {
+                Data = result,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages,
+                HasPreviousPage = page > 1,
+                HasNextPage = page < totalPages
+            };
+
+            return Ok(paginatedResult);
         }
         catch (Exception ex)
         {
@@ -293,31 +309,51 @@ public class TeacherController : ControllerBase
                 return NotFound(new { message = "Teacher not found" });
             }
 
-            // Delete from Teacher table first
-            var deleted = await _teacherRepository.DeleteAsync(id);
-            if (!deleted)
-            {
-                return StatusCode(500, new { message = "Failed to delete teacher" });
-            }
-
-            // Also delete from Users table
+            // Use a transaction to ensure all deletions succeed or fail together
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
+                // First, delete related records that don't have cascade delete
+                // Delete TeacherSubjects
+                var teacherSubjects = await _context.TeacherSubjects
+                    .Where(ts => ts.TeacherId == id)
+                    .ToListAsync();
+                _context.TeacherSubjects.RemoveRange(teacherSubjects);
+
+                // Delete SectionSubjects where this teacher is assigned
+                var sectionSubjects = await _context.SectionSubjects
+                    .Where(ss => ss.TeacherId == id)
+                    .ToListAsync();
+                _context.SectionSubjects.RemoveRange(sectionSubjects);
+
+                // Save changes for related records
+                await _context.SaveChangesAsync();
+
+                // Delete from Teacher table (this will cascade to TeacherDepartments)
+                var teacherDeleted = await _teacherRepository.DeleteAsync(id);
+                if (!teacherDeleted)
+                {
+                    await transaction.RollbackAsync();
+                    return StatusCode(500, new { message = "Failed to delete teacher" });
+                }
+
+                // Delete from Users table
                 var userDeleted = await _userRepository.DeleteAsync(teacher.UserId);
                 if (!userDeleted)
                 {
-                    // Log warning but don't fail the operation since teacher is already deleted
-                    // This could happen if the user was already deleted or doesn't exist
+                    await transaction.RollbackAsync();
+                    return StatusCode(500, new { message = "Failed to delete associated user account" });
                 }
+
+                // Commit the transaction
+                await transaction.CommitAsync();
+                return Ok(new { message = "Teacher and associated user account deleted successfully" });
             }
             catch (Exception)
             {
-                // Log the error but don't fail the operation since teacher is already deleted
-                // This could happen due to foreign key constraints
-                // You might want to log this for debugging
+                await transaction.RollbackAsync();
+                throw;
             }
-
-            return Ok(new { message = "Teacher and associated user account deleted successfully" });
         }
         catch (Exception ex)
         {

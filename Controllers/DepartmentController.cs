@@ -18,11 +18,11 @@ public class DepartmentController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<object>>> GetDepartments()
+    public async Task<ActionResult<object>> GetDepartments([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         try
         {
-            var departments = await _departmentRepository.GetAllAsync();
+            var (departments, totalCount) = await _departmentRepository.GetPaginatedAsync(page, pageSize);
             var result = departments.Select(d => new
             {
                 d.Id,
@@ -38,7 +38,19 @@ public class DepartmentController : ControllerBase
                 TeacherDepartments = d.TeacherDepartments?.Select(td => new { td.TeacherId, td.DepartmentId }).ToList()
             });
 
-            return Ok(result);
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            var paginatedResult = new PaginatedResult<object>
+            {
+                Data = result,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages,
+                HasPreviousPage = page > 1,
+                HasNextPage = page < totalPages
+            };
+
+            return Ok(paginatedResult);
         }
         catch (Exception ex)
         {

@@ -11,5 +11,6 @@ namespace StudentPeformanceTracker.Repository.Interfaces
         Task<Subject> UpdateAsync(Subject subject);
         Task<bool> DeleteAsync(int id);
         Task<IEnumerable<Subject>> GetByCourseIdAsync(int courseId);
+        Task<(IEnumerable<Subject> Items, int TotalCount)> GetPaginatedAsync(int page, int pageSize);
     }
 }

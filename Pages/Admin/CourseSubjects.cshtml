@@ -1,0 +1,279 @@
+@page "/Admin/CourseSubjects/{id:int}"
+@model StudentPeformanceTracker.Pages.Admin.CourseSubjectsModel
+@{
+    ViewData["Title"] = "Manage Course Subjects";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] - Admin Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .section-title { border-bottom: 2px solid #3498db; padding-bottom: .5rem; color: #2c3e50; font-weight: 600; }
+        .card-custom { background: #fff; border-radius: 8px; padding: 1.25rem; box-shadow: 0 2px 6px rgba(0,0,0,.06); border: none; }
+        .filter-select label { font-weight: 600; color: #2c3e50; margin-right: .5rem; }
+    </style>
+    <script>
+        const courseId = parseInt(window.location.pathname.split('/').pop());
+        let allYearLevels = [];
+        let allSemesters = [];
+        let activeYear = '';
+        let activeSem = '';
+        let currentCourseSubjects = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAdminData();
+            loadCourseHeader();
+            Promise.all([loadYearLevels(), loadSemesters(), loadSubjects()]).then(() => {
+                loadCourseSubjects();
+            });
+        });
+
+        async function loadAdminData(){
+            try{
+                const r = await fetch('/api/v1/admin/profile');
+                if(r.ok){ const d = await r.json(); updateHeader(d); }
+            }catch{}
+        }
+        function updateHeader(d){
+            const fullName = `${d.firstName} ${d.lastName}`;
+            const el = document.getElementById('headerName'); if(el) el.textContent = fullName;
+            const av = document.getElementById('headerAvatar'); if(av) av.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=3498db&color=fff`;
+        }
+
+        async function loadCourseHeader(){
+            const title = document.getElementById('courseTitle');
+            try{
+                const r = await fetch(`/api/v1/course/${courseId}`);
+                if(r.ok){ const c = await r.json(); title.textContent = `Manage Subjects - ${c.courseName}`; }
+            }catch{ title.textContent = 'Manage Subjects'; }
+        }
+
+        async function loadYearLevels(){
+            const r = await fetch('/api/v1/yearlevel');
+            if(r.ok){ allYearLevels = await r.json(); populateYearFilter(); populateYearLevelSelect(); }
+        }
+        function populateYearFilter(){
+            const sel = document.getElementById('filterYear');
+            if(!sel) return;
+            sel.innerHTML = '';
+            const all = document.createElement('option'); all.value = ''; all.textContent = 'All Years'; sel.appendChild(all);
+            allYearLevels.forEach(y=>{ const o=document.createElement('option'); o.value=String(y.id); o.textContent=y.levelName; sel.appendChild(o); });
+            sel.value = activeYear;
+        }
+
+        async function loadSemesters(){
+            const r = await fetch('/api/v1/semester');
+            if(r.ok){
+                const res = await r.json();
+                allSemesters = Array.isArray(res) ? res : (res.data || []);
+                populateSemesterFilter();
+                populateSemesterSelect();
+            }
+        }
+        function populateSemesterFilter(){
+            const sel = document.getElementById('filterSemester');
+            if(!sel) return;
+            sel.innerHTML = '';
+            const all = document.createElement('option'); all.value = ''; all.textContent = 'All Semesters'; sel.appendChild(all);
+            allSemesters.forEach(s=>{ const o=document.createElement('option'); o.value=String(s.id ?? s.Id); o.textContent=(s.semesterName || s.SemesterName); sel.appendChild(o); });
+            sel.value = activeSem;
+        }
+
+        // no-op: pills replaced by selects
+
+        async function loadSubjects(){
+            const r = await fetch('/api/v1/subject?page=1&pageSize=1000');
+            if(r.ok){ const res = await r.json(); populateSubjectDropdown(res.data||[]); }
+        }
+        function populateSubjectDropdown(subjects){
+            const sel = document.getElementById('subjectSelect');
+            while(sel.children.length>1) sel.removeChild(sel.lastChild);
+            subjects.forEach(s=>{ const o=document.createElement('option'); o.value=s.id; o.textContent=`${s.id} - ${s.subjectName}`; sel.appendChild(o); });
+        }
+        function populateYearLevelSelect(){
+            const sel = document.getElementById('yearLevelSelect');
+            if(!sel) return;
+            while(sel.children.length>1) sel.removeChild(sel.lastChild);
+            allYearLevels.forEach(y=>{ const o=document.createElement('option'); o.value=y.id; o.textContent=y.levelName; sel.appendChild(o); });
+        }
+        function populateSemesterSelect(){
+            const sel = document.getElementById('semesterSelect');
+            if(!sel) return;
+            while(sel.children.length>1) sel.removeChild(sel.lastChild);
+            allSemesters.forEach(s=>{ const o=document.createElement('option'); o.value=(s.id ?? s.Id); o.textContent=(s.semesterName || s.SemesterName); sel.appendChild(o); });
+        }
+
+        async function loadCourseSubjects(){
+            const r = await fetch(`/api/v1/coursesubject/course/${courseId}`);
+            if(r.ok){ const list = await r.json(); currentCourseSubjects = Array.isArray(list) ? list : []; renderCourseSubjects(currentCourseSubjects); }
+        }
+        function renderCourseSubjects(list){
+            const tbody = document.getElementById('courseSubjectsTableBody');
+            tbody.innerHTML = '';
+            const filtered = list.filter(s => (activeYear===''|| String(s.yearLevelId)===activeYear) && (activeSem===''|| String(s.semesterId)===activeSem));
+            if(filtered.length===0){ tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4"><i class='fas fa-book fa-2x mb-2 d-block'></i>No subjects.</td></tr>`; return; }
+            filtered.forEach(s=>{
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><span class="badge bg-secondary">${s.subjectId}</span></td>
+                    <td>${s.subjectName}</td>
+                    <td>${s.units || 'N/A'}</td>
+                    <td>${s.yearLevelName}</td>
+                    <td>${s.semesterName}</td>
+                    <td>
+                        <button class="btn btn-outline-danger btn-sm" onclick="removeCourseSubject(${s.id})"><i class="fas fa-trash"></i></button>
+                    </td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function addCourseSubject(){
+            const subjectId = document.getElementById('subjectSelect').value;
+            const yearLevelId = document.getElementById('yearLevelSelect').value;
+            const semesterId = document.getElementById('semesterSelect').value;
+            const isRequired = document.getElementById('isRequired').checked;
+            if(!subjectId || !yearLevelId || !semesterId) return;
+
+            // Prevent duplicates: subject already assigned anywhere in this course
+            const existingForSubject = currentCourseSubjects.find(s => String(s.subjectId) === String(subjectId));
+            if (existingForSubject) {
+                alert(`This subject is already assigned (${existingForSubject.yearLevelName} - ${existingForSubject.semesterName}).`);
+                return;
+            }
+            // Also guard exact same combo (in case backend allows same subject multiple placements)
+            const existsSameCombo = currentCourseSubjects.some(s => String(s.subjectId) === String(subjectId) && String(s.yearLevelId) === String(yearLevelId) && String(s.semesterId) === String(semesterId));
+            if (existsSameCombo) {
+                alert('Subject already assigned for the selected year and semester.');
+                return;
+            }
+            const payload = { courseId, subjectId:parseInt(subjectId), yearLevelId:parseInt(yearLevelId), semesterId:parseInt(semesterId), isRequired };
+            const r = await fetch('/api/v1/coursesubject',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+            if(r.ok){
+                // Close modal to avoid accidental re-submit
+                try { const modal = bootstrap.Modal.getInstance(document.getElementById('addSubjectModal')); if (modal) modal.hide(); } catch {}
+                document.getElementById('addCourseSubjectForm').reset();
+                await loadCourseSubjects();
+                refreshSubjectCount();
+            }
+        }
+        async function removeCourseSubject(id){
+            if(!confirm('Remove subject from course?')) return;
+            const r = await fetch(`/api/v1/coursesubject/${id}`, { method:'DELETE' });
+            if(r.ok){ loadCourseSubjects(); refreshSubjectCount(); }
+        }
+        async function refreshSubjectCount(){ /* no-op on this standalone page */ }
+    </script>
+</head>
+<body>
+    @await Html.PartialAsync("Shared/_AdminNavigation")
+    <div class="main-content" id="mainContent">
+        <header class="dashboard-header">
+            <div class="container">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h1 class="h3 mb-0" id="courseTitle">Manage Subjects</h1>
+                    <div class="d-flex align-items-center">
+                        <a class="btn btn-outline-secondary me-2" href="/Admin/CourseManage"><i class="fas fa-arrow-left me-2"></i>Back to Courses</a>
+                        <div class="dropdown">
+                            <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <img src="https://ui-avatars.com/api/?name=Loading&background=3498db&color=fff" class="user-avatar me-2" id="headerAvatar">
+                                <span id="headerName">Loading...</span>
+                            </button>
+                            <ul class="dropdown-menu"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="container my-4">
+            <div class="row g-4">
+                <div class="col-12">
+                    <div class="card-custom">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="section-title mb-0">Current Subjects</h3>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSubjectModal"><i class="fas fa-plus me-2"></i>Add Subject</button>
+                        </div>
+                        <div class="row g-3 align-items-end filter-select mb-3">
+                            <div class="col-12 col-md-6">
+                                <label for="filterYear" class="form-label">Year</label>
+                                <select id="filterYear" class="form-select" onchange="activeYear=this.value; loadCourseSubjects();"></select>
+                            </div>
+                            <div class="col-12 col-md-6 text-md-end">
+                                <label for="filterSemester" class="form-label">Semester</label>
+                                <select id="filterSemester" class="form-select" onchange="activeSem=this.value; loadCourseSubjects();"></select>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Subject</th>
+                                        <th>Units</th>
+                                        <th>Year</th>
+                                        <th>Semester</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="courseSubjectsTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Add Subject Modal -->
+    <div class="modal fade" id="addSubjectModal" tabindex="-1" aria-labelledby="addSubjectModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-md">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addSubjectModalLabel">Add New Subject</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addCourseSubjectForm">
+                        <div class="mb-3">
+                            <label class="form-label" for="subjectSelect">Select Subject</label>
+                            <select id="subjectSelect" class="form-select" required>
+                                <option value="">Choose a subject...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="yearLevelSelect">Year Level</label>
+                            <select id="yearLevelSelect" class="form-select" required>
+                                <option value="">Select year level...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="semesterSelect">Semester</label>
+                            <select id="semesterSelect" class="form-select" required>
+                                <option value="">Select semester...</option>
+                            </select>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="isRequired" checked>
+                            <label class="form-check-label" for="isRequired">Required Subject</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="addCourseSubject()"><i class="fas fa-plus me-2"></i>Add Subject</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+

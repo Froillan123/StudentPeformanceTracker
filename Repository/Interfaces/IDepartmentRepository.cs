@@ -15,4 +15,5 @@ public interface IDepartmentRepository
     Task<bool> ExistsByNameAsync(string departmentName);
     Task<bool> ExistsByCodeAsync(string departmentCode);
     Task<int> GetCountAsync();
+    Task<(IEnumerable<Department> Items, int TotalCount)> GetPaginatedAsync(int page, int pageSize);
 }

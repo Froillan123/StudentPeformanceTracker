@@ -12,5 +12,6 @@ namespace StudentPeformanceTracker.Repository.Interfaces
         Task<Enrollment> CreateAsync(Enrollment enrollment);
         Task<Enrollment> UpdateAsync(Enrollment enrollment);
         Task<bool> DeleteAsync(int id);
+        Task<(IEnumerable<Enrollment> Items, int TotalCount)> GetPaginatedAsync(int page, int pageSize);
     }
 }

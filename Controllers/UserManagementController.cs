@@ -19,13 +19,22 @@ public class UserManagementController : ControllerBase
         _userManagementService = userManagementService;
     }
 
-    [HttpGet("pending")]
-    public async Task<ActionResult<IEnumerable<object>>> GetPendingUsers()
+    [HttpGet]
+    public async Task<ActionResult<object>> GetUsers(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? status = null,
+        [FromQuery] string? role = null,
+        [FromQuery] string? search = null,
+        [FromQuery] DateTime? createdFrom = null,
+        [FromQuery] DateTime? createdTo = null)
     {
         try
         {
-            var users = await _userManagementService.GetPendingUsersAsync();
-            var result = users.Select(u => new
+            var (items, totalCount) = await _userManagementService.GetUsersFilteredAsync(
+                page, pageSize, status, role, search, createdFrom, createdTo);
+
+            var result = items.Select(u => new
             {
                 u.Id,
                 u.Username,
@@ -38,7 +47,61 @@ public class UserManagementController : ControllerBase
                 Phone = GetUserPhone(u)
             });
 
-            return Ok(result);
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            var paginatedResult = new PaginatedResult<object>
+            {
+                Data = result,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages,
+                HasPreviousPage = page > 1,
+                HasNextPage = page < totalPages
+            };
+
+            return Ok(paginatedResult);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving users", error = ex.Message });
+        }
+    }
+
+    [HttpGet("pending")]
+    public async Task<ActionResult<object>> GetPendingUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        try
+        {
+            var users = await _userManagementService.GetPendingUsersAsync();
+            var totalCount = users.Count();
+            var paginatedUsers = users.Skip((page - 1) * pageSize).Take(pageSize);
+            
+            var result = paginatedUsers.Select(u => new
+            {
+                u.Id,
+                u.Username,
+                u.Role,
+                u.Status,
+                u.CreatedAt,
+                Email = GetUserEmail(u),
+                FirstName = GetUserFirstName(u),
+                LastName = GetUserLastName(u),
+                Phone = GetUserPhone(u)
+            });
+
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            var paginatedResult = new PaginatedResult<object>
+            {
+                Data = result,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages,
+                HasPreviousPage = page > 1,
+                HasNextPage = page < totalPages
+            };
+
+            return Ok(paginatedResult);
         }
         catch (Exception ex)
         {
@@ -47,12 +110,15 @@ public class UserManagementController : ControllerBase
     }
 
     [HttpGet("active")]
-    public async Task<ActionResult<IEnumerable<object>>> GetActiveUsers()
+    public async Task<ActionResult<object>> GetActiveUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         try
         {
             var users = await _userManagementService.GetActiveUsersAsync();
-            var result = users.Select(u => new
+            var totalCount = users.Count();
+            var paginatedUsers = users.Skip((page - 1) * pageSize).Take(pageSize);
+            
+            var result = paginatedUsers.Select(u => new
             {
                 u.Id,
                 u.Username,
@@ -65,7 +131,19 @@ public class UserManagementController : ControllerBase
                 Phone = GetUserPhone(u)
             });
 
-            return Ok(result);
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            var paginatedResult = new PaginatedResult<object>
+            {
+                Data = result,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages,
+                HasPreviousPage = page > 1,
+                HasNextPage = page < totalPages
+            };
+
+            return Ok(paginatedResult);
         }
         catch (Exception ex)
         {

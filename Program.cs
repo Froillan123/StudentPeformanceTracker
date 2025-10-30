@@ -52,7 +52,11 @@ else
 }
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseNpgsql(connectionString, npgsqlOptions =>
+    {
+        npgsqlOptions.CommandTimeout(120);
+        npgsqlOptions.EnableRetryOnFailure(3);
+    }));
 
 // Register repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();

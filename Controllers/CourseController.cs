@@ -21,11 +21,11 @@ public class CourseController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<object>>> GetCourses()
+    public async Task<ActionResult<object>> GetCourses([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         try
         {
-            var courses = await _courseRepository.GetAllAsync();
+            var (courses, totalCount) = await _courseRepository.GetPaginatedAsync(page, pageSize);
             var result = courses.Select(c => new
             {
                 c.Id,
@@ -37,7 +37,19 @@ public class CourseController : ControllerBase
                 c.UpdatedAt
             });
 
-            return Ok(result);
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            var paginatedResult = new PaginatedResult<object>
+            {
+                Data = result,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages,
+                HasPreviousPage = page > 1,
+                HasNextPage = page < totalPages
+            };
+
+            return Ok(paginatedResult);
         }
         catch (Exception ex)
         {

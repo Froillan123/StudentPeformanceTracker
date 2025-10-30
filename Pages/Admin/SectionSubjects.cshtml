@@ -1,0 +1,249 @@
+@page "/Admin/SectionSubjects/{id:int}"
+@model StudentPeformanceTracker.Pages.Admin.SectionSubjectsModel
+@{
+    ViewData["Title"] = "Manage Section Subjects";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] - Admin Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .section-title { border-bottom: 2px solid #3498db; padding-bottom: .5rem; color: #2c3e50; font-weight: 600; }
+        .card-custom { background: #fff; border-radius: 8px; padding: 1.25rem; box-shadow: 0 2px 6px rgba(0,0,0,.06); border: none; }
+    </style>
+    <script>
+        const sectionId = parseInt(window.location.pathname.split('/').pop());
+        let currentSection = null;
+        let currentSectionSubjects = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAdminData();
+            loadSectionHeader();
+            loadTeachers();
+            loadSectionSubjects();
+        });
+
+        async function loadAdminData(){
+            try{ const r = await fetch('/api/v1/admin/profile'); if(r.ok){ const d = await r.json(); updateHeader(d);} }catch{}
+        }
+        function updateHeader(d){
+            const full = `${d.firstName} ${d.lastName}`;
+            const nameEl = document.getElementById('headerName'); if(nameEl) nameEl.textContent = full;
+            const av = document.getElementById('headerAvatar'); if(av) av.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(full)}&background=3498db&color=fff`;
+        }
+
+        async function loadSectionHeader(){
+            try{
+                const r = await fetch(`/api/v1/section/${sectionId}`);
+                if(!r.ok) return;
+                const s = await r.json();
+                currentSection = s;
+                const title = document.getElementById('pageTitle');
+                title.textContent = `Manage Subjects - ${s.sectionName || s.SectionName}`;
+                // after have section, populate subject select from course curriculum
+                await populateAvailableSubjects();
+            }catch(err){ console.error('loadSectionHeader', err); }
+        }
+
+        async function populateAvailableSubjects(){
+            if(!currentSection) return;
+            const courseId = currentSection.courseId || currentSection.CourseId;
+            const yearLevelId = currentSection.yearLevelId || currentSection.YearLevelId;
+            const semesterId = currentSection.semesterId || currentSection.SemesterId;
+
+            // load curriculum for this course+year+semester
+            let courseSubjects = [];
+            try{
+                const r = await fetch(`/api/v1/coursesubject/course/${courseId}/year/${yearLevelId}/semester/${semesterId}`);
+                if(r.ok) courseSubjects = await r.json();
+            }catch(err){ console.error('load course subjects', err); }
+
+            // get assigned for this section
+            let assigned = [];
+            try{
+                const r = await fetch(`/api/v1/section/${sectionId}/subjects`);
+                if(r.ok) assigned = await r.json();
+            }catch{}
+            const assignedIds = new Set(assigned.map(a => a.subjectId || a.SubjectId));
+
+            const select = document.getElementById('subjectSelect');
+            while(select.children.length>1) select.removeChild(select.lastChild);
+            courseSubjects
+                .filter(cs => !assignedIds.has(cs.subjectId))
+                .forEach(cs => { const o=document.createElement('option'); o.value=cs.subjectId; o.textContent=`${cs.subjectName}`; select.appendChild(o); });
+            if(select.children.length===1){ const o=document.createElement('option'); o.disabled=true; o.textContent='No available subjects'; select.appendChild(o); }
+        }
+
+        async function loadTeachers(){
+            try{
+                const r = await fetch('/api/v1/teacher?page=1&pageSize=1000');
+                if(!r.ok) return; const res = await r.json(); const teachers = res.data || [];
+                const sel = document.getElementById('teacherSelect');
+                while(sel.children.length>1) sel.removeChild(sel.lastChild);
+                teachers.forEach(t => { const o=document.createElement('option'); o.value=t.id; o.textContent=`${t.firstName} ${t.lastName}`; sel.appendChild(o); });
+            }catch(err){ console.error('load teachers', err); }
+        }
+
+        async function loadSectionSubjects(){
+            try{
+                const r = await fetch(`/api/v1/section/${sectionId}/subjects`);
+                if(!r.ok) return; const list = await r.json();
+                currentSectionSubjects = Array.isArray(list) ? list : [];
+                renderSectionSubjects(currentSectionSubjects);
+            }catch(err){ console.error('load section subjects', err); }
+        }
+
+        function renderSectionSubjects(list){
+            const tbody = document.getElementById('sectionSubjectsTableBody');
+            tbody.innerHTML = '';
+            if(list.length===0){
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-3">No subjects assigned yet.</td></tr>`;
+            }else{
+                list.forEach(s => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${s.subjectName || 'N/A'}</td>
+                        <td>${s.teacherName || 'Not assigned'}</td>
+                        <td>${s.schedule || 'TBA'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeSectionSubject(${s.id})"><i class="fas fa-trash"></i></button>
+                        </td>`;
+                    tbody.appendChild(tr);
+                });
+            }
+            const badge = document.getElementById('sectionSubjectCount');
+            if (badge) badge.textContent = `Total: ${list.length}`;
+        }
+
+        async function addSectionSubject(){
+            const subjectId = document.getElementById('subjectSelect').value;
+            const teacherId = document.getElementById('teacherSelect').value;
+            const schedule = document.getElementById('schedule').value;
+            if(!subjectId || !teacherId) { alert('Select subject and teacher'); return; }
+
+            // prevent duplicates
+            if(currentSectionSubjects.some(x => String(x.subjectId||x.SubjectId)===String(subjectId))){
+                alert('This subject is already assigned to this section.');
+                return;
+            }
+
+            const payload = { sectionId, subjectId:parseInt(subjectId), teacherId:parseInt(teacherId), schedule };
+            try{
+                const r = await fetch('/api/v1/sectionsubject',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+                if(r.ok){
+                    // reset form and refresh
+                    document.getElementById('addForm').reset();
+                    try { const modal = bootstrap.Modal.getInstance(document.getElementById('addSubjectModal')); if (modal) modal.hide(); } catch {}
+                    await loadSectionSubjects();
+                    await populateAvailableSubjects();
+                }else{
+                    const err = await r.json(); alert(err.message || 'Failed to assign');
+                }
+            }catch(err){ console.error('add section subject', err); }
+        }
+
+        async function removeSectionSubject(id){
+            if(!confirm('Remove this subject from section?')) return;
+            try{
+                const r = await fetch(`/api/v1/sectionsubject/${id}`,{ method:'DELETE' });
+                if(r.ok || r.status===204){ await loadSectionSubjects(); await populateAvailableSubjects(); }
+            }catch(err){ console.error('remove section subject', err); }
+        }
+    </script>
+</head>
+<body>
+    @await Html.PartialAsync("Shared/_AdminNavigation")
+    <div class="main-content" id="mainContent">
+        <header class="dashboard-header">
+            <div class="container">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h1 class="h3 mb-0" id="pageTitle">Manage Subjects</h1>
+                    <div class="d-flex align-items-center">
+                        <a class="btn btn-outline-secondary me-2" href="/Admin/SectionManage"><i class="fas fa-arrow-left me-2"></i>Back to Sections</a>
+                        <div class="dropdown">
+                            <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <img src="https://ui-avatars.com/api/?name=Loading&background=3498db&color=fff" class="user-avatar me-2" id="headerAvatar">
+                                <span id="headerName">Loading...</span>
+                            </button>
+                            <ul class="dropdown-menu"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="container my-4">
+            <div class="row g-4">
+                <div class="col-12">
+                    <div class="card-custom">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3 class="section-title mb-0">Current Subjects</h3>
+                            <div>
+                                <span class="badge bg-primary me-2" id="sectionSubjectCount">Total: 0</span>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSubjectModal"><i class="fas fa-plus me-2"></i>Add Subject</button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Subject</th>
+                                        <th>Teacher</th>
+                                        <th>Schedule</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sectionSubjectsTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Subject Modal -->
+    <div class="modal fade" id="addSubjectModal" tabindex="-1" aria-labelledby="addSubjectModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-md">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addSubjectModalLabel">Add New Subject</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addForm">
+                        <div class="mb-3">
+                            <label class="form-label" for="subjectSelect">Subject *</label>
+                            <select id="subjectSelect" class="form-select" required>
+                                <option value="">Select Subject</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="teacherSelect">Teacher *</label>
+                            <select id="teacherSelect" class="form-select" required>
+                                <option value="">Select Teacher</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="schedule">Schedule</label>
+                            <input type="text" id="schedule" class="form-control" placeholder="e.g., MWF 10:00-11:30">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="addSectionSubject()"><i class="fas fa-plus me-2"></i>Assign Subject</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

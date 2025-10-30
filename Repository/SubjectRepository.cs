@@ -70,5 +70,22 @@ namespace StudentPeformanceTracker.Repository
                 .OrderBy(s => s.SubjectName)
                 .ToListAsync();
         }
+
+        public async Task<(IEnumerable<Subject> Items, int TotalCount)> GetPaginatedAsync(int page, int pageSize)
+        {
+            var query = _context.Subjects
+                .Include(s => s.Course)
+                .AsQueryable();
+            
+            var totalCount = await query.CountAsync();
+            
+            var items = await query
+                .OrderBy(s => s.SubjectName)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+            
+            return (items, totalCount);
+        }
     }
 }

@@ -16,4 +16,13 @@ public interface IUserRepository
     Task<bool> UpdateStatusAsync(int userId, string status);
     Task<IEnumerable<User>> GetByStatusAsync(string status);
     Task<int> GetCountAsync();
+    Task<(IEnumerable<User> Items, int TotalCount)> GetPaginatedAsync(int page, int pageSize, string? status = null);
+    Task<(IEnumerable<User> Items, int TotalCount)> GetFilteredPaginatedAsync(
+        int page,
+        int pageSize,
+        string? status = null,
+        string? role = null,
+        string? search = null,
+        DateTime? createdFrom = null,
+        DateTime? createdTo = null);
 }

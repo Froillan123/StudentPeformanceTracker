@@ -33,7 +33,7 @@
                     <h1 class="h3 mb-0">User Management</h1>
                     <div class="d-flex align-items-center">
                         <div class="search-box me-3">
-                            <input type="text" class="form-control" placeholder="Search users...">
+                            <input type="text" class="form-control" placeholder="Search users..." id="searchText">
                             <i class="fas fa-search"></i>
                         </div>
                         <div class="dropdown">
@@ -116,9 +116,26 @@
                             </tr>
                         </thead>
                         <tbody id="userTableBody">
-                            <!-- Users will be loaded here via JavaScript -->
+                            <tr>
+                                <td colspan="7" class="text-center py-4">
+                                    <i class="fas fa-spinner fa-spin fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted">Loading users...</p>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
+                </div>
+                
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted">
+                        Showing <span id="showingFrom">0</span> to <span id="showingTo">0</span> of <span id="totalCount">0</span> entries
+                    </div>
+                    <nav>
+                        <ul class="pagination mb-0" id="pagination">
+                            <!-- Pagination buttons will be generated here -->
+                        </ul>
+                    </nav>
                 </div>
             </div>
         </main>
@@ -210,12 +227,11 @@
         // Load users from API
         async function loadUsers() {
             try {
-                // Load users from user-management API (includes all roles with proper status)
-                const response = await fetch('/api/v1/user-management/active');
+                const response = await fetch('/api/v1/user-management?page=1&pageSize=10');
 
                 if (response.ok) {
-                    const users = await response.json();
-                    displayUsers(users);
+                    const result = await response.json();
+                    displayUsers(result.data);
                 } else {
                     console.error('Failed to load users');
                 }
@@ -313,23 +329,20 @@
         async function filterUsers() {
             const status = document.getElementById('filterStatus').value;
             const role = document.getElementById('filterRole').value;
-            
+            const search = document.getElementById('searchText').value;
+
+            const params = new URLSearchParams();
+            params.append('page', '1');
+            params.append('pageSize', '10');
+            if (status) params.append('status', status);
+            if (role) params.append('role', role);
+            if (search) params.append('search', search);
+
             try {
-                let url = '/api/v1/user-management/active';
-                if (status === 'Inactive') {
-                    url = '/api/v1/user-management/pending';
-                }
-                
-                const response = await fetch(url);
+                const response = await fetch(`/api/v1/user-management?${params.toString()}`);
                 if (response.ok) {
-                    let users = await response.json();
-                    
-                    // Filter by role if specified
-                    if (role) {
-                        users = users.filter(user => user.role === role);
-                    }
-                    
-                    displayUsers(users);
+                    const result = await response.json();
+                    displayUsers(result.data);
                 } else {
                     console.error('Failed to filter users');
                 }
@@ -342,6 +355,7 @@
         function clearFilter() {
             document.getElementById('filterStatus').value = '';
             document.getElementById('filterRole').value = '';
+            document.getElementById('searchText').value = '';
             loadUsers();
         }
 

@@ -50,12 +50,16 @@ namespace StudentPeformanceTracker.Data
             // User configuration
             modelBuilder.Entity<User>(entity =>
             {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.HasIndex(e => e.Username).IsUnique();
             });
 
             // Student configuration
             modelBuilder.Entity<Student>(entity =>
             {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.HasIndex(e => e.StudentId).IsUnique();
                 entity.HasIndex(e => e.Email).IsUnique();
                 
@@ -73,6 +77,8 @@ namespace StudentPeformanceTracker.Data
             // Teacher configuration
             modelBuilder.Entity<Teacher>(entity =>
             {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.HasIndex(e => e.Email).IsUnique();
                 
                 entity.HasOne(t => t.User)
@@ -84,6 +90,8 @@ namespace StudentPeformanceTracker.Data
             // Admin configuration
             modelBuilder.Entity<Admin>(entity =>
             {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.HasIndex(e => e.Email).IsUnique();
                 
                 entity.HasOne(a => a.User)
@@ -95,12 +103,16 @@ namespace StudentPeformanceTracker.Data
             // Course configuration
             modelBuilder.Entity<Course>(entity =>
             {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.HasIndex(e => e.CourseName).IsUnique();
             });
 
             // Department configuration
             modelBuilder.Entity<Department>(entity =>
             {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.HasIndex(e => e.DepartmentName).IsUnique();
                 entity.HasIndex(e => e.DepartmentCode).IsUnique();
             });
@@ -136,12 +148,16 @@ namespace StudentPeformanceTracker.Data
             // YearLevel configuration
             modelBuilder.Entity<YearLevel>(entity =>
             {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.HasIndex(e => e.LevelNumber).IsUnique();
             });
 
             // Semester configuration
             modelBuilder.Entity<Semester>(entity =>
             {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.HasIndex(e => e.SemesterCode).IsUnique();
                 entity.HasIndex(e => new { e.SemesterCode, e.SchoolYear }).IsUnique();
             });
@@ -149,24 +165,32 @@ namespace StudentPeformanceTracker.Data
             // Subject configuration
             modelBuilder.Entity<Subject>(entity =>
             {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 // No unique indexes needed for Subject
             });
 
             // CourseSubject configuration
             modelBuilder.Entity<CourseSubject>(entity =>
             {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.HasIndex(e => new { e.CourseId, e.SubjectId, e.YearLevelId, e.SemesterId }).IsUnique();
             });
 
             // Section configuration
             modelBuilder.Entity<Section>(entity =>
             {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.HasIndex(e => new { e.SectionName, e.CourseId, e.YearLevelId, e.SemesterId }).IsUnique();
             });
 
             // SectionSubject configuration
             modelBuilder.Entity<SectionSubject>(entity =>
             {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.HasIndex(e => e.EdpCode).IsUnique();
                 entity.HasIndex(e => new { e.SectionId, e.SubjectId }).IsUnique();
             });
@@ -174,19 +198,32 @@ namespace StudentPeformanceTracker.Data
             // TeacherSubject configuration
             modelBuilder.Entity<TeacherSubject>(entity =>
             {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.HasIndex(e => new { e.TeacherId, e.SectionSubjectId }).IsUnique();
             });
 
             // Enrollment configuration
             modelBuilder.Entity<Enrollment>(entity =>
             {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.HasIndex(e => new { e.StudentId, e.CourseId, e.YearLevelId, e.SemesterId }).IsUnique();
             });
 
             // StudentSubject configuration
             modelBuilder.Entity<StudentSubject>(entity =>
             {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.HasIndex(e => new { e.StudentId, e.SectionSubjectId }).IsUnique();
+            });
+
+            // Grade configuration
+            modelBuilder.Entity<Grade>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
             });
 
         }

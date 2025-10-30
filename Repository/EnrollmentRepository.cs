@@ -97,5 +97,25 @@ namespace StudentPeformanceTracker.Repository
             await _context.SaveChangesAsync();
             return true;
         }
+
+        public async Task<(IEnumerable<Enrollment> Items, int TotalCount)> GetPaginatedAsync(int page, int pageSize)
+        {
+            var query = _context.Enrollments
+                .Include(e => e.Student)
+                .Include(e => e.Course)
+                .Include(e => e.YearLevel)
+                .Include(e => e.Semester)
+                .AsQueryable();
+            
+            var totalCount = await query.CountAsync();
+            
+            var items = await query
+                .OrderByDescending(e => e.EnrollmentDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+            
+            return (items, totalCount);
+        }
     }
 }

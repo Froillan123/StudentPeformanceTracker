@@ -119,4 +119,102 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users.CountAsync();
     }
+
+    public async Task<(IEnumerable<User> Items, int TotalCount)> GetPaginatedAsync(int page, int pageSize, string? status = null)
+    {
+        var query = _context.Users
+            .Include(u => u.Student)
+                .ThenInclude(s => s!.Course)
+            .Include(u => u.Teacher)
+            .Include(u => u.Admin)
+            .AsQueryable();
+        
+        if (!string.IsNullOrEmpty(status))
+        {
+            query = query.Where(u => u.Status == status);
+        }
+        
+        var totalCount = await query.CountAsync();
+        
+        var items = await query
+            .OrderBy(u => u.Username)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+        
+        return (items, totalCount);
+    }
+
+    public async Task<(IEnumerable<User> Items, int TotalCount)> GetFilteredPaginatedAsync(
+        int page,
+        int pageSize,
+        string? status = null,
+        string? role = null,
+        string? search = null,
+        DateTime? createdFrom = null,
+        DateTime? createdTo = null)
+    {
+        var query = _context.Users
+            .Include(u => u.Student)
+                .ThenInclude(s => s!.Course)
+            .Include(u => u.Teacher)
+            .Include(u => u.Admin)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(u => u.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            query = query.Where(u => u.Role == role);
+        }
+
+        if (createdFrom.HasValue)
+        {
+            query = query.Where(u => u.CreatedAt >= createdFrom.Value);
+        }
+
+        if (createdTo.HasValue)
+        {
+            query = query.Where(u => u.CreatedAt <= createdTo.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var lowered = search.ToLower();
+            query = query.Where(u =>
+                u.Username.ToLower().Contains(lowered) ||
+                // search by role-specific email and names
+                (u.Student != null && (
+                    (u.Student.Email != null && u.Student.Email.ToLower().Contains(lowered)) ||
+                    (u.Student.FirstName != null && u.Student.FirstName.ToLower().Contains(lowered)) ||
+                    (u.Student.LastName != null && u.Student.LastName.ToLower().Contains(lowered)) ||
+                    (u.Student.StudentId != null && u.Student.StudentId.ToLower().Contains(lowered))
+                )) ||
+                (u.Teacher != null && (
+                    (u.Teacher.Email != null && u.Teacher.Email.ToLower().Contains(lowered)) ||
+                    (u.Teacher.FirstName != null && u.Teacher.FirstName.ToLower().Contains(lowered)) ||
+                    (u.Teacher.LastName != null && u.Teacher.LastName.ToLower().Contains(lowered))
+                )) ||
+                (u.Admin != null && (
+                    (u.Admin.Email != null && u.Admin.Email.ToLower().Contains(lowered)) ||
+                    (u.Admin.FirstName != null && u.Admin.FirstName.ToLower().Contains(lowered)) ||
+                    (u.Admin.LastName != null && u.Admin.LastName.ToLower().Contains(lowered))
+                ))
+            );
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderByDescending(u => u.CreatedAt)
+            .ThenBy(u => u.Username)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
 }

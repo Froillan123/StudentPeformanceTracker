@@ -36,4 +36,16 @@ public class UserManagementService
     {
         return await _userRepository.GetByIdAsync(userId);
     }
+
+    public async Task<(IEnumerable<User> Items, int TotalCount)> GetUsersFilteredAsync(
+        int page,
+        int pageSize,
+        string? status = null,
+        string? role = null,
+        string? search = null,
+        DateTime? createdFrom = null,
+        DateTime? createdTo = null)
+    {
+        return await _userRepository.GetFilteredPaginatedAsync(page, pageSize, status, role, search, createdFrom, createdTo);
+    }
 }
