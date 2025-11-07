@@ -234,7 +234,7 @@
             <div class="container">
                 <div class="d-flex justify-content-between align-items-center">
                     <h1 class="h3 mb-0">Department Management</h1>
-                    <div class="d-flex align-items-center">
+                    <div class="d-flex align-items-center gap-3">
                         <div class="search-box me-3">
                             <input type="text" class="form-control" placeholder="Search departments..." id="searchInput">
                             <i class="fas fa-search"></i>
@@ -242,6 +242,18 @@
                         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDepartmentModal">
                             <i class="fas fa-plus me-2"></i>Add Department
                         </button>
+                        <div class="dropdown">
+                            <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <img src="https://ui-avatars.com/api/?name=Loading&background=3498db&color=fff" class="user-avatar me-2" id="headerAvatar">
+                                <span id="headerName">Loading...</span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="/Admin/Profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="handleLogout()"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -442,8 +454,30 @@
         let totalPages = 0;
         let totalCount = 0;
 
-        // Load departments on page load
+        // Load admin data from API
+        async function loadAdminData() {
+            try {
+                const response = await fetch('/api/v1/admin/profile');
+                if (response.ok) {
+                    const adminData = await response.json();
+                    updateHeader(adminData);
+                } else {
+                    console.error('Failed to load admin data');
+                }
+            } catch (error) {
+                console.error('Error loading admin data:', error);
+            }
+        }
+
+        // Update header with real admin data
+        function updateHeader(data) {
+            const fullName = `${data.firstName} ${data.lastName}`;
+            document.getElementById('headerName').textContent = fullName;
+            document.getElementById('headerAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=3498db&color=fff`;
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            loadAdminData();
             loadDepartments();
         });
 

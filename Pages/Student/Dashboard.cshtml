@@ -398,11 +398,20 @@
         // Load dashboard data
         async function loadDashboardData(studentId) {
             try {
-                // Update statistics
-                updateStatistics();
+                // Load all data in parallel
+                const [classesResponse, gradesResponse] = await Promise.all([
+                    fetch(`/api/v1/studentsubject/student/${studentId}/enrolled`, { credentials: 'include' }),
+                    fetch(`/api/v1/grade/student/${studentId}`, { credentials: 'include' })
+                ]);
+
+                const classes = classesResponse.ok ? (await classesResponse.json()) || [] : [];
+                const grades = gradesResponse.ok ? (await gradesResponse.json()) || [] : [];
+
+                // Update statistics with real data
+                updateStatistics(classes, grades);
                 
-                // Load recent activity
-                loadRecentActivity();
+                // Load recent activity from grades
+                loadRecentActivity(grades);
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
                 displayErrorState();
@@ -410,52 +419,94 @@
         }
 
         // Update statistics with real data
-        function updateStatistics() {
-            // For now, show placeholder values
-            document.getElementById('activeClasses').textContent = '5';
-            document.getElementById('averageGrade').textContent = '87.5';
-            document.getElementById('announcements').textContent = '3';
-            document.getElementById('upcomingExams').textContent = '2';
+        function updateStatistics(classes, grades) {
+            // Active Classes - count enrolled/pending classes
+            const activeClasses = classes.filter(c => c.status === 'Enrolled' || c.status === 'Pending').length;
+            document.getElementById('activeClasses').textContent = activeClasses;
+
+            // Average Grade - calculate from all grades
+            let averageGrade = 0;
+            if (grades && grades.length > 0) {
+                const validGrades = grades
+                    .map(g => parseFloat(g.gradePoint || g.GradePoint) || 0)
+                    .filter(g => g > 0 && g <= 5.0);
+                
+                if (validGrades.length > 0) {
+                    const sum = validGrades.reduce((a, b) => a + b, 0);
+                    const avg = sum / validGrades.length;
+                    // Convert to percentage (5.0 = 0%, 1.0 = 100%)
+                    averageGrade = ((5.0 - avg) / 4.0) * 100;
+                }
+            }
+            document.getElementById('averageGrade').textContent = averageGrade > 0 ? averageGrade.toFixed(1) : '0.0';
+
+            // Announcements - not available in API, set to 0
+            document.getElementById('announcements').textContent = '0';
+
+            // Upcoming Exams - not available in API, set to 0
+            document.getElementById('upcomingExams').textContent = '0';
         }
 
-        // Load recent activity
-        function loadRecentActivity() {
+        // Load recent activity from grades
+        function loadRecentActivity(grades) {
             const tbody = document.getElementById('recentActivityBody');
             if (!tbody) return;
 
-            const placeholderActivities = [
-                {
-                    subject: 'Data Structures',
-                    activity: 'Assignment #3 Submitted',
-                    date: '2024-01-15',
-                    status: 'Completed'
-                },
-                {
-                    subject: 'Database Systems',
-                    activity: 'Quiz #2',
-                    date: '2024-01-14',
-                    status: 'Completed'
-                },
-                {
-                    subject: 'Web Development',
-                    activity: 'Project Proposal Due',
-                    date: '2024-01-20',
-                    status: 'Pending'
-                }
-            ];
+            if (!grades || grades.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center py-4">
+                            <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-0">No recent activity</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // Sort grades by date (most recent first) and take top 10
+            const sortedGrades = grades
+                .map(g => ({
+                    subject: g.subjectName || g.SubjectName || 'Unknown',
+                    activity: `${g.assessmentType || 'Grade'}: ${g.assessmentName || 'N/A'}`,
+                    date: g.dateGiven || g.DateGiven || g.createdAt || g.CreatedAt,
+                    status: 'Completed',
+                    gradePoint: parseFloat(g.gradePoint || g.GradePoint) || 0
+                }))
+                .sort((a, b) => {
+                    const dateA = new Date(a.date);
+                    const dateB = new Date(b.date);
+                    return dateB - dateA;
+                })
+                .slice(0, 10);
 
             tbody.innerHTML = '';
 
-            placeholderActivities.forEach(activity => {
+            if (sortedGrades.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center py-4">
+                            <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-0">No recent activity</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            sortedGrades.forEach(activity => {
                 const row = document.createElement('tr');
-                const statusBadge = activity.status === 'Completed' ? 
-                    '<span class="badge bg-success">Completed</span>' : 
-                    '<span class="badge bg-warning">Pending</span>';
+                const statusBadge = '<span class="badge bg-success">Completed</span>';
+                const formattedDate = new Date(activity.date).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
                 
                 row.innerHTML = `
                     <td>${activity.subject}</td>
-                    <td>${activity.activity}</td>
-                    <td>${activity.date}</td>
+                    <td>${activity.activity} ${activity.gradePoint > 0 ? `(${activity.gradePoint.toFixed(2)})` : ''}</td>
+                    <td>${formattedDate}</td>
                     <td>${statusBadge}</td>
                 `;
                 

@@ -178,6 +178,26 @@
             border-radius: 50%;
             object-fit: cover;
         }
+
+        .grade-table {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .grade-table th {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem;
+        }
+
+        .table th {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+        }
     </style>
 </head>
 <body>
@@ -190,7 +210,7 @@
         <header class="dashboard-header">
             <div class="container">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h1 class="h3 mb-0">My Classes</h1>
+                    <h1 class="h3 mb-0" id="pageTitle">My Classes</h1>
                     <div class="d-flex align-items-center">
                         <div class="dropdown">
                             <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -211,9 +231,15 @@
 
         <!-- Page Content -->
         <main class="container my-4">
-            <!-- Classes List -->
-            <div class="card-custom">
-                <h3 class="section-title">My Classes</h3>
+            <!-- Classes List View -->
+            <div id="classesListView" class="card-custom">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="section-title mb-0">My Classes</h3>
+                </div>
+                <p class="text-muted mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    View all classes assigned to you. Click "Manage Grades" to view and grade students in each class.
+                </p>
                 <div class="row" id="classesContainer">
                     <div class="col-12 text-center py-5">
                         <i class="fas fa-spinner fa-spin fa-3x text-muted mb-3"></i>
@@ -221,7 +247,293 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Grade Management View -->
+            <div id="gradesManagementView" class="card-custom" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="section-title mb-0">Manage Grades - <span id="gradeViewClassInfo"></span></h3>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-danger btn-sm" id="exportClassPdfBtn" onclick="exportClassGradesToPdf()">
+                            <i class="fas fa-file-pdf me-2"></i>Export to PDF
+                        </button>
+                        <button class="btn btn-success btn-sm" id="exportClassExcelBtn" onclick="exportClassGradesToExcel()">
+                            <i class="fas fa-file-excel me-2"></i>Export to Excel
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="showClassesList()">
+                            <i class="fas fa-arrow-left me-2"></i>Back to My Classes
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Grade Statistics -->
+                <div class="row mb-4" id="gradeStats">
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-primary" id="totalStudents">-</h5>
+                                <p class="card-text">Total Students</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-success" id="averageGrade">-</h5>
+                                <p class="card-text">Average Grade</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-warning" id="pendingGrades">-</h5>
+                                <p class="card-text">Pending Grades</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-info" id="completionRate">-</h5>
+                                <p class="card-text">Completion Rate</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Students Table -->
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Student ID</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody">
+                            <tr>
+                                <td colspan="3" class="text-center py-4">
+                                    <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+                                    <p class="text-muted mt-2">Loading students...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </main>
+    </div>
+
+    <!-- Add Grade Modal -->
+    <div class="modal fade" id="addGradeModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Add Grade</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addGradeForm">
+                        <input type="hidden" id="addGradeStudentSubjectId">
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Student:</strong> <span id="addGradeStudentName"></span>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="assessmentType" class="form-label">
+                                    <i class="fas fa-tag me-2"></i>Grade Type <span class="text-danger">*</span>
+                                    <span id="existingGradesIndicator" class="ms-2"></span>
+                                </label>
+                                <select class="form-select form-select-lg" id="assessmentType" required>
+                                    <option value="">-- Select grade type --</option>
+                                    <option value="Midterm" id="optionMidterm">Midterm</option>
+                                    <option value="Final Grade" id="optionFinalGrade">Final Grade</option>
+                                </select>
+                                <small class="text-muted" id="gradeTypeHelp">Choose whether this is a Midterm or Final Grade</small>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="gradePoint" class="form-label">
+                                    <i class="fas fa-graduation-cap me-2"></i>Grade Point <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group input-group-lg">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="decrementGrade()">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <input type="number" class="form-control form-control-lg text-center" id="gradePoint" 
+                                           placeholder="e.g., 1.5" min="1.0" max="5.0" step="0.1" required 
+                                           oninput="updateRemarksPreview()">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="incrementGrade()">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">Enter a grade between 1.0 (Excellent) and 5.0 (Failed)</small>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-light border mb-3">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <label class="form-label mb-0"><strong>Status:</strong></label>
+                                    <div class="h5 mb-0" id="gradeStatusDisplay">-</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label mb-0"><strong>Auto-Remarks:</strong></label>
+                                    <div class="h5 mb-0" id="remarksPreview">-</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-secondary">
+                            <small>
+                                <strong>Grade Scale:</strong><br>
+                                1.0-1.5 = Excellent | 1.6-2.0 = Very Good | 2.1-2.5 = Good | 2.6-3.0 = Pass | 3.1-5.0 = Failed
+                            </small>
+                        </div>
+                        
+                        <input type="hidden" id="assessmentName" value="">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitGrade()">
+                        <i class="fas fa-save me-2"></i>Save Grade
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Student Grades Modal -->
+    <div class="modal fade" id="viewGradesModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-chart-line me-2"></i>Student Grades</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h6 id="viewGradesStudentName" class="text-muted mb-3"></h6>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Midterm Grade</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div id="midtermGradeCard">
+                                        <p class="text-muted mb-0">No midterm grade yet</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>Final Grade</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div id="finalGradeCard">
+                                        <p class="text-muted mb-0">No final grade yet</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <strong>Overall Average:</strong> <span id="computedFinalGrade" class="h5">-</span>
+                        <small class="d-block text-muted mt-1">(Midterm 40% + Final 60%)</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Grade Modal -->
+    <div class="modal fade" id="editGradeModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Edit Grade</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editGradeForm">
+                        <input type="hidden" id="editGradeId">
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="editAssessmentType" class="form-label">
+                                    <i class="fas fa-tag me-2"></i>Grade Type <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select form-select-lg" id="editAssessmentType" required>
+                                    <option value="">-- Select grade type --</option>
+                                    <option value="Midterm">Midterm</option>
+                                    <option value="Final Grade">Final Grade</option>
+                                </select>
+                                <small class="text-muted">Choose whether this is a Midterm or Final Grade</small>
+                            </div>
+                        </div>
+                        <input type="hidden" id="editAssessmentName" value="">
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="editGradePoint" class="form-label">
+                                    <i class="fas fa-graduation-cap me-2"></i>Grade Point <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group input-group-lg">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="decrementEditGrade()">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <input type="number" class="form-control form-control-lg text-center" id="editGradePoint" 
+                                           placeholder="e.g., 1.5" min="1.0" max="5.0" step="0.1" required 
+                                           oninput="updateEditRemarksPreview()">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="incrementEditGrade()">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">Enter a grade between 1.0 (Excellent) and 5.0 (Failed)</small>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-light border mb-3">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <label class="form-label mb-0"><strong>Status:</strong></label>
+                                    <div class="h5 mb-0" id="editGradeStatusDisplay">-</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label mb-0"><strong>Auto-Remarks:</strong></label>
+                                    <div class="h5 mb-0" id="editRemarksPreview">-</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-secondary">
+                            <small>
+                                <strong>Grade Scale:</strong><br>
+                                1.0-1.5 = Excellent | 1.6-2.0 = Very Good | 2.1-2.5 = Good | 2.6-3.0 = Pass | 3.1-5.0 = Failed
+                            </small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="updateGrade()">
+                        <i class="fas fa-save me-2"></i>Update Grade
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Bootstrap JS Bundle with Popper -->
@@ -280,17 +592,26 @@
         // Load teacher's assigned classes
         async function loadMyClasses(teacherId) {
             try {
-                const response = await fetch(`/api/v1/sectionsubject/teacher/${teacherId}`);
+                const response = await fetch(`/api/v1/sectionsubject/teacher/${teacherId}`, {
+                    credentials: 'include'
+                });
+                
                 if (response.ok) {
                     const classes = await response.json();
-                    displayClasses(classes);
+                    console.log('Loaded classes:', classes);
+                    if (classes && classes.length > 0) {
+                        displayClasses(classes);
+                    } else {
+                        displayEmptyState();
+                    }
                 } else {
-                    console.error('Failed to load classes');
-                    displayEmptyState();
+                    const errorText = await response.text();
+                    console.error('Failed to load classes:', response.status, errorText);
+                    displayErrorState('Failed to load classes. Please try again.');
                 }
             } catch (error) {
                 console.error('Error loading classes:', error);
-                displayEmptyState();
+                displayErrorState('Error connecting to server. Please check your connection.');
             }
         }
 
@@ -322,9 +643,9 @@
                             </p>
                             <span class="badge bg-success mb-2">Active</span>
                             <div class="mt-3">
-                                <a href="/Teacher/Grades?sectionSubjectId=${cls.id}" class="btn btn-sm btn-primary w-100">
+                                <button class="btn btn-sm btn-primary w-100" onclick="showManageGrades(${cls.id}, '${cls.subjectName || 'Unknown Subject'}', '${cls.sectionName || 'N/A'}')">
                                     <i class="fas fa-chart-line me-2"></i>Manage Grades
-                                </a>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -348,6 +669,23 @@
             `;
         }
 
+        // Display error state
+        function displayErrorState(message) {
+            const container = document.getElementById('classesContainer');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-4x text-danger mb-3"></i>
+                    <h4 class="text-danger">Error Loading Classes</h4>
+                    <p class="text-muted">${message || 'An error occurred while loading your classes.'}</p>
+                    <button class="btn btn-primary mt-3" onclick="loadTeacherData()">
+                        <i class="fas fa-refresh me-2"></i>Retry
+                    </button>
+                </div>
+            `;
+        }
+
         // Set active menu item
         document.querySelectorAll('.sidebar-menu a').forEach(item => {
             if (item.getAttribute('href') === window.location.pathname) {
@@ -361,6 +699,659 @@
                 this.classList.add('active');
             });
         });
+
+        // Grade Management
+        let addGradeModal, viewGradesModal, editGradeModal;
+        let currentSectionSubjectId = null;
+        let currentStudents = [];
+
+        // Initialize modals
+        document.addEventListener('DOMContentLoaded', function() {
+            addGradeModal = new bootstrap.Modal(document.getElementById('addGradeModal'));
+            viewGradesModal = new bootstrap.Modal(document.getElementById('viewGradesModal'));
+            editGradeModal = new bootstrap.Modal(document.getElementById('editGradeModal'));
+
+            // Auto-calculate percentage
+            document.getElementById('score')?.addEventListener('input', calculatePercentage);
+            document.getElementById('maxScore')?.addEventListener('input', calculatePercentage);
+            document.getElementById('editScore')?.addEventListener('input', calculateEditPercentage);
+            document.getElementById('editMaxScore')?.addEventListener('input', calculateEditPercentage);
+
+            // Set default date
+            const dateInput = document.getElementById('dateGiven');
+            if (dateInput) {
+                dateInput.valueAsDate = new Date();
+            }
+        });
+
+        // Show classes list view
+        function showClassesList() {
+            document.getElementById('classesListView').style.display = 'block';
+            document.getElementById('gradesManagementView').style.display = 'none';
+            document.getElementById('pageTitle').textContent = 'My Classes';
+        }
+
+        // Show manage grades view
+        async function showManageGrades(sectionSubjectId, subjectName, sectionName) {
+            currentSectionSubjectId = sectionSubjectId;
+            const classInfo = `${subjectName} (${sectionName})`;
+            document.getElementById('gradeViewClassInfo').textContent = classInfo;
+            document.getElementById('pageTitle').textContent = `Manage Grades - ${classInfo}`;
+            
+            // Hide classes list, show grades management
+            document.getElementById('classesListView').style.display = 'none';
+            document.getElementById('gradesManagementView').style.display = 'block';
+            
+            // Reset stats
+            document.getElementById('totalStudents').textContent = '-';
+            document.getElementById('averageGrade').textContent = '-';
+            document.getElementById('pendingGrades').textContent = '-';
+            document.getElementById('completionRate').textContent = '-';
+
+            // Load students
+            await loadStudentsForClass(sectionSubjectId);
+        }
+        
+        // Export class grades to PDF
+        function exportClassGradesToPdf() {
+            if (!currentSectionSubjectId) {
+                alert('No class selected');
+                return;
+            }
+            window.location.href = `/api/v1/report/teacher/class/${currentSectionSubjectId}/pdf`;
+        }
+
+        // Export class grades to Excel
+        function exportClassGradesToExcel() {
+            if (!currentSectionSubjectId) {
+                alert('No class selected');
+                return;
+            }
+            window.location.href = `/api/v1/report/teacher/class/${currentSectionSubjectId}/excel`;
+        }
+
+        // Convert percentage to 1.0-5.0 grade scale
+        function getGradeRemark(gradePoint) {
+            if (gradePoint >= 1.0 && gradePoint <= 1.5) return "Excellent";
+            if (gradePoint > 1.5 && gradePoint <= 2.0) return "Very Good";
+            if (gradePoint > 2.0 && gradePoint <= 2.5) return "Good";
+            if (gradePoint > 2.5 && gradePoint <= 3.0) return "Pass";
+            if (gradePoint > 3.0 && gradePoint <= 5.0) return "Failed";
+            return "Invalid Grade";
+        }
+
+        function updateRemarksPreview() {
+            const gradePoint = parseFloat(document.getElementById('gradePoint').value);
+            const statusDisplay = document.getElementById('gradeStatusDisplay');
+            const remarksDisplay = document.getElementById('remarksPreview');
+            
+            if (!isNaN(gradePoint) && gradePoint >= 1.0 && gradePoint <= 5.0) {
+                const remark = getGradeRemark(gradePoint);
+                const statusBadge = getGradeStatusBadge(gradePoint.toFixed(2));
+                
+                statusDisplay.innerHTML = statusBadge;
+                remarksDisplay.innerHTML = `<span class="text-primary">${remark}</span>`;
+            } else {
+                statusDisplay.textContent = '-';
+                remarksDisplay.textContent = '-';
+            }
+        }
+
+        function updateEditRemarksPreview() {
+            const gradePoint = parseFloat(document.getElementById('editGradePoint').value);
+            const statusDisplay = document.getElementById('editGradeStatusDisplay');
+            const remarksDisplay = document.getElementById('editRemarksPreview');
+            
+            if (!isNaN(gradePoint) && gradePoint >= 1.0 && gradePoint <= 5.0) {
+                const remark = getGradeRemark(gradePoint);
+                const statusBadge = getGradeStatusBadge(gradePoint.toFixed(2));
+                
+                statusDisplay.innerHTML = statusBadge;
+                remarksDisplay.innerHTML = `<span class="text-primary">${remark}</span>`;
+            } else {
+                statusDisplay.textContent = '-';
+                remarksDisplay.textContent = '-';
+            }
+        }
+
+        function incrementGrade() {
+            const input = document.getElementById('gradePoint');
+            const currentValue = parseFloat(input.value) || 1.0;
+            const newValue = Math.min(5.0, (currentValue + 0.1).toFixed(1));
+            input.value = newValue;
+            updateRemarksPreview();
+        }
+
+        function decrementGrade() {
+            const input = document.getElementById('gradePoint');
+            const currentValue = parseFloat(input.value) || 1.0;
+            const newValue = Math.max(1.0, (currentValue - 0.1).toFixed(1));
+            input.value = newValue;
+            updateRemarksPreview();
+        }
+
+        function incrementEditGrade() {
+            const input = document.getElementById('editGradePoint');
+            const currentValue = parseFloat(input.value) || 1.0;
+            const newValue = Math.min(5.0, (currentValue + 0.1).toFixed(1));
+            input.value = newValue;
+            updateEditRemarksPreview();
+        }
+
+        function decrementEditGrade() {
+            const input = document.getElementById('editGradePoint');
+            const currentValue = parseFloat(input.value) || 1.0;
+            const newValue = Math.max(1.0, (currentValue - 0.1).toFixed(1));
+            input.value = newValue;
+            updateEditRemarksPreview();
+        }
+
+
+        // Load students for a class
+        async function loadStudentsForClass(sectionSubjectId) {
+            const tbody = document.getElementById('studentsTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="3" class="text-center py-4">
+                        <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+                        <p class="text-muted mt-2">Loading students...</p>
+                    </td>
+                </tr>
+            `;
+
+            try {
+                const response = await fetch(`/api/v1/studentsubject/sectionsubject/${sectionSubjectId}`, {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    currentStudents = await response.json();
+                    displayStudents(currentStudents);
+                    calculateStatistics(currentStudents);
+                } else {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="3" class="text-center py-4 text-danger">
+                                <p>Failed to load students</p>
+                            </td>
+                        </tr>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading students:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="text-center py-4 text-danger">
+                            <p>Error loading students</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Display students
+        function displayStudents(students) {
+            const tbody = document.getElementById('studentsTableBody');
+            
+            if (students.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="text-center py-4">
+                            <i class="fas fa-user-graduate fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No students enrolled in this class</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = students.map(student => {
+                const fullName = `${student.firstName || ''} ${student.lastName || ''}`.trim();
+                const studentId = student.studentId || 'N/A';
+                const escapedName = fullName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const escapedStudentId = studentId.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                
+                return `
+                <tr>
+                    <td>${fullName}</td>
+                    <td>${studentId}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="addGrade(${student.id}, '${escapedName}', '${escapedStudentId}')">
+                            <i class="fas fa-plus"></i> Add Grade
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="viewStudentGrades(${student.id}, '${escapedName}', '${escapedStudentId}')">
+                            <i class="fas fa-eye"></i> View Grades
+                        </button>
+                    </td>
+                </tr>
+            `;
+            }).join('');
+        }
+
+        // Calculate statistics
+        async function calculateStatistics(students) {
+            document.getElementById('totalStudents').textContent = students.length;
+            
+            // Calculate average grade and pending grades
+            let totalGradePoints = 0;
+            let studentsWithGrades = 0;
+            
+            for (const student of students) {
+                try {
+                    const response = await fetch(`/api/v1/grade/studentsubject/${student.id}`, {
+                        credentials: 'include'
+                    });
+                    if (response.ok) {
+                        const grades = await response.json();
+                        if (grades.length > 0) {
+                            // Calculate overall average for this student (Midterm 40% + Final 60%)
+                            const midterm = grades.find(g => g.assessmentType === 'Midterm');
+                            const final = grades.find(g => g.assessmentType === 'Final Grade');
+                            
+                            let studentAvgGradePoint = 0;
+                            if (midterm && final && midterm.gradePoint && final.gradePoint) {
+                                studentAvgGradePoint = (midterm.gradePoint * 0.4) + (final.gradePoint * 0.6);
+                            } else if (midterm && midterm.gradePoint) {
+                                studentAvgGradePoint = midterm.gradePoint;
+                            } else if (final && final.gradePoint) {
+                                studentAvgGradePoint = final.gradePoint;
+                            }
+                            
+                            if (studentAvgGradePoint > 0) {
+                                totalGradePoints += studentAvgGradePoint;
+                                studentsWithGrades++;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading grades for student:', error);
+                }
+            }
+
+            if (studentsWithGrades > 0) {
+                const avgGradePoint = (totalGradePoints / studentsWithGrades).toFixed(2);
+                document.getElementById('averageGrade').textContent = avgGradePoint;
+            } else {
+                document.getElementById('averageGrade').textContent = '-';
+            }
+
+            const pending = students.length - studentsWithGrades;
+            document.getElementById('pendingGrades').textContent = pending;
+            
+            const completionRate = students.length > 0 ? ((studentsWithGrades / students.length) * 100).toFixed(0) : 0;
+            document.getElementById('completionRate').textContent = completionRate + '%';
+        }
+
+        // Add grade
+        async function addGrade(studentSubjectId, studentName, studentId) {
+            document.getElementById('addGradeStudentSubjectId').value = studentSubjectId;
+            document.getElementById('addGradeStudentName').textContent = `${studentName} (${studentId})`;
+            document.getElementById('addGradeForm').reset();
+            document.getElementById('gradeStatusDisplay').textContent = '-';
+            document.getElementById('remarksPreview').textContent = '-';
+            
+            // Check existing grades and disable options
+            await checkExistingGrades(studentSubjectId);
+            
+            addGradeModal.show();
+        }
+        
+        // Check existing grades and disable options
+        async function checkExistingGrades(studentSubjectId) {
+            try {
+                const response = await fetch(`/api/v1/grade/studentsubject/${studentSubjectId}`, {
+                    credentials: 'include'
+                });
+                
+                const midtermOption = document.getElementById('optionMidterm');
+                const finalOption = document.getElementById('optionFinalGrade');
+                const helpText = document.getElementById('gradeTypeHelp');
+                const indicator = document.getElementById('existingGradesIndicator');
+                
+                if (response.ok) {
+                    const grades = await response.json();
+                    const hasMidterm = grades.some(g => g.assessmentType === 'Midterm');
+                    const hasFinal = grades.some(g => g.assessmentType === 'Final Grade');
+                    
+                    // Update indicator
+                    if (indicator) {
+                        if (hasMidterm && hasFinal) {
+                            indicator.innerHTML = '<span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i>Both grades exist - use Edit</span>';
+                        } else if (hasMidterm) {
+                            indicator.innerHTML = '<span class="badge bg-warning"><i class="fas fa-calendar-alt me-1"></i>Midterm exists</span>';
+                        } else if (hasFinal) {
+                            indicator.innerHTML = '<span class="badge bg-warning"><i class="fas fa-graduation-cap me-1"></i>Final exists</span>';
+                        } else {
+                            indicator.innerHTML = '';
+                        }
+                    }
+                    
+                    // Reset options
+                    if (midtermOption) {
+                        midtermOption.disabled = hasMidterm;
+                        midtermOption.textContent = hasMidterm ? 'Midterm (Already Added - Use Edit Instead)' : 'Midterm';
+                        if (hasMidterm) {
+                            midtermOption.style.color = '#6c757d';
+                            midtermOption.style.fontStyle = 'italic';
+                        } else {
+                            midtermOption.style.color = '';
+                            midtermOption.style.fontStyle = '';
+                        }
+                    }
+                    if (finalOption) {
+                        finalOption.disabled = hasFinal;
+                        finalOption.textContent = hasFinal ? 'Final Grade (Already Added - Use Edit Instead)' : 'Final Grade';
+                        if (hasFinal) {
+                            finalOption.style.color = '#6c757d';
+                            finalOption.style.fontStyle = 'italic';
+                        } else {
+                            finalOption.style.color = '';
+                            finalOption.style.fontStyle = '';
+                        }
+                    }
+                    
+                    // Update help text
+                    if (helpText) {
+                        if (hasMidterm && hasFinal) {
+                            helpText.textContent = 'Both Midterm and Final Grade have already been added. Please edit existing grades instead.';
+                            helpText.className = 'text-danger';
+                        } else if (hasMidterm) {
+                            helpText.textContent = 'Midterm grade already exists. You can only add Final Grade.';
+                            helpText.className = 'text-warning';
+                        } else if (hasFinal) {
+                            helpText.textContent = 'Final Grade already exists. You can only add Midterm.';
+                            helpText.className = 'text-warning';
+                        } else {
+                            helpText.textContent = 'Choose whether this is a Midterm or Final Grade';
+                            helpText.className = 'text-muted';
+                        }
+                    }
+                } else {
+                    // Reset on error
+                    if (indicator) {
+                        indicator.innerHTML = '';
+                    }
+                    if (midtermOption) {
+                        midtermOption.disabled = false;
+                        midtermOption.textContent = 'Midterm';
+                        midtermOption.style.color = '';
+                        midtermOption.style.fontStyle = '';
+                    }
+                    if (finalOption) {
+                        finalOption.disabled = false;
+                        finalOption.textContent = 'Final Grade';
+                        finalOption.style.color = '';
+                        finalOption.style.fontStyle = '';
+                    }
+                    if (helpText) {
+                        helpText.textContent = 'Choose whether this is a Midterm or Final Grade';
+                        helpText.className = 'text-muted';
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking existing grades:', error);
+            }
+        }
+
+        // Submit grade
+        async function submitGrade() {
+            const studentSubjectId = document.getElementById('addGradeStudentSubjectId').value;
+            const assessmentType = document.getElementById('assessmentType').value;
+            const gradePointInput = document.getElementById('gradePoint');
+            
+            if (!gradePointInput) {
+                alert('Grade point field not found');
+                return;
+            }
+            
+            const gradePoint = parseFloat(gradePointInput.value);
+
+            if (!assessmentType || isNaN(gradePoint)) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+
+            if (gradePoint < 1.0 || gradePoint > 5.0) {
+                alert('Grade point must be between 1.0 and 5.0');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/grade', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        studentSubjectId: parseInt(studentSubjectId),
+                        assessmentType: assessmentType,
+                        gradePoint: gradePoint
+                    })
+                });
+
+                if (response.ok) {
+                    alert('Grade added successfully!');
+                    addGradeModal.hide();
+                    await loadStudentsForClass(currentSectionSubjectId);
+                } else {
+                    const error = await response.json();
+                    alert('Failed to add grade: ' + (error.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error adding grade:', error);
+                alert('Error adding grade');
+            }
+        }
+
+        // View student grades
+        let currentViewingStudentSubjectId = null;
+        let currentViewingStudentName = null;
+        
+        async function viewStudentGrades(studentSubjectId, studentName, studentId) {
+            currentViewingStudentSubjectId = studentSubjectId;
+            currentViewingStudentName = studentName;
+            document.getElementById('viewGradesStudentName').textContent = `${studentName} (${studentId})`;
+            await loadStudentGrades(studentSubjectId);
+            viewGradesModal.show();
+        }
+
+        // Load student grades
+        async function loadStudentGrades(studentSubjectId) {
+            const midtermCard = document.getElementById('midtermGradeCard');
+            const finalCard = document.getElementById('finalGradeCard');
+            if (midtermCard) midtermCard.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin"></i> Loading...</p>';
+            if (finalCard) finalCard.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin"></i> Loading...</p>';
+
+            try {
+                const response = await fetch(`/api/v1/grade/studentsubject/${studentSubjectId}`, {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const grades = await response.json();
+
+                    displayStudentGrades(grades);
+                } else {
+                    const midtermCard = document.getElementById('midtermGradeCard');
+                    const finalCard = document.getElementById('finalGradeCard');
+                    if (midtermCard) midtermCard.innerHTML = '<p class="text-danger">Error loading grades</p>';
+                    if (finalCard) finalCard.innerHTML = '<p class="text-danger">Error loading grades</p>';
+                    document.getElementById('computedFinalGrade').textContent = '-';
+                }
+            } catch (error) {
+                console.error('Error loading student grades:', error);
+                const midtermCard = document.getElementById('midtermGradeCard');
+                const finalCard = document.getElementById('finalGradeCard');
+                if (midtermCard) midtermCard.innerHTML = '<p class="text-danger">Error loading grades</p>';
+                if (finalCard) finalCard.innerHTML = '<p class="text-danger">Error loading grades</p>';
+                document.getElementById('computedFinalGrade').textContent = '-';
+            }
+        }
+
+        // Get grade status badge
+        function getGradeStatusBadge(gradePoint) {
+            const grade = parseFloat(gradePoint);
+            if (grade <= 3.0) {
+                return '<span class="badge bg-success">PASS</span>';
+            } else {
+                return '<span class="badge bg-danger">FAIL</span>';
+            }
+        }
+
+        // Display student grades (only Midterm and Final)
+        function displayStudentGrades(grades) {
+            const midtermCard = document.getElementById('midtermGradeCard');
+            const finalCard = document.getElementById('finalGradeCard');
+            
+            // Find midterm and final grades
+            const midtermGrade = grades.find(g => g.assessmentType === 'Midterm');
+            const finalGrade = grades.find(g => g.assessmentType === 'Final Grade');
+            
+            // Display Midterm Grade
+            if (midtermGrade) {
+                const gradePoint = (midtermGrade.gradePoint || 0).toFixed(2);
+                const statusBadge = getGradeStatusBadge(gradePoint);
+                midtermCard.innerHTML = `
+                    <h4 class="text-primary mb-2">${gradePoint} ${statusBadge}</h4>
+                    <p class="text-muted mb-2"><small>Date: ${new Date(midtermGrade.dateGiven).toLocaleDateString()}</small></p>
+                    ${midtermGrade.remarks ? `<p class="text-muted mb-2"><small><strong>Remarks:</strong> ${midtermGrade.remarks}</small></p>` : ''}
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-warning me-1" onclick="openEditGradeModal(${midtermGrade.id}, ${JSON.stringify(midtermGrade).replace(/"/g, '&quot;')})">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteGrade(${midtermGrade.id}, ${midtermGrade.studentSubjectId})">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                `;
+            } else {
+                midtermCard.innerHTML = '<p class="text-muted mb-0">No midterm grade yet</p>';
+            }
+            
+            // Display Final Grade
+            if (finalGrade) {
+                const gradePoint = (finalGrade.gradePoint || 0).toFixed(2);
+                const statusBadge = getGradeStatusBadge(gradePoint);
+                finalCard.innerHTML = `
+                    <h4 class="text-success mb-2">${gradePoint} ${statusBadge}</h4>
+                    <p class="text-muted mb-2"><small>Date: ${new Date(finalGrade.dateGiven).toLocaleDateString()}</small></p>
+                    ${finalGrade.remarks ? `<p class="text-muted mb-2"><small><strong>Remarks:</strong> ${finalGrade.remarks}</small></p>` : ''}
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-warning me-1" onclick="openEditGradeModal(${finalGrade.id}, ${JSON.stringify(finalGrade).replace(/"/g, '&quot;')})">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteGrade(${finalGrade.id}, ${finalGrade.studentSubjectId})">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                `;
+            } else {
+                finalCard.innerHTML = '<p class="text-muted mb-0">No final grade yet</p>';
+            }
+            
+            // Calculate overall average (Midterm 40% + Final 60%) using grade points
+            let overallGradePoint = '-';
+            if (midtermGrade && finalGrade && midtermGrade.gradePoint && finalGrade.gradePoint) {
+                const avgGradePoint = (midtermGrade.gradePoint * 0.4) + (finalGrade.gradePoint * 0.6);
+                overallGradePoint = avgGradePoint.toFixed(2);
+            } else if (midtermGrade && midtermGrade.gradePoint) {
+                overallGradePoint = midtermGrade.gradePoint.toFixed(2);
+            } else if (finalGrade && finalGrade.gradePoint) {
+                overallGradePoint = finalGrade.gradePoint.toFixed(2);
+            }
+            const overallStatusBadge = overallGradePoint !== '-' ? getGradeStatusBadge(overallGradePoint) : '';
+            document.getElementById('computedFinalGrade').innerHTML = `${overallGradePoint} ${overallStatusBadge}`;
+        }
+
+        // Open edit grade modal
+        function openEditGradeModal(gradeId, gradeData) {
+            const grade = typeof gradeData === 'string' ? JSON.parse(gradeData.replace(/&quot;/g, '"')) : gradeData;
+            document.getElementById('editGradeId').value = gradeId;
+            document.getElementById('editAssessmentType').value = grade.assessmentType;
+            document.getElementById('editGradePoint').value = grade.gradePoint || 3.0;
+            updateEditRemarksPreview();
+            viewGradesModal.hide();
+            editGradeModal.show();
+        }
+
+        // Update grade
+        async function updateGrade() {
+            const gradeId = document.getElementById('editGradeId').value;
+            const assessmentType = document.getElementById('editAssessmentType').value;
+            const gradePointInput = document.getElementById('editGradePoint');
+            
+            if (!gradePointInput) {
+                alert('Grade point field not found');
+                return;
+            }
+            
+            const gradePoint = parseFloat(gradePointInput.value);
+
+            if (!assessmentType || isNaN(gradePoint)) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+
+            if (gradePoint < 1.0 || gradePoint > 5.0) {
+                alert('Grade point must be between 1.0 and 5.0');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/grade/${gradeId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        assessmentType: assessmentType,
+                        gradePoint: gradePoint
+                    })
+                });
+
+                if (response.ok) {
+                    alert('Grade updated successfully!');
+                    editGradeModal.hide();
+                    // Refresh the grades view
+                    const studentSubjectId = currentViewingStudentSubjectId;
+                    if (studentSubjectId) {
+                        await loadStudentGrades(studentSubjectId);
+                        viewGradesModal.show();
+                    }
+                    await loadStudentsForClass(currentSectionSubjectId);
+                } else {
+                    const error = await response.json();
+                    alert('Failed to update grade: ' + (error.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error updating grade:', error);
+                alert('Error updating grade');
+            }
+        }
+
+        // Delete grade
+        async function deleteGrade(gradeId, studentSubjectId) {
+            if (!confirm('Are you sure you want to delete this grade?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/grade/${gradeId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    alert('Grade deleted successfully!');
+                    await loadStudentGrades(studentSubjectId);
+                    await loadStudentsForClass(currentSectionSubjectId);
+                } else {
+                    const error = await response.json();
+                    alert('Failed to delete grade: ' + (error.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error deleting grade:', error);
+                alert('Error deleting grade');
+            }
+        }
     </script>
 </body>
 </html>

@@ -238,6 +238,7 @@ namespace StudentPeformanceTracker.Controllers
                     ss.EnrollmentId,
                     SubjectName = ss.SectionSubject?.Subject?.SubjectName,
                     SubjectDescription = ss.SectionSubject?.Subject?.Description,
+                    Units = ss.SectionSubject?.Subject?.Units ?? 0,
                     SectionName = ss.SectionSubject?.Section?.SectionName,
                     TeacherName = ss.SectionSubject?.Teacher != null 
                         ? $"{ss.SectionSubject.Teacher.FirstName} {ss.SectionSubject.Teacher.LastName}" 

@@ -48,4 +48,9 @@ public class UserManagementService
     {
         return await _userRepository.GetFilteredPaginatedAsync(page, pageSize, status, role, search, createdFrom, createdTo);
     }
+
+    public async Task<bool> DeleteUserAsync(int userId)
+    {
+        return await _userRepository.DeleteAsync(userId);
+    }
 }

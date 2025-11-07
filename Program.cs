@@ -9,6 +9,10 @@ using Microsoft.OpenApi.Models;
 using Asp.Versioning;
 using System.Text;
 using DotNetEnv;
+using QuestPDF.Infrastructure;
+
+// Configure QuestPDF License (Community license for non-commercial use)
+QuestPDF.Settings.License = LicenseType.Community;
 
 // Load environment variables from .env file
 Env.Load();
@@ -77,6 +81,7 @@ builder.Services.AddScoped<ISectionSubjectRepository, SectionSubjectRepository>(
 builder.Services.AddScoped<IStudentSubjectRepository, StudentSubjectRepository>();
 builder.Services.AddScoped<ISemesterRepository, SemesterRepository>();
 builder.Services.AddScoped<ITeacherSubjectRepository, TeacherSubjectRepository>();
+builder.Services.AddScoped<IAnnouncementRepository, AnnouncementRepository>();
 
 // Register services
 builder.Services.AddSingleton<JwtService>();

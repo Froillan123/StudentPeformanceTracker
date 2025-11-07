@@ -114,6 +114,12 @@ public class AuthService
         if (existingEmail)
             return null;
 
+        // Check if student number already exists
+        var generatedStudentId = GenerateStudentId(request.StudentNumber);
+        var existingStudentId = await _studentRepository.StudentIdExistsAsync(generatedStudentId);
+        if (existingStudentId)
+            throw new InvalidOperationException($"Student number {generatedStudentId} already exists");
+
         var courseExists = await _courseRepository.ExistsAsync(request.CourseId);
         if (!courseExists)
             throw new InvalidOperationException($"Course with ID {request.CourseId} does not exist");
@@ -135,7 +141,7 @@ public class AuthService
         var student = new Student
         {
             UserId = user.Id,
-            StudentId = GenerateStudentId(request.StudentNumber),
+            StudentId = generatedStudentId,
             Email = request.Email,
             FirstName = request.FirstName,
             LastName = request.LastName,

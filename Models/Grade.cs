@@ -13,22 +13,15 @@ public class Grade
 
     [Required]
     [MaxLength(50)]
-    public string AssessmentType { get; set; } = string.Empty; // Quiz, Exam, Project, Assignment
+    public string AssessmentType { get; set; } = string.Empty; // Only "Midterm" or "Final Grade"
 
-    [Required]
     [MaxLength(200)]
-    public string AssessmentName { get; set; } = string.Empty;
+    public string? AssessmentName { get; set; } // Optional, auto-filled as "Midterm Grade" or "Final Grade"
 
     [Required]
-    [Column(TypeName = "decimal(5,2)")]
-    public decimal Score { get; set; }
-
-    [Required]
-    [Column(TypeName = "decimal(5,2)")]
-    public decimal MaxScore { get; set; }
-
-    [Column(TypeName = "decimal(5,2)")]
-    public decimal? Percentage { get; set; }
+    [Column(TypeName = "decimal(3,2)")]
+    [Range(1.0, 5.0, ErrorMessage = "Grade point must be between 1.0 and 5.0")]
+    public decimal GradePoint { get; set; }
 
     [MaxLength(1000)]
     public string? Remarks { get; set; }

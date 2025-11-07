@@ -66,24 +66,42 @@
         .badge-completed { background-color: var(--secondary-color); }
         .badge-dropped { background-color: var(--danger-color); }
         .badge-pending { background-color: var(--warning-color); }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
     </style>
 </head>
 <body>
     @await Html.PartialAsync("Shared/_AdminNavigation")
 
-    <div class="main-content">
-        <div class="dashboard-header">
-            <div class="container-fluid">
+    <div class="main-content" id="mainContent">
+        <header class="dashboard-header">
+            <div class="container">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h2 class="mb-0"><i class="fas fa-user-graduate me-2"></i>Enrollment Management</h2>
-                    <div>
-                        <img src="~/images/gradia_logo.png" alt="Admin" class="user-avatar">
+                    <h1 class="h3 mb-0">Enrollment Management</h1>
+                    <div class="d-flex align-items-center">
+                        <div class="dropdown">
+                            <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <img src="https://ui-avatars.com/api/?name=Loading&background=3498db&color=fff" class="user-avatar me-2" id="headerAvatar">
+                                <span id="headerName">Loading...</span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="/Admin/Profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="handleLogout()"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </header>
 
-        <div class="container-fluid mt-4">
+        <main class="container my-4">
             <div class="card-custom">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="section-title mb-0">All Enrollments</h5>
@@ -118,7 +136,7 @@
                     </table>
                 </div>
             </div>
-        </div>
+        </main>
     </div>
 
     <!-- Create Enrollment Modal -->
@@ -243,7 +261,30 @@
         let createEnrollmentModal, editEnrollmentModal, classAssignmentModal;
         let currentEnrollmentData = null;
 
+        // Load admin data from API
+        async function loadAdminData() {
+            try {
+                const response = await fetch('/api/v1/admin/profile');
+                if (response.ok) {
+                    const adminData = await response.json();
+                    updateHeader(adminData);
+                } else {
+                    console.error('Failed to load admin data');
+                }
+            } catch (error) {
+                console.error('Error loading admin data:', error);
+            }
+        }
+
+        // Update header with real admin data
+        function updateHeader(data) {
+            const fullName = `${data.firstName} ${data.lastName}`;
+            document.getElementById('headerName').textContent = fullName;
+            document.getElementById('headerAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=3498db&color=fff`;
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            loadAdminData();
             createEnrollmentModal = new bootstrap.Modal(document.getElementById('createEnrollmentModal'));
             editEnrollmentModal = new bootstrap.Modal(document.getElementById('editEnrollmentModal'));
             classAssignmentModal = new bootstrap.Modal(document.getElementById('classAssignmentModal'));

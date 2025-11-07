@@ -303,13 +303,9 @@
                                     <div class="info-label">Email Address</div>
                                     <div class="info-value" id="email">Loading...</div>
                                 </div>
-                                <div class="info-item">
+                                <div class="info-item" id="phoneItem" style="display: none;">
                                     <div class="info-label">Phone Number</div>
                                     <div class="info-value" id="phone">Loading...</div>
-                                </div>
-                                <div class="info-item">
-                                    <div class="info-label">Date of Birth</div>
-                                    <div class="info-value">N/A</div>
                                 </div>
                             </div>
                             
@@ -323,13 +319,9 @@
                                     <div class="info-label">Course</div>
                                     <div class="info-value" id="courseName">Loading...</div>
                                 </div>
-                                <div class="info-item">
+                                <div class="info-item" id="enrollmentDateItem" style="display: none;">
                                     <div class="info-label">Enrollment Date</div>
                                     <div class="info-value" id="enrollmentDate">Loading...</div>
-                                </div>
-                                <div class="info-item">
-                                    <div class="info-label">Expected Graduation</div>
-                                    <div class="info-value">N/A</div>
                                 </div>
                             </div>
                         </div>
@@ -373,51 +365,9 @@
                                     <span class="stat-label">Subjects</span>
                                 </div>
                             </div>
-                            <div class="col-6">
-                                <div class="stat-item">
-                                    <span class="stat-number" id="attendance">-</span>
-                                    <span class="stat-label">Attendance</span>
-                                </div>
-                            </div>
                         </div>
                     </div>
 
-                    <!-- Contact Information -->
-                    <div class="profile-stats">
-                        <h4 class="section-title">Contact Information</h4>
-                        <div class="info-item">
-                            <div class="info-label">Address</div>
-                            <div class="info-value">
-                                123 Student Street<br>
-                                University City, UC 12345
-                            </div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Guardian</div>
-                            <div class="info-value">Jane Doe (Mother)</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Guardian Phone</div>
-                            <div class="info-value">+1 (555) 987-6543</div>
-                        </div>
-                    </div>
-
-                    <!-- Academic Progress -->
-                    <div class="profile-stats">
-                        <h4 class="section-title">Academic Progress</h4>
-                        <div class="info-item">
-                            <div class="info-label">Current Semester</div>
-                            <div class="info-value">2nd Semester 2023-2024</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Status</div>
-                            <div class="info-value"><span class="badge bg-success">Regular</span></div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Scholarship</div>
-                            <div class="info-value">Academic Excellence</div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </main>
@@ -456,12 +406,13 @@
         async function loadStudentData() {
             try {
                 // Get current user from session/localStorage or API
-                const response = await fetch('/api/v1/student/profile');
+                const response = await fetch('/api/v1/student/profile', { credentials: 'include' });
                 if (response.ok) {
                     const studentData = await response.json();
                     currentStudentId = studentData.id;
                     updateProfile(studentData);
                     updateHeader(studentData);
+                    await loadAcademicStatistics(studentData.id);
                 } else {
                     console.error('Failed to load student data');
                     // Fallback: try to get from student list
@@ -503,20 +454,92 @@
             
             // Update personal information
             document.getElementById('fullName').textContent = fullName;
-            document.getElementById('studentId').textContent = data.studentId || 'N/A';
-            document.getElementById('email').textContent = data.email || 'N/A';
-            document.getElementById('phone').textContent = data.phone || 'N/A';
+            document.getElementById('studentId').textContent = data.studentId || '';
+            document.getElementById('email').textContent = data.email || '';
+            
+            // Show/hide phone number
+            const phoneItem = document.getElementById('phoneItem');
+            if (data.phone && data.phone.trim() !== '') {
+                document.getElementById('phone').textContent = data.phone;
+                phoneItem.style.display = 'block';
+            } else {
+                phoneItem.style.display = 'none';
+            }
             
             // Update academic information
             document.getElementById('yearLevel').textContent = getYearLevelText(data.yearLevel);
-            document.getElementById('courseName').textContent = data.courseName || 'N/A';
-            document.getElementById('enrollmentDate').textContent = data.enrollmentDate ? new Date(data.enrollmentDate).toLocaleDateString() : 'N/A';
+            document.getElementById('courseName').textContent = data.courseName || '';
             
-            // Update statistics (placeholder values for now)
-            document.getElementById('gpa').textContent = '3.8';
-            document.getElementById('units').textContent = '24';
-            document.getElementById('subjects').textContent = '5';
-            document.getElementById('attendance').textContent = '95%';
+            // Show/hide enrollment date
+            const enrollmentDateItem = document.getElementById('enrollmentDateItem');
+            if (data.enrollmentDate) {
+                document.getElementById('enrollmentDate').textContent = new Date(data.enrollmentDate).toLocaleDateString();
+                enrollmentDateItem.style.display = 'block';
+            } else {
+                enrollmentDateItem.style.display = 'none';
+            }
+            
+        }
+
+        // Load academic statistics
+        async function loadAcademicStatistics(studentId) {
+            try {
+                // Get enrolled subjects
+                const subjectsResponse = await fetch(`/api/v1/studentsubject/student/${studentId}/enrolled`, { credentials: 'include' });
+                let subjects = [];
+                if (subjectsResponse.ok) {
+                    subjects = await subjectsResponse.json();
+                    if (!Array.isArray(subjects)) {
+                        subjects = [];
+                    }
+                }
+
+                // Get grades
+                const gradesResponse = await fetch(`/api/v1/grade/student/${studentId}`, { credentials: 'include' });
+                let grades = [];
+                if (gradesResponse.ok) {
+                    grades = await gradesResponse.json();
+                    if (!Array.isArray(grades)) {
+                        grades = [];
+                    }
+                }
+
+                // Calculate statistics
+                const enrolledSubjects = subjects.filter(s => s.status === 'Enrolled' || s.status === 'Pending');
+                const subjectCount = enrolledSubjects.length;
+
+                // Calculate total units
+                const totalUnits = enrolledSubjects.reduce((sum, s) => sum + (parseInt(s.units || s.Units || 0)), 0);
+
+                // Calculate GPA from Final Grades (or Midterm if no Final)
+                let gpa = 0;
+                const finalGrades = grades.filter(g => g.assessmentType === 'Final Grade' && g.gradePoint > 0);
+                const midtermGrades = grades.filter(g => g.assessmentType === 'Midterm' && g.gradePoint > 0);
+                
+                if (finalGrades.length > 0) {
+                    // Use Final Grades for GPA calculation
+                    const totalPoints = finalGrades.reduce((sum, g) => sum + parseFloat(g.gradePoint || 0), 0);
+                    gpa = totalPoints / finalGrades.length;
+                } else if (midtermGrades.length > 0) {
+                    // Fallback to Midterm if no Final Grades
+                    const totalPoints = midtermGrades.reduce((sum, g) => sum + parseFloat(g.gradePoint || 0), 0);
+                    gpa = totalPoints / midtermGrades.length;
+                }
+
+                // Display GPA (keeping the grade point scale as is)
+                const gpaDisplay = gpa > 0 ? gpa.toFixed(2) : '-';
+
+                // Update statistics
+                document.getElementById('gpa').textContent = gpaDisplay;
+                document.getElementById('subjects').textContent = subjectCount;
+                document.getElementById('units').textContent = totalUnits > 0 ? totalUnits : '-';
+            } catch (error) {
+                console.error('Error loading academic statistics:', error);
+                // Set default values on error
+                document.getElementById('gpa').textContent = '-';
+                document.getElementById('units').textContent = '-';
+                document.getElementById('subjects').textContent = '-';
+            }
         }
 
         // Update header with real data
@@ -528,7 +551,7 @@
 
         // Helper function to convert year level number to text
         function getYearLevelText(yearLevel) {
-            if (!yearLevel) return 'N/A';
+            if (!yearLevel) return '';
             const yearTexts = {
                 1: '1st Year',
                 2: '2nd Year', 

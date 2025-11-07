@@ -240,7 +240,7 @@
                                 <span id="headerName">Loading...</span>
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="userDropdown">
-                                <li><a class="dropdown-item" href="/Profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
+                                <li><a class="dropdown-item" href="/Teacher/Profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
                                 <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="/LoginPage"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
@@ -255,32 +255,25 @@
         <main class="container my-4">
             <!-- Quick Stats -->
             <div class="row">
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="stat-card primary">
                         <i class="fas fa-book stat-icon"></i>
-                        <span class="stat-number">4</span>
+                        <span class="stat-number" id="activeClassesCount">-</span>
                         <span class="stat-label">Active Classes</span>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="stat-card accent">
                         <i class="fas fa-user-graduate stat-icon"></i>
-                        <span class="stat-number">120</span>
+                        <span class="stat-number" id="totalStudentsCount">-</span>
                         <span class="stat-label">Total Students</span>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="stat-card info">
                         <i class="fas fa-tasks stat-icon"></i>
-                        <span class="stat-number">15</span>
+                        <span class="stat-number" id="pendingGradingCount">-</span>
                         <span class="stat-label">Pending Grading</span>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-card warning">
-                        <i class="fas fa-calendar stat-icon"></i>
-                        <span class="stat-number">3</span>
-                        <span class="stat-label">Upcoming Exams</span>
                     </div>
                 </div>
             </div>
@@ -300,24 +293,12 @@
                                         <th>Status</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody id="recentActivityBody">
                                     <tr>
-                                        <td>Data Structures</td>
-                                        <td>Assignment #3 Graded</td>
-                                        <td>2024-01-15</td>
-                                        <td><span class="badge bg-success">Completed</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Database Systems</td>
-                                        <td>Quiz #2 Created</td>
-                                        <td>2024-01-14</td>
-                                        <td><span class="badge bg-success">Completed</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Web Development</td>
-                                        <td>Project Proposal Review</td>
-                                        <td>2024-01-20</td>
-                                        <td><span class="badge bg-warning">Pending</span></td>
+                                        <td colspan="4" class="text-center py-4">
+                                            <i class="fas fa-spinner fa-spin fa-2x text-muted mb-2"></i>
+                                            <p class="text-muted mb-0">Loading recent activity...</p>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -335,13 +316,10 @@
                             <a href="/Teacher/Announcements" class="btn btn-outline-success">
                                 <i class="fas fa-bullhorn me-2"></i>Create Announcement
                             </a>
-                            <a href="/Teacher/Grades" class="btn btn-outline-info">
-                                <i class="fas fa-graduation-cap me-2"></i>Manage Grades
-                            </a>
                             <a href="/Teacher/Analytics" class="btn btn-outline-warning">
                                 <i class="fas fa-chart-bar me-2"></i>View Analytics
                             </a>
-                            <a href="/Profile" class="btn btn-outline-secondary">
+                            <a href="/Teacher/Profile" class="btn btn-outline-secondary">
                                 <i class="fas fa-user me-2"></i>Update Profile
                             </a>
                         </div>
@@ -355,6 +333,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
+        let currentTeacherId = null;
+
         // Load teacher data on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadTeacherData();
@@ -363,15 +343,22 @@
         // Load teacher data from API
         async function loadTeacherData() {
             try {
-                const response = await fetch('/api/v1/teacher/profile');
+                const response = await fetch('/api/v1/teacher/profile', {
+                    credentials: 'include'
+                });
                 if (response.ok) {
                     const teacherData = await response.json();
+                    currentTeacherId = teacherData.id;
                     updateHeader(teacherData);
+                    await loadDashboardStats(teacherData.id);
+                    await loadRecentActivity(teacherData.id);
                 } else {
                     console.error('Failed to load teacher data');
+                    document.getElementById('headerName').textContent = 'Error loading profile';
                 }
             } catch (error) {
                 console.error('Error loading teacher data:', error);
+                document.getElementById('headerName').textContent = 'Error loading profile';
             }
         }
 
@@ -380,6 +367,192 @@
             const fullName = `${data.firstName} ${data.lastName}`;
             document.getElementById('headerName').textContent = fullName;
             document.getElementById('headerAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2196F3&color=fff`;
+        }
+
+        // Load dashboard statistics
+        async function loadDashboardStats(teacherId) {
+            try {
+                // Get teacher's classes
+                const classesResponse = await fetch('/api/v1/teacher/classes', {
+                    credentials: 'include'
+                });
+                
+                if (!classesResponse.ok) {
+                    throw new Error('Failed to load classes');
+                }
+
+                const classes = await classesResponse.json();
+                const activeClasses = classes ? classes.length : 0;
+                document.getElementById('activeClassesCount').textContent = activeClasses;
+
+                // Calculate total students and pending grading
+                let totalStudents = 0;
+                let pendingGrading = 0;
+
+                if (classes && classes.length > 0) {
+                    for (const classItem of classes) {
+                        try {
+                            // Get students for this class
+                            const studentsResponse = await fetch(`/api/v1/studentsubject/sectionsubject/${classItem.id}`, {
+                                credentials: 'include'
+                            });
+                            
+                            if (studentsResponse.ok) {
+                                const students = await studentsResponse.json();
+                                const enrolledStudents = students ? students.filter(s => s.status === 'Enrolled' || s.status === 'Pending') : [];
+                                totalStudents += enrolledStudents.length;
+
+                                // Check pending grading (students without both midterm and final grades)
+                                for (const student of enrolledStudents) {
+                                    try {
+                                        const gradesResponse = await fetch(`/api/v1/grade/studentsubject/${student.id}`, {
+                                            credentials: 'include'
+                                        });
+                                        
+                                        if (gradesResponse.ok) {
+                                            const grades = await gradesResponse.json();
+                                            const hasMidterm = grades.some(g => g.assessmentType === 'Midterm');
+                                            const hasFinal = grades.some(g => g.assessmentType === 'Final Grade');
+                                            
+                                            if (!hasMidterm || !hasFinal) {
+                                                pendingGrading++;
+                                            }
+                                        }
+                                    } catch (error) {
+                                        console.error(`Error checking grades for student ${student.id}:`, error);
+                                    }
+                                }
+                            }
+                        } catch (error) {
+                            console.error(`Error loading students for class ${classItem.id}:`, error);
+                        }
+                    }
+                }
+
+                document.getElementById('totalStudentsCount').textContent = totalStudents;
+                document.getElementById('pendingGradingCount').textContent = pendingGrading;
+            } catch (error) {
+                console.error('Error loading dashboard stats:', error);
+                document.getElementById('activeClassesCount').textContent = '0';
+                document.getElementById('totalStudentsCount').textContent = '0';
+                document.getElementById('pendingGradingCount').textContent = '0';
+            }
+        }
+
+        // Load recent activity (recent grade entries)
+        async function loadRecentActivity(teacherId) {
+            try {
+                // Get teacher's classes
+                const classesResponse = await fetch('/api/v1/teacher/classes', {
+                    credentials: 'include'
+                });
+                
+                if (!classesResponse.ok) {
+                    throw new Error('Failed to load classes');
+                }
+
+                const classes = await classesResponse.json();
+                const recentActivities = [];
+
+                if (classes && classes.length > 0) {
+                    // Get recent grades from all classes
+                    for (const classItem of classes) {
+                        try {
+                            const studentsResponse = await fetch(`/api/v1/studentsubject/sectionsubject/${classItem.id}`, {
+                                credentials: 'include'
+                            });
+                            
+                            if (studentsResponse.ok) {
+                                const students = await studentsResponse.json();
+                                const enrolledStudents = students ? students.filter(s => s.status === 'Enrolled' || s.status === 'Pending') : [];
+
+                                for (const student of enrolledStudents) {
+                                    try {
+                                        const gradesResponse = await fetch(`/api/v1/grade/studentsubject/${student.id}`, {
+                                            credentials: 'include'
+                                        });
+                                        
+                                        if (gradesResponse.ok) {
+                                            const grades = await gradesResponse.json();
+                                            
+                                            for (const grade of grades) {
+                                                recentActivities.push({
+                                                    className: classItem.subjectName || 'N/A',
+                                                    activity: `${grade.assessmentType} Grade Added`,
+                                                    studentName: student.studentName || student.StudentName || 'N/A',
+                                                    date: grade.dateGiven || grade.createdAt || new Date().toISOString(),
+                                                    status: 'Completed'
+                                                });
+                                            }
+                                        }
+                                    } catch (error) {
+                                        console.error(`Error loading grades for student ${student.id}:`, error);
+                                    }
+                                }
+                            }
+                        } catch (error) {
+                            console.error(`Error loading students for class ${classItem.id}:`, error);
+                        }
+                    }
+                }
+
+                // Sort by date (most recent first) and take top 5
+                recentActivities.sort((a, b) => new Date(b.date) - new Date(a.date));
+                const topActivities = recentActivities.slice(0, 5);
+
+                displayRecentActivity(topActivities);
+            } catch (error) {
+                console.error('Error loading recent activity:', error);
+                displayRecentActivityError();
+            }
+        }
+
+        // Display recent activity
+        function displayRecentActivity(activities) {
+            const tbody = document.getElementById('recentActivityBody');
+            
+            if (!activities || activities.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center py-4">
+                            <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-0">No recent activity</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = activities.map(activity => {
+                const date = new Date(activity.date);
+                const formattedDate = date.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+                
+                return `
+                    <tr>
+                        <td>${activity.className}</td>
+                        <td>${activity.activity} - ${activity.studentName}</td>
+                        <td>${formattedDate}</td>
+                        <td><span class="badge bg-success">${activity.status}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Display error state for recent activity
+        function displayRecentActivityError() {
+            const tbody = document.getElementById('recentActivityBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center py-4">
+                        <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
+                        <p class="text-muted mb-0">Error loading recent activity</p>
+                    </td>
+                </tr>
+            `;
         }
     </script>
 </body>

@@ -13,10 +13,12 @@ namespace StudentPeformanceTracker.Controllers;
 public class StudentController : ControllerBase
 {
     private readonly IStudentRepository _studentRepository;
+    private readonly IEnrollmentRepository _enrollmentRepository;
 
-    public StudentController(IStudentRepository studentRepository)
+    public StudentController(IStudentRepository studentRepository, IEnrollmentRepository enrollmentRepository)
     {
         _studentRepository = studentRepository;
+        _enrollmentRepository = enrollmentRepository;
     }
 
     /// <summary>
@@ -42,6 +44,15 @@ public class StudentController : ControllerBase
                 return NotFound(new { message = "Student profile not found" });
             }
 
+            // Get course name - fallback to most recent active enrollment if student's course is null
+            string courseName = student.Course?.CourseName ?? "N/A";
+            if (courseName == "N/A")
+            {
+                var enrollments = await _enrollmentRepository.GetByStudentIdAsync(student.Id);
+                var activeEnrollment = enrollments.FirstOrDefault(e => e.Status == "Active" || e.Status == "Pending");
+                courseName = activeEnrollment?.Course?.CourseName ?? "N/A";
+            }
+
             var result = new
             {
                 student.Id,
@@ -55,7 +66,7 @@ public class StudentController : ControllerBase
                 student.EnrollmentDate,
                 student.CreatedAt,
                 student.UpdatedAt,
-                CourseName = student.Course?.CourseName ?? "N/A",
+                CourseName = courseName,
                 Status = student.User?.Status ?? "Unknown"
             };
 
@@ -77,21 +88,42 @@ public class StudentController : ControllerBase
         try
         {
             var (students, totalCount) = await _studentRepository.GetPaginatedAsync(page, pageSize);
-            var result = students.Select(s => new
+            
+            // Get all student IDs to fetch enrollments in batch
+            var studentIds = students.Select(s => s.Id).ToList();
+            var allEnrollments = new List<Enrollment>();
+            foreach (var studentId in studentIds)
             {
-                s.Id,
-                s.UserId,
-                s.StudentId,
-                s.FirstName,
-                s.LastName,
-                s.Email,
-                s.Phone,
-                s.YearLevel,
-                s.EnrollmentDate,
-                s.CreatedAt,
-                s.UpdatedAt,
-                CourseName = s.Course?.CourseName ?? "N/A",
-                Status = s.User?.Status ?? "Unknown"
+                var enrollments = await _enrollmentRepository.GetByStudentIdAsync(studentId);
+                allEnrollments.AddRange(enrollments);
+            }
+            
+            var result = students.Select(s => {
+                // Get course name - fallback to most recent active enrollment if student's course is null
+                string courseName = s.Course?.CourseName ?? "N/A";
+                if (courseName == "N/A")
+                {
+                    var studentEnrollments = allEnrollments.Where(e => e.StudentId == s.Id);
+                    var activeEnrollment = studentEnrollments.FirstOrDefault(e => e.Status == "Active" || e.Status == "Pending");
+                    courseName = activeEnrollment?.Course?.CourseName ?? "N/A";
+                }
+                
+                return new
+                {
+                    s.Id,
+                    s.UserId,
+                    s.StudentId,
+                    s.FirstName,
+                    s.LastName,
+                    s.Email,
+                    s.Phone,
+                    s.YearLevel,
+                    s.EnrollmentDate,
+                    s.CreatedAt,
+                    s.UpdatedAt,
+                    CourseName = courseName,
+                    Status = s.User?.Status ?? "Unknown"
+                };
             });
 
             var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
@@ -129,6 +161,15 @@ public class StudentController : ControllerBase
                 return NotFound(new { message = "Student not found" });
             }
 
+            // Get course name - fallback to most recent active enrollment if student's course is null
+            string courseName = student.Course?.CourseName ?? "N/A";
+            if (courseName == "N/A")
+            {
+                var enrollments = await _enrollmentRepository.GetByStudentIdAsync(student.Id);
+                var activeEnrollment = enrollments.FirstOrDefault(e => e.Status == "Active" || e.Status == "Pending");
+                courseName = activeEnrollment?.Course?.CourseName ?? "N/A";
+            }
+
             var result = new
             {
                 student.Id,
@@ -142,7 +183,7 @@ public class StudentController : ControllerBase
                 student.EnrollmentDate,
                 student.CreatedAt,
                 student.UpdatedAt,
-                CourseName = student.Course?.CourseName ?? "N/A",
+                CourseName = courseName,
                 Status = student.User?.Status ?? "Unknown"
             };
 

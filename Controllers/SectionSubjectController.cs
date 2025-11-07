@@ -1,6 +1,8 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using StudentPeformanceTracker.Data;
 using StudentPeformanceTracker.Models;
 using StudentPeformanceTracker.Repository.Interfaces;
 
@@ -14,15 +16,18 @@ namespace StudentPeformanceTracker.Controllers
         private readonly ISectionSubjectRepository _sectionSubjectRepository;
         private readonly ITeacherSubjectRepository _teacherSubjectRepository;
         private readonly ISectionRepository _sectionRepository;
+        private readonly AppDbContext _context;
 
         public SectionSubjectController(
             ISectionSubjectRepository sectionSubjectRepository,
             ITeacherSubjectRepository teacherSubjectRepository,
-            ISectionRepository sectionRepository)
+            ISectionRepository sectionRepository,
+            AppDbContext context)
         {
             _sectionSubjectRepository = sectionSubjectRepository;
             _teacherSubjectRepository = teacherSubjectRepository;
             _sectionRepository = sectionRepository;
+            _context = context;
         }
 
         /// <summary>
@@ -255,6 +260,15 @@ namespace StudentPeformanceTracker.Controllers
             try
             {
                 var sectionSubjects = await _sectionSubjectRepository.GetByTeacherIdAsync(teacherId);
+                
+                // Get actual student counts for each section subject
+                var sectionSubjectIds = sectionSubjects.Select(ss => ss.Id).ToList();
+                var studentCounts = await _context.StudentSubjects
+                    .Where(ss => sectionSubjectIds.Contains(ss.SectionSubjectId) && 
+                           (ss.Status == "Enrolled" || ss.Status == "Pending"))
+                    .GroupBy(ss => ss.SectionSubjectId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Count());
+                
                 var result = sectionSubjects.Select(ss => new
                 {
                     ss.Id,
@@ -274,7 +288,7 @@ namespace StudentPeformanceTracker.Controllers
                     ss.EdpCode,
                     ss.MaxStudents,
                     ss.CurrentEnrollment,
-                    StudentCount = ss.CurrentEnrollment,
+                    StudentCount = studentCounts.GetValueOrDefault(ss.Id, 0),
                     ss.IsActive,
                     ss.CreatedAt,
                     ss.UpdatedAt

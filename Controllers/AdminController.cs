@@ -1,6 +1,8 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using StudentPeformanceTracker.Data;
 using StudentPeformanceTracker.Models;
 using StudentPeformanceTracker.Repository.Interfaces;
 using System.ComponentModel.DataAnnotations;
@@ -20,6 +22,8 @@ public class AdminController : ControllerBase
     private readonly IStudentRepository _studentRepository;
     private readonly IDepartmentRepository _departmentRepository;
     private readonly ICourseRepository _courseRepository;
+    private readonly ISectionSubjectRepository _sectionSubjectRepository;
+    private readonly AppDbContext _context;
 
     public AdminController(
         IAdminRepository adminRepository,
@@ -27,7 +31,9 @@ public class AdminController : ControllerBase
         ITeacherRepository teacherRepository,
         IStudentRepository studentRepository,
         IDepartmentRepository departmentRepository,
-        ICourseRepository courseRepository)
+        ICourseRepository courseRepository,
+        ISectionSubjectRepository sectionSubjectRepository,
+        AppDbContext context)
     {
         _adminRepository = adminRepository;
         _userRepository = userRepository;
@@ -35,6 +41,8 @@ public class AdminController : ControllerBase
         _studentRepository = studentRepository;
         _departmentRepository = departmentRepository;
         _courseRepository = courseRepository;
+        _sectionSubjectRepository = sectionSubjectRepository;
+        _context = context;
     }
 
     [HttpGet("profile")]
@@ -193,6 +201,67 @@ public class AdminController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, new { message = "Error retrieving dashboard statistics", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get section subjects by teacher ID (Admin only - for Analytics page)
+    /// </summary>
+    [HttpGet("sectionsubject/teacher/{teacherId}")]
+    public async Task<ActionResult<IEnumerable<object>>> GetSectionSubjectsByTeacherId(int teacherId)
+    {
+        try
+        {
+            var sectionSubjects = await _sectionSubjectRepository.GetByTeacherIdAsync(teacherId);
+            
+            // Handle empty list case
+            if (sectionSubjects == null || !sectionSubjects.Any())
+            {
+                return Ok(new List<object>());
+            }
+            
+            // Get actual student counts for each section subject
+            var sectionSubjectIds = sectionSubjects.Select(ss => ss.Id).ToList();
+            var studentCounts = new Dictionary<int, int>();
+            
+            if (sectionSubjectIds.Any())
+            {
+                studentCounts = await _context.StudentSubjects
+                    .Where(ss => sectionSubjectIds.Contains(ss.SectionSubjectId) && 
+                           (ss.Status == "Enrolled" || ss.Status == "Pending"))
+                    .GroupBy(ss => ss.SectionSubjectId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Count());
+            }
+            
+            var result = sectionSubjects.Select(ss => new
+            {
+                ss.Id,
+                ss.SectionId,
+                SectionName = ss.Section?.SectionName,
+                ss.SubjectId,
+                SubjectName = ss.Subject?.SubjectName,
+                SubjectDescription = ss.Subject?.Description,
+                ss.TeacherId,
+                TeacherName = ss.Teacher != null ? $"{ss.Teacher.FirstName} {ss.Teacher.LastName}" : "N/A",
+                Schedule = !string.IsNullOrEmpty(ss.ScheduleDay) && !string.IsNullOrEmpty(ss.ScheduleTime) 
+                    ? $"{ss.ScheduleDay} {ss.ScheduleTime}" 
+                    : "TBA",
+                ss.ScheduleDay,
+                ss.ScheduleTime,
+                ss.Room,
+                ss.EdpCode,
+                ss.MaxStudents,
+                ss.CurrentEnrollment,
+                StudentCount = studentCounts.GetValueOrDefault(ss.Id, 0),
+                ss.IsActive,
+                ss.CreatedAt,
+                ss.UpdatedAt
+            });
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving section subjects", error = ex.Message, stackTrace = ex.StackTrace });
         }
     }
 }

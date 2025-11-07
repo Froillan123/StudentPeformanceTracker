@@ -357,62 +357,83 @@
         // Load announcements
         async function loadAnnouncements(studentId) {
             try {
-                // For now, show placeholder announcements since we don't have announcements API yet
-                displayPlaceholderAnnouncements();
+                const response = await fetch('/api/v1/announcement', { credentials: 'include' });
+                if (response.ok) {
+                    const announcements = await response.json();
+                    displayAnnouncements(announcements);
+                } else {
+                    displayEmptyState();
+                }
             } catch (error) {
                 console.error('Error loading announcements:', error);
                 displayEmptyState();
             }
         }
 
-        // Display placeholder announcements (until announcements system is implemented)
-        function displayPlaceholderAnnouncements() {
+        // Display announcements
+        function displayAnnouncements(announcements) {
             const container = document.getElementById('announcementsContainer');
             if (!container) return;
 
-            const placeholderAnnouncements = [
-                {
-                    title: 'Midterm Exam Schedule',
-                    content: 'The midterm examinations will be held from January 22-26, 2024. Please check your individual schedules.',
-                    date: 'January 15, 2024',
-                    badge: 'Important',
-                    badgeClass: 'bg-primary'
-                },
-                {
-                    title: 'Library Hours Extended',
-                    content: 'The library will be open until 10 PM during the examination period to accommodate students.',
-                    date: 'January 14, 2024',
-                    badge: 'General',
-                    badgeClass: 'bg-info'
-                },
-                {
-                    title: 'Project Submission Deadline',
-                    content: 'All project submissions for Software Engineering course are due on January 25, 2024.',
-                    date: 'January 13, 2024',
-                    badge: 'Reminder',
-                    badgeClass: 'bg-warning'
-                }
-            ];
+            if (!announcements || announcements.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <i class="fas fa-bullhorn fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">No Announcements</h4>
+                        <p class="text-muted">There are no announcements at this time.</p>
+                    </div>
+                `;
+                return;
+            }
 
             container.innerHTML = '';
 
-            placeholderAnnouncements.forEach(announcement => {
+            announcements.forEach(announcement => {
+                const priorityClass = announcement.priority === 'Urgent' ? 'urgent' : 
+                                     announcement.priority === 'Important' ? 'important' : '';
+                const badgeClass = announcement.priority === 'Urgent' ? 'bg-danger' : 
+                                  announcement.priority === 'Important' ? 'bg-warning' : 'bg-primary';
+                const formattedDate = new Date(announcement.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
                 const col = document.createElement('div');
                 col.className = 'col-md-12 mb-3';
                 
                 col.innerHTML = `
-                    <div class="card">
+                    <div class="card ${priorityClass}" style="border-left: 4px solid ${announcement.priority === 'Urgent' ? '#f44336' : announcement.priority === 'Important' ? '#FF9800' : '#2196F3'};">
                         <div class="card-body">
-                            <h5 class="card-title">${announcement.title}</h5>
-                            <p class="card-text">${announcement.content}</p>
-                            <small class="text-muted">Posted on: ${announcement.date}</small>
-                            <span class="badge ${announcement.badgeClass} ms-2">${announcement.badge}</span>
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title mb-0">${escapeHtml(announcement.title)}</h5>
+                                <span class="badge ${badgeClass}">${announcement.priority}</span>
+                            </div>
+                            <p class="card-text mb-2">${escapeHtml(announcement.content)}</p>
+                            <small class="text-muted d-block mb-2">
+                                <i class="fas fa-book me-1"></i><strong>Class:</strong> ${escapeHtml(announcement.sectionName || 'Unknown')} - ${escapeHtml(announcement.subjectName || 'Unknown')}
+                            </small>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-user me-1"></i>${escapeHtml(announcement.teacherName)}
+                                    <i class="fas fa-calendar ms-3 me-1"></i>${formattedDate}
+                                </small>
+                            </div>
                         </div>
                     </div>
                 `;
                 
                 container.appendChild(col);
             });
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         // Display empty state

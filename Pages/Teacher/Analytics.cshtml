@@ -15,6 +15,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         :root {
             --primary-color: #2196F3;
@@ -178,6 +180,60 @@
             border-radius: 50%;
             object-fit: cover;
         }
+
+        .stat-card {
+            text-align: center;
+            padding: 1.5rem;
+            border-radius: 8px;
+            color: white;
+            margin-bottom: 1.5rem;
+        }
+        
+        .stat-card.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .stat-card.success {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .stat-card.info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .stat-card.warning {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            display: block;
+            line-height: 1;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-top: 0.5rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 1rem;
+        }
+
+        .chart-container-large {
+            position: relative;
+            height: 400px;
+            margin-bottom: 1rem;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 3rem;
+        }
     </style>
 </head>
 <body>
@@ -190,8 +246,14 @@
         <header class="dashboard-header">
             <div class="container">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h1 class="h3 mb-0">Analytics</h1>
-                    <div class="d-flex align-items-center">
+                    <h1 class="h3 mb-0"><i class="fas fa-chart-bar me-2"></i>Analytics Dashboard</h1>
+                    <div class="d-flex align-items-center gap-3">
+                        <button class="btn btn-success" onclick="exportToExcel()">
+                            <i class="fas fa-file-excel me-2"></i>Export Excel
+                        </button>
+                        <button class="btn btn-danger" onclick="exportToPdf()">
+                            <i class="fas fa-file-pdf me-2"></i>Export PDF
+                        </button>
                         <div class="dropdown">
                             <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                 <img src="https://ui-avatars.com/api/?name=Loading&background=2196F3&color=fff" class="user-avatar me-2" id="headerAvatar">
@@ -211,32 +273,109 @@
 
         <!-- Page Content -->
         <main class="container my-4">
-            <!-- Analytics Content -->
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stat-card primary">
+                        <i class="fas fa-book fa-2x mb-2"></i>
+                        <span class="stat-number" id="totalClasses">-</span>
+                        <span class="stat-label">Total Classes</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card success">
+                        <i class="fas fa-user-graduate fa-2x mb-2"></i>
+                        <span class="stat-number" id="totalStudents">-</span>
+                        <span class="stat-label">Total Students</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card info">
+                        <i class="fas fa-graduation-cap fa-2x mb-2"></i>
+                        <span class="stat-number" id="averageGrade">-</span>
+                        <span class="stat-label">Average Grade</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card warning">
+                        <i class="fas fa-percentage fa-2x mb-2"></i>
+                        <span class="stat-number" id="passRate">-</span>
+                        <span class="stat-label">Pass Rate</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 1: Grade Distribution & Pass/Fail Rate -->
+            <div class="row mb-4">
+                <div class="col-md-6">
             <div class="card-custom">
-                <h3 class="section-title">Class Performance Analytics</h3>
-                <div class="row">
+                        <h3 class="section-title"><i class="fas fa-chart-pie me-2"></i>Grade Distribution</h3>
+                        <div class="chart-container">
+                            <canvas id="gradeDistributionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
                     <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Student Performance Overview</h5>
-                                <p class="card-text">Track student progress and identify areas for improvement.</p>
-                                <div class="mt-3">
-                                    <span class="badge bg-success">Average Grade: 87.5%</span>
-                                    <span class="badge bg-info">Total Students: 120</span>
+                    <div class="card-custom">
+                        <h3 class="section-title"><i class="fas fa-chart-pie me-2"></i>Pass/Fail Rate</h3>
+                        <div class="chart-container">
+                            <canvas id="passFailChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: Class Performance Comparison -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card-custom">
+                        <h3 class="section-title"><i class="fas fa-chart-bar me-2"></i>Average Grade by Class</h3>
+                        <div class="chart-container-large">
+                            <canvas id="classPerformanceChart"></canvas>
+                        </div>
+                    </div>
                                 </div>
+            </div>
+
+            <!-- Row 3: Grade Range Distribution & Grade Trends -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card-custom">
+                        <h3 class="section-title"><i class="fas fa-chart-bar me-2"></i>Grade Range Distribution</h3>
+                        <div class="chart-container">
+                            <canvas id="gradeRangeChart"></canvas>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Assignment Analytics</h5>
-                                <p class="card-text">Monitor assignment completion rates and grading patterns.</p>
-                                <div class="mt-3">
-                                    <span class="badge bg-warning">Pending: 15</span>
-                                    <span class="badge bg-primary">Completed: 85</span>
+                    <div class="card-custom">
+                        <h3 class="section-title"><i class="fas fa-chart-line me-2"></i>Grade Trends Over Time</h3>
+                        <div class="chart-container">
+                            <canvas id="gradeTrendsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 4: Student Performance by Class -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card-custom">
+                        <h3 class="section-title"><i class="fas fa-chart-line me-2"></i>Student Performance by Class</h3>
+                        <div class="chart-container-large">
+                            <canvas id="studentPerformanceChart"></canvas>
+                        </div>
+                    </div>
                                 </div>
                             </div>
+
+            <!-- Row 5: Midterm vs Final Grade Comparison -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card-custom">
+                        <h3 class="section-title"><i class="fas fa-balance-scale me-2"></i>Midterm vs Final Grade Comparison</h3>
+                        <div class="chart-container-large">
+                            <canvas id="midtermFinalChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -248,23 +387,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Toggle sidebar functionality
-        document.getElementById('toggleBtn').addEventListener('click', function() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('mainContent');
-            const toggleIcon = this.querySelector('i');
-            
-            sidebar.classList.toggle('collapsed');
-            mainContent.classList.toggle('expanded');
-            
-            if (sidebar.classList.contains('collapsed')) {
-                toggleIcon.classList.remove('fa-chevron-left');
-                toggleIcon.classList.add('fa-chevron-right');
-            } else {
-                toggleIcon.classList.remove('fa-chevron-right');
-                toggleIcon.classList.add('fa-chevron-left');
-            }
-        });
+        let currentTeacherId = null;
+        let allAnalyticsData = null;
+        let charts = {};
         
         // Load teacher data on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -274,15 +399,21 @@
         // Load teacher data from API
         async function loadTeacherData() {
             try {
-                const response = await fetch('/api/v1/teacher/profile');
+                const response = await fetch('/api/v1/teacher/profile', {
+                    credentials: 'include'
+                });
                 if (response.ok) {
                     const teacherData = await response.json();
+                    currentTeacherId = teacherData.id;
                     updateHeader(teacherData);
+                    await loadAnalyticsData(teacherData.id);
                 } else {
                     console.error('Failed to load teacher data');
+                    document.getElementById('headerName').textContent = 'Error loading profile';
                 }
             } catch (error) {
                 console.error('Error loading teacher data:', error);
+                document.getElementById('headerName').textContent = 'Error loading profile';
             }
         }
 
@@ -293,19 +424,475 @@
             document.getElementById('headerAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2196F3&color=fff`;
         }
 
-        // Set active menu item
-        document.querySelectorAll('.sidebar-menu a').forEach(item => {
-            if (item.getAttribute('href') === window.location.pathname) {
-                item.classList.add('active');
-            }
-            
-            item.addEventListener('click', function() {
-                document.querySelectorAll('.sidebar-menu a').forEach(link => {
-                    link.classList.remove('active');
+        // Load all analytics data
+        async function loadAnalyticsData(teacherId) {
+            try {
+                // Get teacher's classes
+                const classesResponse = await fetch(`/api/v1/sectionsubject/teacher/${teacherId}`, {
+                    credentials: 'include'
                 });
-                this.classList.add('active');
+                
+                if (!classesResponse.ok) {
+                    throw new Error('Failed to load classes');
+                }
+
+                const classes = await classesResponse.json();
+                const analyticsData = {
+                    classes: classes || [],
+                    students: [],
+                    grades: []
+                };
+
+                // Get students and grades for each class
+                for (const classItem of analyticsData.classes) {
+                    try {
+                        const studentsResponse = await fetch(`/api/v1/studentsubject/sectionsubject/${classItem.id}`, {
+                            credentials: 'include'
+                        });
+                        
+                        if (studentsResponse.ok) {
+                            const students = await studentsResponse.json();
+                            const enrolledStudents = students ? students.filter(s => s.status === 'Enrolled' || s.status === 'Pending') : [];
+                            
+                            for (const student of enrolledStudents) {
+                                const studentWithClass = {
+                                    ...student,
+                                    className: classItem.subjectName || 'N/A',
+                                    sectionName: classItem.sectionName || 'N/A',
+                                    classId: classItem.id
+                                };
+                                analyticsData.students.push(studentWithClass);
+
+                                try {
+                                    const gradesResponse = await fetch(`/api/v1/grade/studentsubject/${student.id}`, {
+                                        credentials: 'include'
+                                    });
+                                    
+                                    if (gradesResponse.ok) {
+                                        const grades = await gradesResponse.json();
+                                        for (const grade of grades) {
+                                            analyticsData.grades.push({
+                                                ...grade,
+                                                studentName: student.studentName || student.StudentName || 'N/A',
+                                                className: classItem.subjectName || 'N/A',
+                                                sectionName: classItem.sectionName || 'N/A',
+                                                classId: classItem.id
+                                            });
+                                        }
+                                    }
+                                } catch (error) {
+                                    console.error(`Error loading grades for student ${student.id}:`, error);
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`Error loading students for class ${classItem.id}:`, error);
+                    }
+                }
+
+                allAnalyticsData = analyticsData;
+                updateStatistics(analyticsData);
+                renderAllCharts(analyticsData);
+            } catch (error) {
+                console.error('Error loading analytics data:', error);
+            }
+        }
+
+        // Update statistics cards
+        function updateStatistics(data) {
+            const totalClasses = data.classes.length;
+            const totalStudents = data.students.length;
+            
+            // Calculate average grade
+            const allGradePoints = data.grades.map(g => parseFloat(g.gradePoint) || 0).filter(g => g > 0);
+            const averageGrade = allGradePoints.length > 0 
+                ? (allGradePoints.reduce((a, b) => a + b, 0) / allGradePoints.length).toFixed(2)
+                : '0.00';
+
+            // Calculate pass rate (grade <= 3.0 is pass)
+            const passCount = allGradePoints.filter(g => g <= 3.0).length;
+            const passRate = allGradePoints.length > 0 
+                ? ((passCount / allGradePoints.length) * 100).toFixed(1)
+                : '0.0';
+
+            document.getElementById('totalClasses').textContent = totalClasses;
+            document.getElementById('totalStudents').textContent = totalStudents;
+            document.getElementById('averageGrade').textContent = averageGrade;
+            document.getElementById('passRate').textContent = passRate + '%';
+        }
+
+        // Render all charts
+        function renderAllCharts(data) {
+            renderGradeDistributionChart(data);
+            renderPassFailChart(data);
+            renderClassPerformanceChart(data);
+            renderGradeRangeChart(data);
+            renderGradeTrendsChart(data);
+            renderStudentPerformanceChart(data);
+            renderMidtermFinalChart(data);
+        }
+
+        // Grade Distribution Chart (Pie)
+        function renderGradeDistributionChart(data) {
+            const ctx = document.getElementById('gradeDistributionChart').getContext('2d');
+            
+            const gradeRanges = {
+                'Excellent (1.0-1.5)': 0,
+                'Very Good (1.6-2.0)': 0,
+                'Good (2.1-2.5)': 0,
+                'Pass (2.6-3.0)': 0,
+                'Failed (3.1-5.0)': 0
+            };
+
+            data.grades.forEach(grade => {
+                const gp = parseFloat(grade.gradePoint) || 0;
+                if (gp >= 1.0 && gp <= 1.5) gradeRanges['Excellent (1.0-1.5)']++;
+                else if (gp > 1.5 && gp <= 2.0) gradeRanges['Very Good (1.6-2.0)']++;
+                else if (gp > 2.0 && gp <= 2.5) gradeRanges['Good (2.1-2.5)']++;
+                else if (gp > 2.5 && gp <= 3.0) gradeRanges['Pass (2.6-3.0)']++;
+                else if (gp > 3.0 && gp <= 5.0) gradeRanges['Failed (3.1-5.0)']++;
             });
-        });
+
+            if (charts.gradeDistribution) charts.gradeDistribution.destroy();
+
+            charts.gradeDistribution = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(gradeRanges),
+                    datasets: [{
+                        data: Object.values(gradeRanges),
+                        backgroundColor: [
+                            '#4CAF50',
+                            '#8BC34A',
+                            '#FFC107',
+                            '#FF9800',
+                            '#F44336'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Pass/Fail Chart (Doughnut)
+        function renderPassFailChart(data) {
+            const ctx = document.getElementById('passFailChart').getContext('2d');
+            
+            const allGradePoints = data.grades.map(g => parseFloat(g.gradePoint) || 0).filter(g => g > 0);
+            const passCount = allGradePoints.filter(g => g <= 3.0).length;
+            const failCount = allGradePoints.filter(g => g > 3.0).length;
+
+            if (charts.passFail) charts.passFail.destroy();
+
+            charts.passFail = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Passed', 'Failed'],
+                    datasets: [{
+                        data: [passCount, failCount],
+                        backgroundColor: ['#4CAF50', '#F44336']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Class Performance Chart (Bar)
+        function renderClassPerformanceChart(data) {
+            const ctx = document.getElementById('classPerformanceChart').getContext('2d');
+            
+            const classAverages = {};
+            data.classes.forEach(cls => {
+                const classGrades = data.grades.filter(g => g.classId === cls.id);
+                if (classGrades.length > 0) {
+                    const avg = classGrades.reduce((sum, g) => sum + (parseFloat(g.gradePoint) || 0), 0) / classGrades.length;
+                    classAverages[cls.subjectName || 'N/A'] = avg.toFixed(2);
+                }
+            });
+
+            if (charts.classPerformance) charts.classPerformance.destroy();
+
+            charts.classPerformance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(classAverages),
+                    datasets: [{
+                        label: 'Average Grade',
+                        data: Object.values(classAverages),
+                        backgroundColor: '#2196F3',
+                        borderColor: '#1976D2',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 5.0,
+                            ticks: {
+                                stepSize: 0.5
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Grade Range Distribution (Bar)
+        function renderGradeRangeChart(data) {
+            const ctx = document.getElementById('gradeRangeChart').getContext('2d');
+            
+            const ranges = {
+                '1.0-1.5': 0,
+                '1.6-2.0': 0,
+                '2.1-2.5': 0,
+                '2.6-3.0': 0,
+                '3.1-3.5': 0,
+                '3.6-4.0': 0,
+                '4.1-4.5': 0,
+                '4.6-5.0': 0
+            };
+
+            data.grades.forEach(grade => {
+                const gp = parseFloat(grade.gradePoint) || 0;
+                if (gp >= 1.0 && gp <= 1.5) ranges['1.0-1.5']++;
+                else if (gp > 1.5 && gp <= 2.0) ranges['1.6-2.0']++;
+                else if (gp > 2.0 && gp <= 2.5) ranges['2.1-2.5']++;
+                else if (gp > 2.5 && gp <= 3.0) ranges['2.6-3.0']++;
+                else if (gp > 3.0 && gp <= 3.5) ranges['3.1-3.5']++;
+                else if (gp > 3.5 && gp <= 4.0) ranges['3.6-4.0']++;
+                else if (gp > 4.0 && gp <= 4.5) ranges['4.1-4.5']++;
+                else if (gp > 4.5 && gp <= 5.0) ranges['4.6-5.0']++;
+            });
+
+            if (charts.gradeRange) charts.gradeRange.destroy();
+
+            charts.gradeRange = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(ranges),
+                    datasets: [{
+                        label: 'Number of Grades',
+                        data: Object.values(ranges),
+                        backgroundColor: '#FF9800',
+                        borderColor: '#F57C00',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Grade Trends Over Time (Line)
+        function renderGradeTrendsChart(data) {
+            const ctx = document.getElementById('gradeTrendsChart').getContext('2d');
+            
+            // Group grades by month
+            const monthlyData = {};
+            data.grades.forEach(grade => {
+                const date = new Date(grade.dateGiven || grade.createdAt);
+                const monthKey = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+                if (!monthlyData[monthKey]) {
+                    monthlyData[monthKey] = [];
+                }
+                monthlyData[monthKey].push(parseFloat(grade.gradePoint) || 0);
+            });
+
+            const months = Object.keys(monthlyData).sort();
+            const averages = months.map(month => {
+                const grades = monthlyData[month];
+                return grades.reduce((a, b) => a + b, 0) / grades.length;
+            });
+
+            if (charts.gradeTrends) charts.gradeTrends.destroy();
+
+            charts.gradeTrends = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Average Grade',
+                        data: averages,
+                        borderColor: '#9C27B0',
+                        backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 5.0
+                        }
+                    }
+                }
+            });
+        }
+
+        // Student Performance by Class (Line)
+        function renderStudentPerformanceChart(data) {
+            const ctx = document.getElementById('studentPerformanceChart').getContext('2d');
+            
+            const classData = {};
+            data.classes.forEach(cls => {
+                const classGrades = data.grades.filter(g => g.classId === cls.id);
+                if (classGrades.length > 0) {
+                    const midtermGrades = classGrades.filter(g => g.assessmentType === 'Midterm');
+                    const finalGrades = classGrades.filter(g => g.assessmentType === 'Final Grade');
+                    
+                    const midtermAvg = midtermGrades.length > 0
+                        ? midtermGrades.reduce((sum, g) => sum + (parseFloat(g.gradePoint) || 0), 0) / midtermGrades.length
+                        : 0;
+                    const finalAvg = finalGrades.length > 0
+                        ? finalGrades.reduce((sum, g) => sum + (parseFloat(g.gradePoint) || 0), 0) / finalGrades.length
+                        : 0;
+                    
+                    classData[cls.subjectName || 'N/A'] = {
+                        midterm: midtermAvg.toFixed(2),
+                        final: finalAvg.toFixed(2)
+                    };
+                }
+            });
+
+            if (charts.studentPerformance) charts.studentPerformance.destroy();
+
+            charts.studentPerformance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(classData),
+                    datasets: [
+                        {
+                            label: 'Midterm Average',
+                            data: Object.values(classData).map(d => d.midterm),
+                            borderColor: '#2196F3',
+                            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Final Average',
+                            data: Object.values(classData).map(d => d.final),
+                            borderColor: '#4CAF50',
+                            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 5.0
+                        }
+                    }
+                }
+            });
+        }
+
+        // Midterm vs Final Grade Comparison (Bar)
+        function renderMidtermFinalChart(data) {
+            const ctx = document.getElementById('midtermFinalChart').getContext('2d');
+            
+            const midtermGrades = data.grades.filter(g => g.assessmentType === 'Midterm');
+            const finalGrades = data.grades.filter(g => g.assessmentType === 'Final Grade');
+            
+            const midtermAvg = midtermGrades.length > 0
+                ? (midtermGrades.reduce((sum, g) => sum + (parseFloat(g.gradePoint) || 0), 0) / midtermGrades.length).toFixed(2)
+                : 0;
+            const finalAvg = finalGrades.length > 0
+                ? (finalGrades.reduce((sum, g) => sum + (parseFloat(g.gradePoint) || 0), 0) / finalGrades.length).toFixed(2)
+                : 0;
+
+            if (charts.midtermFinal) charts.midtermFinal.destroy();
+
+            charts.midtermFinal = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Midterm', 'Final Grade'],
+                    datasets: [{
+                        label: 'Average Grade',
+                        data: [midtermAvg, finalAvg],
+                        backgroundColor: ['#2196F3', '#4CAF50'],
+                        borderColor: ['#1976D2', '#388E3C'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 5.0,
+                            ticks: {
+                                stepSize: 0.5
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Export to PDF
+        function exportToPdf() {
+            if (!currentTeacherId) {
+                alert('Teacher data not loaded. Please wait...');
+                return;
+            }
+            window.location.href = `/api/v1/report/teacher/${currentTeacherId}/analytics/pdf`;
+        }
+
+        // Export to Excel
+        function exportToExcel() {
+            if (!currentTeacherId) {
+                alert('Teacher data not loaded. Please wait...');
+                return;
+            }
+            window.location.href = `/api/v1/report/teacher/${currentTeacherId}/analytics/excel`;
+        }
     </script>
 </body>
 </html>

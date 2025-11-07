@@ -19,17 +19,51 @@
     <link rel="stylesheet" href="~/css/global.css" asp-append-version="true" />
     
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            height: 100%;
+            overflow-x: hidden;
+        }
+
         .register-container {
             min-height: 100vh;
+            display: flex;
+            padding: 0;
+            margin: 0;
+            width: 100%;
         }
         
         .welcome-section {
-            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/images/welcome_image.png');
-            background-size: contain;
+            background: linear-gradient(rgba(102, 126, 234, 0.6), rgba(118, 75, 162, 0.6)), url('/images/welcome_image.png');
+            background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 3rem;
+            width: 50%;
+            min-height: 100vh;
         }
 
+        .welcome-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .welcome-section h1, 
+        .welcome-section h2,
+        .welcome-section p {
+            position: relative;
+            z-index: 2;
+        }
         
         .btn-primary-custom {
             background-color: #4a6bff;
@@ -47,6 +81,7 @@
             transform: translateY(-1px);
             box-shadow: 0 4px 8px rgba(74, 107, 255, 0.3);
         }
+
         
         .form-control:focus {
             border-color: #4a6bff;
@@ -92,25 +127,58 @@
             color: #4a6bff;
             font-weight: 600;
         }
+
+        .form-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background-color: #ffffff;
+            width: 50%;
+            min-height: 100vh;
+        }
+
+        @@media (max-width: 768px) {
+            .register-container {
+                flex-direction: column;
+            }
+            
+            .welcome-section {
+                width: 100%;
+                min-height: 40vh;
+            }
+
+            .form-container {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container-fluid register-container">
-        <div class="row h-100">
-            <!-- Left Section - Welcome -->
-            <div class="col-lg-6 col-md-12 p-4 d-flex align-items-stretch">
-                <div class="welcome-section w-100 rounded-3 d-flex flex-column justify-content-between text-white p-5">
-                    <div>
+    <div class="register-container">
+        <!-- Left Section - Welcome with Image -->
+        <div class="welcome-section text-white">
+            <div class="welcome-content">
                         <h2 class="mb-2 fs-3 fw-normal">Welcome to</h2>
-                        <h1 class="mb-4 fw-bold display-5">GRADIA</h1>
-                    </div>
+                <h1 class="mb-4 fw-bold display-4">GRADIA</h1>
+                <p class="fs-5 mb-4">Your Student Performance Tracker</p>
                 </div>
             </div>
 
             <!-- Right Section - Registration Form -->
-            <div class="col-lg-6 col-md-12 p-4 d-flex align-items-center justify-content-center">
+        <div class="form-container">
                 <div class="w-100" style="max-width: 500px;">
-                    <h2 class="fw-bold m-3 text-center">REGISTER</h2>
+                <div class="text-center mb-4">
+                    <h2 class="fw-bold mb-2">REGISTER</h2>
+                    <p class="text-muted">Create your student account</p>
+                </div>
+                
+                <!-- Back to Login button -->
+                <div class="text-center mb-3">
+                    <a asp-page="/LoginPage" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Login
+                    </a>
+                </div>
                     
                     @if (!string.IsNullOrEmpty(Model.ErrorMessage))
                     {
@@ -142,49 +210,51 @@
                     <form method="post" id="registrationForm">
                         <!-- Step 1: Personal Information -->
                         <div class="form-section active" id="step1">
-                            <h5 class="fw-bold mb-3">Personal Information</h5>
+                            <h5 class="fw-bold mb-3">
+                                <i class="fas fa-user me-2"></i>Personal Information
+                            </h5>
                             
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">
-                                        <i class="fas fa-user me-2"></i>First Name
-                                    </label>
+                                    <label class="form-label fw-bold">First Name *</label>
                                     <input type="text" class="form-control" name="FirstName" placeholder="Enter First Name" required>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">
-                                        <i class="fas fa-user me-2"></i>Last Name
-                                    </label>
+                                    <label class="form-label fw-bold">Last Name *</label>
                                     <input type="text" class="form-control" name="LastName" placeholder="Enter Last Name" required>
                                 </div>
                             </div>
                             
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Middle Name</label>
-                                <input type="text" class="form-control" name="MiddleName" placeholder="Enter Middle Name">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">
+                                        <i class="fas fa-envelope me-2"></i>Email Address *
+                                    </label>
+                                    <input type="email" class="form-control" name="Email" placeholder="Enter Email Address" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">
+                                        <i class="fas fa-phone me-2"></i>Phone Number
+                                    </label>
+                                    <input type="tel" class="form-control" name="Phone" placeholder="Enter Phone Number">
+                                </div>
                             </div>
                             
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Date of Birth</label>
-                                <input type="date" class="form-control" name="DateOfBirth">
-                            </div>
+                            <hr class="my-4">
+
+                            <h5 class="fw-bold mb-3">
+                                <i class="fas fa-graduation-cap me-2"></i>Academic Information
+                            </h5>
 
                             <div class="mb-3">
-                                <label class="form-label fw-bold">Department</label>
-                                <select class="form-select" name="DepartmentId" id="departmentSelect" required onchange="loadCourses()">
-                                    <option value="" disabled selected>Select your Department</option>
+                                <label class="form-label fw-bold">Course *</label>
+                                <select class="form-select" name="CourseId" id="courseSelect" required>
+                                    <option value="" disabled selected>Select Course</option>
                                 </select>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label fw-bold">Course</label>
-                                <select class="form-select" name="CourseId" id="courseSelect" required disabled>
-                                    <option value="" disabled selected>Select your Course</option>
-                                </select>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Year Level</label>
+                                <label class="form-label fw-bold">Year Level *</label>
                                 <select class="form-select" name="YearLevel" required>
                                     <option value="" disabled selected>Select Year Level</option>
                                     <option value="1">1st Year</option>
@@ -195,27 +265,6 @@
                                 </select>
                             </div>
 
-                            <hr class="my-4">
-
-                            <h5 class="fw-bold mb-3">Contact Information</h5>
-                            
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-envelope me-2"></i>Email Address
-                                </label>
-                                <input type="email" class="form-control" name="Email" placeholder="Enter Email Address" required>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-phone me-2"></i>Contact Number
-                                </label>
-                                <div class="input-group">
-                                    <span class="input-group-text">+63</span>
-                                    <input type="tel" class="form-control" name="ContactNumber" placeholder="Enter contact number" required>
-                                </div>
-                            </div>
-
                             <button type="button" class="btn btn-primary-custom text-white w-100 rounded-2 fw-semibold mt-3" onclick="nextStep()">
                                 <i class="fas fa-arrow-right me-2"></i>Proceed
                             </button>
@@ -223,37 +272,39 @@
 
                         <!-- Step 2: Account Information -->
                         <div class="form-section" id="step2">
-                            <h3 class="fw-bold mb-3">Account Information</h3>
+                            <h5 class="fw-bold mb-3">
+                                <i class="fas fa-user-lock me-2"></i>Account Information
+                            </h5>
                             
                             <div class="mb-3">
                                 <label class="form-label fw-bold">
-                                    <i class="fas fa-id-card me-2"></i>Student Number
+                                    <i class="fas fa-id-card me-2"></i>Student Number *
                                 </label>
                                 <div class="input-group">
-                                    <span class="input-group-text">ucmm-</span>
+                                    <span class="input-group-text">ucmn-</span>
                                     <input type="text" class="form-control" name="StudentNumber" placeholder="Enter your Student Number" required>
                                 </div>
                             </div>
                             
                             <div class="mb-3">
                                 <label class="form-label fw-bold">
-                                    <i class="fas fa-user-circle me-2"></i>Username
+                                    <i class="fas fa-user-circle me-2"></i>Username *
                                 </label>
                                 <input type="text" class="form-control" name="Username" placeholder="Enter your Username" required>
                             </div>
                             
                             <div class="mb-3">
                                 <label class="form-label fw-bold">
-                                    <i class="fas fa-lock me-2"></i>Password
+                                    <i class="fas fa-lock me-2"></i>Password *
                                 </label>
-                                <input type="password" class="form-control" name="Password" placeholder="Enter your Password">
+                                <input type="password" class="form-control" name="Password" placeholder="Enter your Password" required>
                             </div>
                             
                             <div class="mb-3">
                                 <label class="form-label fw-bold">
-                                    <i class="fas fa-lock me-2"></i>Confirm Password
+                                    <i class="fas fa-lock me-2"></i>Confirm Password *
                                 </label>
-                                <input type="password" class="form-control" name="ConfirmPassword" placeholder="Enter your Confirm Password">
+                                <input type="password" class="form-control" name="ConfirmPassword" placeholder="Confirm your Password" required>
                             </div>
 
                             <button type="submit" class="btn btn-primary-custom text-white w-100 rounded-2 fw-semibold mt-3">
@@ -320,61 +371,27 @@
             const backButton = document.createElement('button');
             backButton.type = 'button';
             backButton.className = 'btn btn-outline-secondary w-100 rounded-2 fw-semibold mt-2';
-            backButton.innerHTML = 'Back';
+            backButton.innerHTML = '<i class="fas fa-arrow-left me-2"></i>Back';
             backButton.onclick = prevStep;
             
             const submitButton = step2Section.querySelector('button[type="submit"]');
             submitButton.parentNode.insertBefore(backButton, submitButton.nextSibling);
 
-            // Load departments on page load
-            loadDepartments();
+            // Load courses on page load
+            loadCourses();
         });
 
-        // Load departments from API
-        async function loadDepartments() {
-            try {
-                const response = await fetch('/api/v1/department');
-                if (response.ok) {
-                    const departments = await response.json();
-                    const departmentSelect = document.getElementById('departmentSelect');
-                    
-                    // Clear existing options except the first one
-                    while (departmentSelect.children.length > 1) {
-                        departmentSelect.removeChild(departmentSelect.lastChild);
-                    }
-                    
-                    departments.forEach(dept => {
-                        const option = document.createElement('option');
-                        option.value = dept.id;
-                        option.textContent = dept.departmentName;
-                        departmentSelect.appendChild(option);
-                    });
-                } else {
-                    console.error('Failed to load departments');
-                }
-            } catch (error) {
-                console.error('Error loading departments:', error);
-            }
-        }
-
-        // Load courses based on selected department
+        // Load courses from API
         async function loadCourses() {
-            const departmentId = document.getElementById('departmentSelect').value;
-            const courseSelect = document.getElementById('courseSelect');
-            
-            if (!departmentId) {
-                courseSelect.disabled = true;
-                courseSelect.innerHTML = '<option value="" disabled selected>Select your Course</option>';
-                return;
-            }
-
             try {
-                const response = await fetch(`/api/v1/course/department/${departmentId}`);
+                const response = await fetch('/api/v1/course');
                 if (response.ok) {
-                    const courses = await response.json();
+                    let coursesRaw = await response.json();
+                    let courses = Array.isArray(coursesRaw) ? coursesRaw : (Array.isArray(coursesRaw.data) ? coursesRaw.data : []);
+            const courseSelect = document.getElementById('courseSelect');
                     
                     // Clear existing options except the first one
-                    courseSelect.innerHTML = '<option value="" disabled selected>Select your Course</option>';
+                    courseSelect.innerHTML = '<option value="" disabled selected>Select Course</option>';
                     
                     courses.forEach(course => {
                         const option = document.createElement('option');
@@ -382,17 +399,15 @@
                         option.textContent = course.courseName;
                         courseSelect.appendChild(option);
                     });
-                    
-                    courseSelect.disabled = false;
                 } else {
                     console.error('Failed to load courses');
-                    courseSelect.disabled = true;
                 }
             } catch (error) {
                 console.error('Error loading courses:', error);
-                courseSelect.disabled = true;
             }
         }
     </script>
 </body>
+</html>
+</html>
 </html>

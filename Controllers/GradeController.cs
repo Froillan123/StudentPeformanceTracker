@@ -34,9 +34,7 @@ public class GradeController : ControllerBase
                 SectionName = g.StudentSubject?.SectionSubject?.Section?.SectionName,
                 g.AssessmentType,
                 g.AssessmentName,
-                g.Score,
-                g.MaxScore,
-                g.Percentage,
+                g.GradePoint,
                 g.Remarks,
                 g.DateGiven,
                 g.CreatedAt,
@@ -64,9 +62,7 @@ public class GradeController : ControllerBase
                 SubjectName = g.StudentSubject?.SectionSubject?.Subject?.SubjectName,
                 g.AssessmentType,
                 g.AssessmentName,
-                g.Score,
-                g.MaxScore,
-                g.Percentage,
+                g.GradePoint,
                 g.Remarks,
                 g.DateGiven,
                 g.CreatedAt,
@@ -102,9 +98,7 @@ public class GradeController : ControllerBase
                 SubjectName = grade.StudentSubject?.SectionSubject?.Subject?.SubjectName,
                 grade.AssessmentType,
                 grade.AssessmentName,
-                grade.Score,
-                grade.MaxScore,
-                grade.Percentage,
+                grade.GradePoint,
                 grade.Remarks,
                 grade.DateGiven,
                 grade.CreatedAt,
@@ -125,6 +119,18 @@ public class GradeController : ControllerBase
     {
         try
         {
+            // Validate AssessmentType is only Midterm or Final Grade
+            if (request.AssessmentType != "Midterm" && request.AssessmentType != "Final Grade")
+            {
+                return BadRequest(new { message = "AssessmentType must be either 'Midterm' or 'Final Grade'" });
+            }
+
+            // Validate grade point range
+            if (request.GradePoint < 1.0m || request.GradePoint > 5.0m)
+            {
+                return BadRequest(new { message = "Grade point must be between 1.0 and 5.0" });
+            }
+
             // Validate student subject exists
             var studentSubject = await _studentSubjectRepository.GetByIdAsync(request.StudentSubjectId);
             if (studentSubject == null)
@@ -132,29 +138,18 @@ public class GradeController : ControllerBase
                 return NotFound(new { message = "Student subject enrollment not found" });
             }
 
-            if (request.Score < 0 || request.MaxScore <= 0 || request.Score > request.MaxScore)
-            {
-                return BadRequest(new { message = "Invalid score or max score" });
-            }
-
-            // Convert DateGiven to UTC if provided
-            DateTime? dateGivenUtc = null;
-            if (request.DateGiven.HasValue)
-            {
-                dateGivenUtc = request.DateGiven.Value.Kind == DateTimeKind.Utc 
-                    ? request.DateGiven.Value 
-                    : DateTime.SpecifyKind(request.DateGiven.Value, DateTimeKind.Utc);
-            }
+            // Auto-fill AssessmentName if not provided
+            var assessmentName = string.IsNullOrWhiteSpace(request.AssessmentName) 
+                ? (request.AssessmentType == "Midterm" ? "Midterm Grade" : "Final Grade")
+                : request.AssessmentName;
 
             var grade = new Grade
             {
                 StudentSubjectId = request.StudentSubjectId,
                 AssessmentType = request.AssessmentType,
-                AssessmentName = request.AssessmentName,
-                Score = request.Score,
-                MaxScore = request.MaxScore,
-                Remarks = request.Remarks,
-                DateGiven = dateGivenUtc ?? DateTime.UtcNow
+                AssessmentName = assessmentName,
+                GradePoint = request.GradePoint
+                // DateGiven and Remarks are auto-generated in repository
             };
 
             var createdGrade = await _gradeRepository.CreateAsync(grade);
@@ -165,9 +160,7 @@ public class GradeController : ControllerBase
                 createdGrade.StudentSubjectId,
                 createdGrade.AssessmentType,
                 createdGrade.AssessmentName,
-                createdGrade.Score,
-                createdGrade.MaxScore,
-                createdGrade.Percentage,
+                createdGrade.GradePoint,
                 createdGrade.Remarks,
                 createdGrade.DateGiven,
                 createdGrade.CreatedAt,
@@ -188,30 +181,33 @@ public class GradeController : ControllerBase
     {
         try
         {
+            // Validate AssessmentType is only Midterm or Final Grade
+            if (request.AssessmentType != "Midterm" && request.AssessmentType != "Final Grade")
+            {
+                return BadRequest(new { message = "AssessmentType must be either 'Midterm' or 'Final Grade'" });
+            }
+
+            // Validate grade point range
+            if (request.GradePoint < 1.0m || request.GradePoint > 5.0m)
+            {
+                return BadRequest(new { message = "Grade point must be between 1.0 and 5.0" });
+            }
+
             var existingGrade = await _gradeRepository.GetByIdAsync(id);
             if (existingGrade == null)
             {
                 return NotFound(new { message = "Grade not found" });
             }
 
-            if (request.Score < 0 || request.MaxScore <= 0 || request.Score > request.MaxScore)
-            {
-                return BadRequest(new { message = "Invalid score or max score" });
-            }
+            // Auto-fill AssessmentName if not provided
+            var assessmentName = string.IsNullOrWhiteSpace(request.AssessmentName) 
+                ? (request.AssessmentType == "Midterm" ? "Midterm Grade" : "Final Grade")
+                : request.AssessmentName;
 
             existingGrade.AssessmentType = request.AssessmentType;
-            existingGrade.AssessmentName = request.AssessmentName;
-            existingGrade.Score = request.Score;
-            existingGrade.MaxScore = request.MaxScore;
-            existingGrade.Remarks = request.Remarks;
-            
-            // Convert DateGiven to UTC if provided
-            if (request.DateGiven.HasValue)
-            {
-                existingGrade.DateGiven = request.DateGiven.Value.Kind == DateTimeKind.Utc 
-                    ? request.DateGiven.Value 
-                    : DateTime.SpecifyKind(request.DateGiven.Value, DateTimeKind.Utc);
-            }
+            existingGrade.AssessmentName = assessmentName;
+            existingGrade.GradePoint = request.GradePoint;
+            // DateGiven and Remarks are auto-generated in repository
 
             var updatedGrade = await _gradeRepository.UpdateAsync(existingGrade);
 
@@ -221,9 +217,7 @@ public class GradeController : ControllerBase
                 updatedGrade.StudentSubjectId,
                 updatedGrade.AssessmentType,
                 updatedGrade.AssessmentName,
-                updatedGrade.Score,
-                updatedGrade.MaxScore,
-                updatedGrade.Percentage,
+                updatedGrade.GradePoint,
                 updatedGrade.Remarks,
                 updatedGrade.DateGiven,
                 updatedGrade.CreatedAt,
@@ -262,21 +256,17 @@ public class GradeController : ControllerBase
 public class CreateGradeRequest
 {
     public int StudentSubjectId { get; set; }
-    public string AssessmentType { get; set; } = string.Empty; // Quiz, Exam, Project, Assignment
-    public string AssessmentName { get; set; } = string.Empty;
-    public decimal Score { get; set; }
-    public decimal MaxScore { get; set; }
-    public string? Remarks { get; set; }
-    public DateTime? DateGiven { get; set; }
+    public string AssessmentType { get; set; } = string.Empty; // Only "Midterm" or "Final Grade"
+    public string? AssessmentName { get; set; } // Optional, auto-filled if not provided
+    public decimal GradePoint { get; set; } // 1.0 to 5.0
+    // DateGiven and Remarks are auto-generated
 }
 
 public class UpdateGradeRequest
 {
-    public string AssessmentType { get; set; } = string.Empty;
-    public string AssessmentName { get; set; } = string.Empty;
-    public decimal Score { get; set; }
-    public decimal MaxScore { get; set; }
-    public string? Remarks { get; set; }
-    public DateTime? DateGiven { get; set; }
+    public string AssessmentType { get; set; } = string.Empty; // Only "Midterm" or "Final Grade"
+    public string? AssessmentName { get; set; } // Optional, auto-filled if not provided
+    public decimal GradePoint { get; set; } // 1.0 to 5.0
+    // DateGiven and Remarks are auto-generated
 }
 

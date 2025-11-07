@@ -529,6 +529,7 @@
             loadDashboardStats();
             loadStudentManagement();
             loadTeacherManagement();
+            loadPerformanceAnalytics();
         });
 
         // Load admin data from API
@@ -760,58 +761,192 @@
 
         // Additional page-specific JavaScript can go here
 
-        // Initialize performance chart
-        const performanceCtx = document.getElementById('performanceChart').getContext('2d');
-        const performanceChart = new Chart(performanceCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Mathematics', 'Science', 'English', 'History', 'Art', 'PE'],
-                datasets: [{
-                    label: 'Average Grade',
-                    data: [85, 78, 92, 75, 88, 90],
-                    backgroundColor: [
-                        'rgba(52, 152, 219, 0.7)',
-                        'rgba(46, 204, 113, 0.7)',
-                        'rgba(155, 89, 182, 0.7)',
-                        'rgba(241, 196, 15, 0.7)',
-                        'rgba(230, 126, 34, 0.7)',
-                        'rgba(231, 76, 60, 0.7)'
-                    ],
-                    borderColor: [
-                        'rgb(52, 152, 219)',
-                        'rgb(46, 204, 113)',
-                        'rgb(155, 89, 182)',
-                        'rgb(241, 196, 15)',
-                        'rgb(230, 126, 34)',
-                        'rgb(231, 76, 60)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        title: {
-                            display: true,
-                            text: 'Average Grade (%)'
+        // Performance chart variable
+        let performanceChart = null;
+
+        // Load performance analytics data
+        async function loadPerformanceAnalytics() {
+            try {
+                // Get all students first
+                const studentsResponse = await fetch('/api/v1/student?page=1&pageSize=1000', {
+                    credentials: 'include'
+                });
+                
+                if (!studentsResponse.ok) {
+                    throw new Error('Failed to load students');
+                }
+
+                const studentsResult = await studentsResponse.json();
+                const students = studentsResult.data || [];
+
+                // Collect all grades grouped by subject
+                const subjectGrades = {};
+                let totalGradesLoaded = 0;
+
+                // Process students in batches to avoid overwhelming the API
+                for (let i = 0; i < students.length; i += 10) {
+                    const batch = students.slice(i, i + 10);
+                    const gradePromises = batch.map(async (student) => {
+                        try {
+                            const gradesResponse = await fetch(`/api/v1/grade/student/${student.id}`, {
+                                credentials: 'include'
+                            });
+                            
+                            if (gradesResponse.ok) {
+                                const grades = await gradesResponse.json();
+                                return grades || [];
+                            }
+                            return [];
+                        } catch (error) {
+                            console.error(`Error loading grades for student ${student.id}:`, error);
+                            return [];
                         }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    title: {
-                        display: true,
-                        text: 'Subject Performance Overview'
-                    }
+                    });
+
+                    const gradeBatches = await Promise.all(gradePromises);
+                    
+                    // Process grades and group by subject
+                    gradeBatches.forEach(grades => {
+                        grades.forEach(grade => {
+                            const subjectName = grade.subjectName || grade.SubjectName || 'Unknown';
+                            const gradePoint = parseFloat(grade.gradePoint || grade.GradePoint) || 0;
+                            
+                            if (gradePoint > 0) {
+                                if (!subjectGrades[subjectName]) {
+                                    subjectGrades[subjectName] = [];
+                                }
+                                subjectGrades[subjectName].push(gradePoint);
+                                totalGradesLoaded++;
+                            }
+                        });
+                    });
+                }
+
+                // Calculate averages per subject
+                const subjectAverages = {};
+                Object.keys(subjectGrades).forEach(subject => {
+                    const grades = subjectGrades[subject];
+                    const average = grades.reduce((sum, g) => sum + g, 0) / grades.length;
+                    // Convert grade point (1.0-5.0) to percentage for display
+                    // 1.0 = 100%, 3.0 = 75%, 5.0 = 0%
+                    const percentage = ((5.0 - average) / 4.0) * 100;
+                    subjectAverages[subject] = {
+                        average: average.toFixed(2),
+                        percentage: percentage.toFixed(1),
+                        count: grades.length
+                    };
+                });
+
+                // Sort by percentage (best first - higher percentage is better) and take top 10
+                const sortedSubjects = Object.entries(subjectAverages)
+                    .sort((a, b) => parseFloat(b[1].percentage) - parseFloat(a[1].percentage))
+                    .slice(0, 10);
+
+                // Update chart with real data
+                updatePerformanceChart(sortedSubjects);
+            } catch (error) {
+                console.error('Error loading performance analytics:', error);
+                // Show error state on chart
+                const ctx = document.getElementById('performanceChart');
+                if (ctx) {
+                    ctx.innerHTML = `
+                        <div class="text-center py-5">
+                            <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
+                            <p class="text-muted">Error loading performance data</p>
+                        </div>
+                    `;
                 }
             }
-        });
+        }
+
+        // Update performance chart with real data
+        function updatePerformanceChart(subjectData) {
+            const ctx = document.getElementById('performanceChart');
+            if (!ctx) return;
+
+            // Destroy existing chart if it exists
+            if (performanceChart) {
+                performanceChart.destroy();
+            }
+
+            if (!subjectData || subjectData.length === 0) {
+                ctx.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-chart-bar fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">No grade data available</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const labels = subjectData.map(([subject]) => subject);
+            const percentages = subjectData.map(([, data]) => parseFloat(data.percentage));
+            const averages = subjectData.map(([, data]) => parseFloat(data.average));
+
+            // Generate colors dynamically
+            const colors = [
+                'rgba(52, 152, 219, 0.7)',
+                'rgba(46, 204, 113, 0.7)',
+                'rgba(155, 89, 182, 0.7)',
+                'rgba(241, 196, 15, 0.7)',
+                'rgba(230, 126, 34, 0.7)',
+                'rgba(231, 76, 60, 0.7)',
+                'rgba(26, 188, 156, 0.7)',
+                'rgba(52, 73, 94, 0.7)',
+                'rgba(142, 68, 173, 0.7)',
+                'rgba(39, 174, 96, 0.7)'
+            ];
+
+            performanceChart = new Chart(ctx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Average Grade (%)',
+                        data: percentages,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderColor: colors.slice(0, labels.length).map(c => c.replace('0.7', '1')),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Average Grade (%)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Subject Performance Overview (Top 10 Subjects)'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const index = context.dataIndex;
+                                    const data = subjectData[index][1];
+                                    return [
+                                        `Average: ${data.average} (Grade Point)`,
+                                        `Percentage: ${data.percentage}%`,
+                                        `Total Grades: ${data.count}`
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
 
         // Save Student functionality
         document.getElementById('saveStudentBtn').addEventListener('click', function() {

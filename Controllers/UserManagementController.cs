@@ -245,6 +245,31 @@ public class UserManagementController : ControllerBase
         }
     }
 
+    [HttpDelete("{userId}")]
+    public async Task<ActionResult> DeleteUser(int userId)
+    {
+        try
+        {
+            var user = await _userManagementService.GetUserByIdAsync(userId);
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            var success = await _userManagementService.DeleteUserAsync(userId);
+            if (!success)
+            {
+                return StatusCode(500, new { message = "Failed to delete user" });
+            }
+
+            return Ok(new { message = "User deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error deleting user", error = ex.Message });
+        }
+    }
+
     private string GetUserEmail(User user)
     {
         return user.Role switch

@@ -20,15 +20,44 @@
     <link rel="stylesheet" href="~/css/global.css" asp-append-version="true" />
     
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            height: 100%;
+            overflow-x: hidden;
+            font-family: 'League Spartan', sans-serif;
+        }
+
         .register-container {
             min-height: 100vh;
+            display: flex;
+            padding: 0;
+            margin: 0;
+            width: 100%;
         }
         
         .welcome-section {
-            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/images/welcome_image.png');
-            background-size: contain;
+            background: linear-gradient(rgba(102, 126, 234, 0.6), rgba(118, 75, 162, 0.6)), url('/images/welcome_image.png');
+            background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 3rem;
+            width: 50%;
+            min-height: 100vh;
+        }
+
+        .welcome-content {
+            position: relative;
+            z-index: 2;
         }
         
         .btn-primary-custom {
@@ -52,150 +81,183 @@
             border-color: #dc3545;
             box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
         }
+
+        .form-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background-color: #ffffff;
+            width: 50%;
+            min-height: 100vh;
+        }
+
+        @@media (max-width: 768px) {
+            .register-container {
+                flex-direction: column;
+            }
+            
+            .welcome-section {
+                width: 100%;
+                min-height: 40vh;
+            }
+
+            .form-container {
+                width: 100%;
+                padding: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container-fluid register-container">
-        <div class="row h-100">
-            <!-- Left Section - Welcome -->
-            <div class="col-lg-6 col-md-12 p-4 d-flex align-items-stretch">
-                <div class="welcome-section w-100 rounded-3 d-flex flex-column justify-content-between text-white p-5">
-                    <div>
-                        <h2 class="mb-2 fs-3 fw-normal">Welcome to</h2>
-                        <h1 class="mb-4 fw-bold display-5">GRADIA</h1>
-                    </div>
-                </div>
+    <div class="register-container">
+        <!-- Left Section - Welcome with Image -->
+        <div class="welcome-section text-white">
+            <div class="welcome-content">
+                <h2 class="mb-2 fs-3 fw-normal">Welcome to</h2>
+                <h1 class="mb-4 fw-bold display-4">GRADIA</h1>
+                <p class="fs-5 mb-4">Your Student Performance Tracker</p>
             </div>
+        </div>
 
-            <!-- Right Section - Registration Form -->
-            <div class="col-lg-6 col-md-12 p-4 d-flex align-items-center justify-content-center">
-                <div class="w-100" style="max-width: 500px;">
-                    <h2 class="fw-bold m-3 text-center">ADMIN REGISTRATION</h2>
-                    
-                    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-                    {
-                        <div class="alert alert-danger" role="alert">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            @Model.ErrorMessage
-                        </div>
-                    }
-
-                    @if (!Model.IsSecretPasswordValid)
-                    {
-                        <!-- Step 1: Secret Password Validation -->
-                        <div class="text-center mb-4">
-                            <i class="fas fa-lock fa-3x text-danger mb-3"></i>
-                            <h4>Admin Access Required</h4>
-                            <p class="text-muted">Enter the admin registration password to continue</p>
-                        </div>
-
-                        <form method="post" asp-page-handler="ValidateSecret">
-                            <div class="mb-4">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-key me-2"></i>Admin Registration Password <span class="text-danger">*</span>
-                                </label>
-                                <input type="password" class="form-control" name="SecretPassword" placeholder="Enter admin password" required>
-                                <div class="form-text">Contact system administrator for the password</div>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary-custom text-white w-100 rounded-2 fw-semibold mt-3">
-                                <i class="fas fa-key me-2"></i>Validate Access
-                            </button>
-                        </form>
-                    }
-                    else
-                    {
-                        <!-- Step 2: Admin Account Creation -->
-                        <div class="text-center mb-4">
-                            <i class="fas fa-user-shield fa-3x text-success mb-3"></i>
-                            <h4>Create Admin Account</h4>
-                            <p class="text-muted">Complete your admin account setup</p>
-                        </div>
-
-                        <form method="post" asp-page-handler="Register">
-                            <!-- Account Information -->
-                            <h5 class="fw-bold mb-3">
-                                <i class="fas fa-user-lock me-2"></i>Account Information
-                            </h5>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">
-                                        <i class="fas fa-user-circle me-2"></i>Username <span class="text-danger">*</span>
-                                    </label>
-                                    <input type="text" class="form-control" name="Username" placeholder="Enter your Username" required>
-                                    <div class="form-text">Choose a unique username for login</div>
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">
-                                        <i class="fas fa-envelope me-2"></i>Email Address <span class="text-danger">*</span>
-                                    </label>
-                                    <input type="email" class="form-control" name="Email" placeholder="Enter Email Address" required>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">
-                                        <i class="fas fa-lock me-2"></i>Password <span class="text-danger">*</span>
-                                    </label>
-                                    <input type="password" class="form-control" name="Password" placeholder="Enter your Password" required>
-                                    <div class="form-text">Minimum 8 characters</div>
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">
-                                        <i class="fas fa-lock me-2"></i>Confirm Password <span class="text-danger">*</span>
-                                    </label>
-                                    <input type="password" class="form-control" name="ConfirmPassword" placeholder="Confirm your Password" required>
-                                </div>
-                            </div>
-
-                            <hr class="my-4">
-
-                            <!-- Personal Information -->
-                            <h5 class="fw-bold mb-3">
-                                <i class="fas fa-user me-2"></i>Personal Information
-                            </h5>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">
-                                        <i class="fas fa-user me-2"></i>First Name <span class="text-danger">*</span>
-                                    </label>
-                                    <input type="text" class="form-control" name="FirstName" placeholder="Enter First Name" required>
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">
-                                        <i class="fas fa-user me-2"></i>Last Name <span class="text-danger">*</span>
-                                    </label>
-                                    <input type="text" class="form-control" name="LastName" placeholder="Enter Last Name" required>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">
-                                        <i class="fas fa-phone me-2"></i>Phone Number
-                                    </label>
-                                    <input type="tel" class="form-control" name="Phone" placeholder="Enter Phone Number">
-                                    <div class="form-text">Optional</div>
-                                </div>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary-custom text-white w-100 rounded-2 fw-semibold mt-3">
-                                <i class="fas fa-user-shield me-2"></i>Create Admin Account
-                            </button>
-                            
-                            <div class="text-center mt-4">
-                                <span class="text-muted">Already have an account? </span>
-                                <a href="/LoginPage" class="fw-semibold text-decoration-none">Login Here</a>
-                            </div>
-                        </form>
-                    }
+        <!-- Right Section - Registration Form -->
+        <div class="form-container">
+            <div class="w-100" style="max-width: 500px;">
+                <div class="text-center mb-4">
+                    <h2 class="fw-bold mb-2">ADMIN REGISTRATION</h2>
+                    <p class="text-muted">Create your admin account</p>
                 </div>
+                
+                <!-- Back to Login button -->
+                <div class="text-center mb-3">
+                    <a href="/LoginPage" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Login
+                    </a>
+                </div>
+                
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                {
+                    <div class="alert alert-danger" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        @Model.ErrorMessage
+                    </div>
+                }
+
+                @if (!Model.IsSecretPasswordValid)
+                {
+                    <!-- Step 1: Secret Password Validation -->
+                    <div class="text-center mb-4">
+                        <i class="fas fa-lock fa-3x text-danger mb-3"></i>
+                        <h4>Admin Access Required</h4>
+                        <p class="text-muted">Enter the admin registration password to continue</p>
+                    </div>
+
+                    <form method="post" asp-page-handler="ValidateSecret">
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-key me-2"></i>Admin Registration Password <span class="text-danger">*</span>
+                            </label>
+                            <input type="password" class="form-control" name="SecretPassword" placeholder="Enter admin password" required>
+                            <div class="form-text">Contact system administrator for the password</div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary-custom text-white w-100 rounded-2 fw-semibold mt-3">
+                            <i class="fas fa-key me-2"></i>Validate Access
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <!-- Step 2: Admin Account Creation -->
+                    <div class="text-center mb-4">
+                        <i class="fas fa-user-shield fa-3x text-success mb-3"></i>
+                        <h4>Create Admin Account</h4>
+                        <p class="text-muted">Complete your admin account setup</p>
+                    </div>
+
+                    <form method="post" asp-page-handler="Register">
+                        <!-- Account Information -->
+                        <h5 class="fw-bold mb-3">
+                            <i class="fas fa-user-lock me-2"></i>Account Information
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-user-circle me-2"></i>Username <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" name="Username" placeholder="Enter your Username" required>
+                                <div class="form-text">Choose a unique username for login</div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-envelope me-2"></i>Email Address <span class="text-danger">*</span>
+                                </label>
+                                <input type="email" class="form-control" name="Email" placeholder="Enter Email Address" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-lock me-2"></i>Password <span class="text-danger">*</span>
+                                </label>
+                                <input type="password" class="form-control" name="Password" placeholder="Enter your Password" required>
+                                <div class="form-text">Minimum 8 characters</div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-lock me-2"></i>Confirm Password <span class="text-danger">*</span>
+                                </label>
+                                <input type="password" class="form-control" name="ConfirmPassword" placeholder="Confirm your Password" required>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Personal Information -->
+                        <h5 class="fw-bold mb-3">
+                            <i class="fas fa-user me-2"></i>Personal Information
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-user me-2"></i>First Name <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" name="FirstName" placeholder="Enter First Name" required>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-user me-2"></i>Last Name <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" name="LastName" placeholder="Enter Last Name" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-phone me-2"></i>Phone Number
+                                </label>
+                                <input type="tel" class="form-control" name="Phone" placeholder="Enter Phone Number">
+                                <div class="form-text">Optional</div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary-custom text-white w-100 rounded-2 fw-semibold mt-3">
+                            <i class="fas fa-user-shield me-2"></i>Create Admin Account
+                        </button>
+                        
+                        <div class="text-center mt-4">
+                            <span class="text-muted">Already have an account? </span>
+                            <a href="/LoginPage" class="fw-semibold text-decoration-none">Login Here</a>
+                        </div>
+                    </form>
+                }
             </div>
         </div>
     </div>

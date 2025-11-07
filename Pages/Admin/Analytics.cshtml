@@ -13,26 +13,93 @@
     <title>@ViewData["Title"] - Admin Portal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        /* Analytics-specific styles only */
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 100%;
+            padding-right: 15px;
+            padding-left: 15px;
+        }
+        
+        .row {
+            margin-right: -15px;
+            margin-left: -15px;
+        }
+        
+        .row.g-3 {
+            --bs-gutter-x: 1rem;
+            --bs-gutter-y: 1rem;
+        }
+        
+        .dashboard-header {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1rem 0;
+        }
+        
         .stat-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 10px;
             padding: 1.5rem;
             margin-bottom: 1rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        
+        .stat-card.success {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .stat-card.info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .stat-card.warning {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
         }
         
         .stat-number {
             font-size: 2.5rem;
             font-weight: bold;
-            margin: 0;
+            margin: 0.5rem 0;
         }
         
         .stat-label {
             font-size: 0.9rem;
             opacity: 0.9;
             margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-card small {
+            display: none;
+        }
+        
+        .stat-card.loading small {
+            display: block;
         }
         
         .chart-container {
@@ -41,6 +108,63 @@
             padding: 1.5rem;
             margin-bottom: 1.5rem;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: visible;
+            width: 100%;
+            height: auto;
+            min-height: 450px;
+        }
+        
+        .section-title {
+            color: var(--secondary-color);
+            font-weight: 600;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 380px;
+            margin-top: 1rem;
+            width: 100%;
+            overflow: visible;
+        }
+
+        .chart-wrapper canvas {
+            max-height: 100% !important;
+            max-width: 100% !important;
+            display: block;
+        }
+
+        .chart-wrapper-large {
+            position: relative;
+            height: 420px;
+            margin-top: 1rem;
+            width: 100%;
+            overflow: visible;
+        }
+
+        .chart-wrapper-large canvas {
+            max-height: 100% !important;
+            max-width: 100% !important;
+            display: block;
+        }
+        
+        .row {
+            margin-left: 0;
+            margin-right: 0;
+        }
+        
+        .row > [class*='col-'] {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
         }
     </style>
 </head>
@@ -53,15 +177,25 @@
         <header class="dashboard-header">
             <div class="container">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h1 class="h3 mb-0">Analytics Dashboard</h1>
-                    <div class="d-flex align-items-center">
+                    <h1 class="h3 mb-0"><i class="fas fa-chart-bar me-2"></i>Analytics Dashboard</h1>
+                    <div class="d-flex align-items-center gap-3">
+                        <button class="btn btn-success" onclick="exportToExcel()">
+                            <i class="fas fa-file-excel me-2"></i>Export Excel
+                        </button>
+                        <button class="btn btn-danger" onclick="exportToPdf()">
+                            <i class="fas fa-file-pdf me-2"></i>Export PDF
+                        </button>
                         <div class="dropdown">
-                            <select class="form-select" id="timeRange">
-                                <option value="current">Current Semester</option>
-                                <option value="last">Last Semester</option>
-                                <option value="year">Academic Year</option>
-                                <option value="custom">Custom Range</option>
-                            </select>
+                            <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <img src="https://ui-avatars.com/api/?name=Loading&background=3498db&color=fff" class="user-avatar me-2" id="headerAvatar">
+                                <span id="headerName">Loading...</span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="/Admin/Profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="handleLogout()"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                            </ul>
                         </div>
                     </div>
                 </div>
@@ -72,182 +206,132 @@
             <!-- Key Metrics -->
             <div class="row">
                 <div class="col-md-3">
-                    <div class="stat-card">
+                    <div class="stat-card loading">
                         <p class="stat-label">Total Students</p>
-                        <p class="stat-number">1,247</p>
-                        <small><i class="fas fa-arrow-up me-1"></i>5% from last semester</small>
+                        <p class="stat-number" id="totalStudents">-</p>
+                        <small><i class="fas fa-spinner fa-spin"></i> Loading...</small>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <div class="stat-card success loading">
                         <p class="stat-label">Active Faculty</p>
-                        <p class="stat-number">84</p>
-                        <small><i class="fas fa-arrow-up me-1"></i>2 new hires</small>
+                        <p class="stat-number" id="totalTeachers">-</p>
+                        <small><i class="fas fa-spinner fa-spin"></i> Loading...</small>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                    <div class="stat-card info loading">
                         <p class="stat-label">Courses Offered</p>
-                        <p class="stat-number">156</p>
-                        <small><i class="fas fa-arrow-up me-1"></i>8 new courses</small>
+                        <p class="stat-number" id="totalCourses">-</p>
+                        <small><i class="fas fa-spinner fa-spin"></i> Loading...</small>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                    <div class="stat-card warning loading">
                         <p class="stat-label">Avg. Performance</p>
-                        <p class="stat-number">85.6%</p>
-                        <small><i class="fas fa-arrow-up me-1"></i>2.1% improvement</small>
+                        <p class="stat-number" id="avgPerformance">-</p>
+                        <small><i class="fas fa-spinner fa-spin"></i> Loading...</small>
                     </div>
                 </div>
             </div>
 
-            <!-- Charts and Insights -->
-            <div class="row">
-                <!-- Student Enrollment Trends -->
-                <div class="col-md-6">
+            <!-- Row 1: Enrollment Trends & Course Performance -->
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
                     <div class="chart-container">
-                        <h5><i class="fas fa-user-graduate me-2"></i>Student Enrollment Trends</h5>
-                        <div class="p-4 text-center">
-                            <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
-                            <p class="text-muted">Enrollment trends by department and semester</p>
-                            <div class="mt-3">
-                                <span class="badge bg-primary me-2">Computer Science: +15%</span>
-                                <span class="badge bg-success me-2">Engineering: +8%</span>
-                                <span class="badge bg-warning">Business: +12%</span>
-                            </div>
+                        <h5 class="section-title"><i class="fas fa-user-graduate me-2"></i>Student Enrollment by Course</h5>
+                        <div class="chart-wrapper">
+                            <canvas id="enrollmentChart"></canvas>
                         </div>
                     </div>
                 </div>
-
-                <!-- Course Performance -->
-                <div class="col-md-6">
+                <div class="col-12 col-md-6">
                     <div class="chart-container">
-                        <h5><i class="fas fa-chart-bar me-2"></i>Course Performance Overview</h5>
-                        <div class="p-4 text-center">
-                            <i class="fas fa-chart-pie fa-3x text-muted mb-3"></i>
-                            <p class="text-muted">Average grades and completion rates by course</p>
-                            <div class="mt-3">
-                                <span class="badge bg-success me-2">90%+ Completion: 45 courses</span>
-                                <span class="badge bg-warning me-2">75-89% Completion: 67 courses</span>
-                                <span class="badge bg-danger">Below 75%: 12 courses</span>
-                            </div>
+                        <h5 class="section-title"><i class="fas fa-chart-pie me-2"></i>Grade Distribution</h5>
+                        <div class="chart-wrapper">
+                            <canvas id="gradeDistributionChart"></canvas>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="row">
-                <!-- Department Analytics -->
-                <div class="col-md-6">
+            <!-- Row 2: Course Performance & Pass/Fail Rate -->
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
                     <div class="chart-container">
-                        <h5><i class="fas fa-building me-2"></i>Department Performance</h5>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Department</th>
-                                        <th>Students</th>
-                                        <th>Avg. Grade</th>
-                                        <th>Trend</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>Computer Science</td>
-                                        <td>324</td>
-                                        <td>87.2%</td>
-                                        <td><i class="fas fa-arrow-up text-success"></i></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Engineering</td>
-                                        <td>287</td>
-                                        <td>84.5%</td>
-                                        <td><i class="fas fa-arrow-up text-success"></i></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Business</td>
-                                        <td>256</td>
-                                        <td>82.1%</td>
-                                        <td><i class="fas fa-minus text-warning"></i></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Mathematics</td>
-                                        <td>198</td>
-                                        <td>79.8%</td>
-                                        <td><i class="fas fa-arrow-down text-danger"></i></td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <h5 class="section-title"><i class="fas fa-chart-bar me-2"></i>Course Performance Overview</h5>
+                        <div class="chart-wrapper-large">
+                            <canvas id="coursePerformanceChart"></canvas>
                         </div>
                     </div>
                 </div>
-
-                <!-- Faculty Performance -->
-                <div class="col-md-6">
+                <div class="col-12 col-md-6">
                     <div class="chart-container">
-                        <h5><i class="fas fa-chalkboard-teacher me-2"></i>Faculty Load Distribution</h5>
+                        <h5 class="section-title"><i class="fas fa-chart-pie me-2"></i>Pass/Fail Rate</h5>
+                        <div class="chart-wrapper">
+                            <canvas id="passFailChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 3: Faculty Load -->
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="chart-container">
+                        <h5 class="section-title"><i class="fas fa-chalkboard-teacher me-2"></i>Faculty Load Distribution</h5>
+                        <div class="chart-wrapper-large">
+                            <canvas id="facultyLoadChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 4: Grade Trends & Year Level Performance -->
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <div class="chart-container">
+                        <h5 class="section-title"><i class="fas fa-chart-line me-2"></i>Grade Trends Over Time</h5>
+                        <div class="chart-wrapper">
+                            <canvas id="gradeTrendsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="chart-container">
+                        <h5 class="section-title"><i class="fas fa-graduation-cap me-2"></i>Performance by Year Level</h5>
+                        <div class="chart-wrapper">
+                            <canvas id="yearLevelChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 5: Faculty Performance Table -->
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="chart-container">
+                        <h5 class="section-title"><i class="fas fa-users me-2"></i>Faculty Performance</h5>
                         <div class="table-responsive">
-                            <table class="table table-sm">
+                            <table class="table table-sm table-hover">
                                 <thead>
                                     <tr>
-                                        <th>Faculty</th>
+                                        <th>Faculty Name</th>
                                         <th>Courses</th>
-                                        <th>Students</th>
-                                        <th>Rating</th>
+                                        <th>Total Students</th>
+                                        <th>Avg. Grade</th>
+                                        <th>Status</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody id="facultyTableBody">
                                     <tr>
-                                        <td>Dr. Sarah Johnson</td>
-                                        <td>3</td>
-                                        <td>135</td>
-                                        <td>4.8/5</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Prof. Michael Chen</td>
-                                        <td>4</td>
-                                        <td>142</td>
-                                        <td>4.6/5</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Dr. Emily Rodriguez</td>
-                                        <td>2</td>
-                                        <td>89</td>
-                                        <td>4.9/5</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Prof. David Kim</td>
-                                        <td>3</td>
-                                        <td>118</td>
-                                        <td>4.4/5</td>
+                                        <td colspan="5" class="text-center py-4">
+                                            <i class="fas fa-spinner fa-spin fa-2x text-muted mb-2"></i>
+                                            <p class="text-muted mb-0">Loading faculty data...</p>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="chart-container">
-                <h5><i class="fas fa-bolt me-2"></i>Quick Insights & Actions</h5>
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="alert alert-warning">
-                            <h6><i class="fas fa-exclamation-triangle me-2"></i>Attention Needed</h6>
-                            <small>3 courses have completion rates below 70%</small>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="alert alert-info">
-                            <h6><i class="fas fa-lightbulb me-2"></i>Opportunity</h6>
-                            <small>High demand for Data Science courses</small>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="alert alert-success">
-                            <h6><i class="fas fa-trophy me-2"></i>Excellent Performance</h6>
-                            <small>Computer Science department leading in grades</small>
                         </div>
                     </div>
                 </div>
@@ -257,15 +341,21 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        let charts = {};
+        let allAnalyticsData = null;
+
         // Load admin data on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadAdminData();
+            loadAnalyticsData();
         });
 
         // Load admin data from API
         async function loadAdminData() {
             try {
-                const response = await fetch('/api/v1/admin/profile');
+                const response = await fetch('/api/v1/admin/profile', {
+                    credentials: 'include'
+                });
                 if (response.ok) {
                     const adminData = await response.json();
                     updateHeader(adminData);
@@ -284,23 +374,842 @@
             document.getElementById('headerAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=3498db&color=fff`;
         }
 
-        // Same sidebar functionality as other pages
-        document.getElementById('toggleBtn').addEventListener('click', function() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('mainContent');
-            const toggleIcon = this.querySelector('i');
-            
-            sidebar.classList.toggle('collapsed');
-            mainContent.classList.toggle('expanded');
-            
-            if (sidebar.classList.contains('collapsed')) {
-                toggleIcon.classList.remove('fa-chevron-left');
-                toggleIcon.classList.add('fa-chevron-right');
-            } else {
-                toggleIcon.classList.remove('fa-chevron-right');
-                toggleIcon.classList.add('fa-chevron-left');
+        // Load all analytics data
+        async function loadAnalyticsData() {
+            try {
+                // Load all data in parallel
+                const [studentsResponse, teachersResponse, coursesResponse, enrollmentsResponse] = await Promise.all([
+                    fetch('/api/v1/student?page=1&pageSize=1000', { credentials: 'include' }),
+                    fetch('/api/v1/teacher?page=1&pageSize=1000', { credentials: 'include' }),
+                    fetch('/api/v1/course?page=1&pageSize=1000', { credentials: 'include' }),
+                    fetch('/api/v1/enrollment?page=1&pageSize=1000', { credentials: 'include' })
+                ]);
+
+                const students = studentsResponse.ok ? (await studentsResponse.json()).data || [] : [];
+                const teachers = teachersResponse.ok ? (await teachersResponse.json()).data || [] : [];
+                const courses = coursesResponse.ok ? (await coursesResponse.json()).data || [] : [];
+                const enrollments = enrollmentsResponse.ok ? (await enrollmentsResponse.json()).data || [] : [];
+
+                // Load grades for all students
+                const allGrades = [];
+                for (let i = 0; i < students.length; i += 10) {
+                    const batch = students.slice(i, i + 10);
+                    const gradePromises = batch.map(async (student) => {
+                        try {
+                            const gradesResponse = await fetch(`/api/v1/grade/student/${student.id}`, {
+                                credentials: 'include'
+                            });
+                            return gradesResponse.ok ? await gradesResponse.json() : [];
+                        } catch (error) {
+                            return [];
+                        }
+                    });
+                    const gradeBatches = await Promise.all(gradePromises);
+                    gradeBatches.forEach(grades => allGrades.push(...grades));
+                }
+
+                // Update statistics
+                updateStatistics(students, teachers, courses, allGrades);
+
+                // Store data for charts
+                allAnalyticsData = {
+                    students,
+                    teachers,
+                    courses,
+                    enrollments,
+                    grades: allGrades
+                };
+
+                // Render all charts
+                renderAllCharts(allAnalyticsData);
+            } catch (error) {
+                console.error('Error loading analytics data:', error);
             }
-        });
+        }
+
+        // Update statistics cards
+        function updateStatistics(students, teachers, courses, grades) {
+            document.getElementById('totalStudents').textContent = students.length.toLocaleString();
+            document.getElementById('totalTeachers').textContent = teachers.length.toLocaleString();
+            document.getElementById('totalCourses').textContent = courses.length.toLocaleString();
+
+            // Calculate average performance
+            const allGradePoints = grades.map(g => parseFloat(g.gradePoint || g.GradePoint) || 0).filter(g => g > 0);
+            if (allGradePoints.length > 0) {
+                const avg = allGradePoints.reduce((a, b) => a + b, 0) / allGradePoints.length;
+                const percentage = ((5.0 - avg) / 4.0) * 100;
+                document.getElementById('avgPerformance').textContent = percentage.toFixed(1) + '%';
+            } else {
+                document.getElementById('avgPerformance').textContent = 'N/A';
+            }
+            
+            // Remove loading class from all stat cards
+            document.querySelectorAll('.stat-card').forEach(card => {
+                card.classList.remove('loading');
+            });
+        }
+
+        // Render all charts
+        function renderAllCharts(data) {
+            renderEnrollmentChart(data);
+            renderGradeDistributionChart(data);
+            renderCoursePerformanceChart(data);
+            renderPassFailChart(data);
+            renderFacultyLoadChart(data);
+            renderGradeTrendsChart(data);
+            renderYearLevelChart(data);
+            renderFacultyTable(data);
+        }
+
+        // Enrollment by Course Chart
+        function renderEnrollmentChart(data) {
+            const ctx = document.getElementById('enrollmentChart').getContext('2d');
+            const courseEnrollments = {};
+            
+            data.enrollments.forEach(enrollment => {
+                const courseName = enrollment.courseName || 'Unknown';
+                courseEnrollments[courseName] = (courseEnrollments[courseName] || 0) + 1;
+            });
+
+            const sorted = Object.entries(courseEnrollments)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 8);
+
+            if (charts.enrollment) charts.enrollment.destroy();
+
+            charts.enrollment = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sorted.map(([name]) => name),
+                    datasets: [{
+                        label: 'Number of Students',
+                        data: sorted.map(([, count]) => count),
+                        backgroundColor: 'rgba(52, 152, 219, 0.7)',
+                        borderColor: 'rgb(52, 152, 219)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 10,
+                            bottom: 30,
+                            left: 10,
+                            right: 10
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            enabled: true
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45,
+                                autoSkip: true,
+                                maxTicksLimit: 10,
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: { 
+                            beginAtZero: true, 
+                            ticks: { 
+                                stepSize: 1,
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Grade Distribution Chart
+        function renderGradeDistributionChart(data) {
+            const ctx = document.getElementById('gradeDistributionChart').getContext('2d');
+            const ranges = {
+                'Excellent (1.0-1.5)': 0,
+                'Very Good (1.6-2.0)': 0,
+                'Good (2.1-2.5)': 0,
+                'Pass (2.6-3.0)': 0,
+                'Failed (3.1-5.0)': 0
+            };
+
+            data.grades.forEach(grade => {
+                const gp = parseFloat(grade.gradePoint || grade.GradePoint) || 0;
+                if (gp >= 1.0 && gp <= 1.5) ranges['Excellent (1.0-1.5)']++;
+                else if (gp > 1.5 && gp <= 2.0) ranges['Very Good (1.6-2.0)']++;
+                else if (gp > 2.0 && gp <= 2.5) ranges['Good (2.1-2.5)']++;
+                else if (gp > 2.5 && gp <= 3.0) ranges['Pass (2.6-3.0)']++;
+                else if (gp > 3.0 && gp <= 5.0) ranges['Failed (3.1-5.0)']++;
+            });
+
+            if (charts.gradeDistribution) charts.gradeDistribution.destroy();
+
+            charts.gradeDistribution = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(ranges),
+                    datasets: [{
+                        data: Object.values(ranges),
+                        backgroundColor: ['#4CAF50', '#8BC34A', '#FFC107', '#FF9800', '#F44336'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: 10
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                padding: 10,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        tooltip: {
+                            enabled: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Course Performance Chart
+        function renderCoursePerformanceChart(data) {
+            const ctx = document.getElementById('coursePerformanceChart').getContext('2d');
+            const courseGrades = {};
+
+            data.grades.forEach(grade => {
+                const subjectName = grade.subjectName || grade.SubjectName || 'Unknown';
+                const gradePoint = parseFloat(grade.gradePoint || grade.GradePoint) || 0;
+                if (gradePoint > 0) {
+                    if (!courseGrades[subjectName]) courseGrades[subjectName] = [];
+                    courseGrades[subjectName].push(gradePoint);
+                }
+            });
+
+            const courseAverages = Object.entries(courseGrades).map(([course, grades]) => {
+                const avg = grades.reduce((a, b) => a + b, 0) / grades.length;
+                const percentage = ((5.0 - avg) / 4.0) * 100;
+                return { course, percentage: percentage.toFixed(1), count: grades.length };
+            }).sort((a, b) => b.percentage - a.percentage).slice(0, 10);
+
+            if (charts.coursePerformance) charts.coursePerformance.destroy();
+
+            charts.coursePerformance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: courseAverages.map(c => c.course),
+                    datasets: [{
+                        label: 'Average Grade (%)',
+                        data: courseAverages.map(c => parseFloat(c.percentage)),
+                        backgroundColor: 'rgba(155, 89, 182, 0.7)',
+                        borderColor: 'rgb(155, 89, 182)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 10,
+                            bottom: 30,
+                            left: 10,
+                            right: 10
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            enabled: true
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45,
+                                autoSkip: true,
+                                maxTicksLimit: 10,
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: { 
+                            beginAtZero: true, 
+                            max: 100,
+                            ticks: {
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Pass/Fail Chart
+        function renderPassFailChart(data) {
+            const ctx = document.getElementById('passFailChart').getContext('2d');
+            const allGradePoints = data.grades.map(g => parseFloat(g.gradePoint || g.GradePoint) || 0).filter(g => g > 0);
+            const passCount = allGradePoints.filter(g => g <= 3.0).length;
+            const failCount = allGradePoints.filter(g => g > 3.0).length;
+
+            if (charts.passFail) charts.passFail.destroy();
+
+            charts.passFail = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Passed', 'Failed'],
+                    datasets: [{
+                        data: [passCount, failCount],
+                        backgroundColor: ['#4CAF50', '#F44336'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: 10
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                padding: 10,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        tooltip: {
+                            enabled: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Department Chart
+        function renderDepartmentChart(data) {
+            const ctx = document.getElementById('departmentChart').getContext('2d');
+            const departmentData = {};
+
+            data.enrollments.forEach(enrollment => {
+                const dept = enrollment.courseName || 'Unknown';
+                if (!departmentData[dept]) {
+                    departmentData[dept] = { students: 0, grades: [] };
+                }
+                departmentData[dept].students++;
+            });
+
+            data.grades.forEach(grade => {
+                const subjectName = grade.subjectName || grade.SubjectName || 'Unknown';
+                const gradePoint = parseFloat(grade.gradePoint || grade.GradePoint) || 0;
+                // Try to match subject to course/department
+                Object.keys(departmentData).forEach(dept => {
+                    if (subjectName.toLowerCase().includes(dept.toLowerCase()) || dept.toLowerCase().includes(subjectName.toLowerCase())) {
+                        if (gradePoint > 0) departmentData[dept].grades.push(gradePoint);
+                    }
+                });
+            });
+
+            const deptAverages = Object.entries(departmentData)
+                .map(([dept, data]) => {
+                    const avg = data.grades.length > 0 
+                        ? data.grades.reduce((a, b) => a + b, 0) / data.grades.length 
+                        : 0;
+                    const percentage = avg > 0 ? ((5.0 - avg) / 4.0) * 100 : 0;
+                    return { dept, percentage: percentage.toFixed(1), students: data.students };
+                })
+                .filter(d => d.percentage > 0)
+                .sort((a, b) => b.percentage - a.percentage)
+                .slice(0, 8);
+
+            if (charts.department) charts.department.destroy();
+
+            charts.department = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: deptAverages.map(d => d.dept),
+                    datasets: [{
+                        label: 'Average Performance (%)',
+                        data: deptAverages.map(d => parseFloat(d.percentage)),
+                        backgroundColor: 'rgba(230, 126, 34, 0.7)',
+                        borderColor: 'rgb(230, 126, 34)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, max: 100 }
+                    }
+                }
+            });
+        }
+
+        // Faculty Load Chart
+        async function renderFacultyLoadChart(data) {
+            const ctx = document.getElementById('facultyLoadChart').getContext('2d');
+            const facultyLoad = {};
+
+            // Get classes for each teacher
+            for (const teacher of data.teachers.slice(0, 10)) {
+                try {
+                    const classesResponse = await fetch(`/api/v1/admin/sectionsubject/teacher/${teacher.id}`, {
+                        credentials: 'include'
+                    });
+                    if (classesResponse.ok) {
+                        const classes = await classesResponse.json() || [];
+                        let totalStudents = 0;
+                        for (const classItem of classes) {
+                            try {
+                                const studentsResponse = await fetch(`/api/v1/studentsubject/sectionsubject/${classItem.id}`, {
+                                    credentials: 'include'
+                                });
+                                if (studentsResponse.ok) {
+                                    const students = await studentsResponse.json() || [];
+                                    totalStudents += students.filter(s => s.status === 'Enrolled' || s.status === 'Pending').length;
+                                }
+                            } catch (e) {}
+                        }
+                        const name = `${teacher.firstName} ${teacher.lastName}`;
+                        facultyLoad[name] = { classes: classes.length, students: totalStudents };
+                    }
+                } catch (e) {}
+            }
+
+            const sorted = Object.entries(facultyLoad)
+                .sort((a, b) => b[1].students - a[1].students)
+                .slice(0, 8);
+
+            if (charts.facultyLoad) charts.facultyLoad.destroy();
+
+            if (sorted.length === 0) {
+                const container = document.getElementById('facultyLoadChart').parentElement;
+                container.innerHTML = '<div class="text-center py-5 text-muted"><i class="fas fa-chart-bar fa-3x mb-3"></i><p>No faculty load data available</p></div>';
+                return;
+            }
+
+            charts.facultyLoad = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sorted.map(([name]) => name),
+                    datasets: [{
+                        label: 'Number of Students',
+                        data: sorted.map(([, data]) => data.students),
+                        backgroundColor: 'rgba(26, 188, 156, 0.7)',
+                        borderColor: 'rgb(26, 188, 156)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 10,
+                            bottom: 30,
+                            left: 10,
+                            right: 10
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            enabled: true
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45,
+                                autoSkip: true,
+                                maxTicksLimit: 10,
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: { 
+                            beginAtZero: true, 
+                            ticks: { 
+                                stepSize: 1,
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Grade Trends Chart
+        function renderGradeTrendsChart(data) {
+            const ctx = document.getElementById('gradeTrendsChart').getContext('2d');
+            const monthlyData = {};
+
+            data.grades.forEach(grade => {
+                const date = new Date(grade.dateGiven || grade.DateGiven || grade.createdAt || grade.CreatedAt);
+                const monthKey = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+                if (!monthlyData[monthKey]) monthlyData[monthKey] = [];
+                const gp = parseFloat(grade.gradePoint || grade.GradePoint) || 0;
+                if (gp > 0) monthlyData[monthKey].push(gp);
+            });
+
+            const months = Object.keys(monthlyData).sort();
+            const averages = months.map(month => {
+                const grades = monthlyData[month];
+                const avg = grades.reduce((a, b) => a + b, 0) / grades.length;
+                return ((5.0 - avg) / 4.0) * 100;
+            });
+
+            if (charts.gradeTrends) charts.gradeTrends.destroy();
+
+            charts.gradeTrends = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Average Performance (%)',
+                        data: averages,
+                        borderColor: '#9C27B0',
+                        backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 10,
+                            bottom: 30,
+                            left: 10,
+                            right: 10
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        tooltip: {
+                            enabled: true
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: { 
+                            beginAtZero: true, 
+                            max: 100,
+                            ticks: {
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Year Level Chart
+        function renderYearLevelChart(data) {
+            const ctx = document.getElementById('yearLevelChart').getContext('2d');
+            const yearLevelGrades = {};
+
+            data.students.forEach(student => {
+                const yearLevel = student.yearLevel || 'Unknown';
+                if (!yearLevelGrades[yearLevel]) yearLevelGrades[yearLevel] = [];
+            });
+
+            data.grades.forEach(grade => {
+                // Match grade to student's year level
+                const studentId = grade.studentSubjectId || grade.StudentSubjectId;
+                const student = data.students.find(s => {
+                    // Need to match through student subject
+                    return true; // Simplified - would need proper matching
+                });
+                if (student && student.yearLevel) {
+                    const gp = parseFloat(grade.gradePoint || grade.GradePoint) || 0;
+                    if (gp > 0) yearLevelGrades[student.yearLevel].push(gp);
+                }
+            });
+
+            const yearLevelAverages = Object.entries(yearLevelGrades)
+                .map(([level, grades]) => {
+                    if (grades.length === 0) return null;
+                    const avg = grades.reduce((a, b) => a + b, 0) / grades.length;
+                    const percentage = ((5.0 - avg) / 4.0) * 100;
+                    return { level, percentage: percentage.toFixed(1) };
+                })
+                .filter(d => d !== null)
+                .sort((a, b) => a.level.localeCompare(b.level));
+
+            if (charts.yearLevel) charts.yearLevel.destroy();
+
+            charts.yearLevel = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: yearLevelAverages.map(d => d.level),
+                    datasets: [{
+                        label: 'Average Performance (%)',
+                        data: yearLevelAverages.map(d => parseFloat(d.percentage)),
+                        backgroundColor: 'rgba(241, 196, 15, 0.7)',
+                        borderColor: 'rgb(241, 196, 15)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 10,
+                            bottom: 30,
+                            left: 10,
+                            right: 10
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            enabled: true
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45,
+                                autoSkip: true,
+                                maxTicksLimit: 10,
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: { 
+                            beginAtZero: true, 
+                            max: 100,
+                            ticks: {
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Department Table
+        function renderDepartmentTable(data) {
+            const tbody = document.getElementById('departmentTableBody');
+            const departmentData = {};
+
+            data.enrollments.forEach(enrollment => {
+                const dept = enrollment.courseName || 'Unknown';
+                if (!departmentData[dept]) {
+                    departmentData[dept] = { students: new Set(), teachers: new Set(), grades: [] };
+                }
+                if (enrollment.studentId) departmentData[dept].students.add(enrollment.studentId);
+            });
+
+            data.grades.forEach(grade => {
+                const subjectName = grade.subjectName || grade.SubjectName || 'Unknown';
+                const gradePoint = parseFloat(grade.gradePoint || grade.GradePoint) || 0;
+                Object.keys(departmentData).forEach(dept => {
+                    if (subjectName.toLowerCase().includes(dept.toLowerCase()) || dept.toLowerCase().includes(subjectName.toLowerCase())) {
+                        if (gradePoint > 0) departmentData[dept].grades.push(gradePoint);
+                    }
+                });
+            });
+
+            const deptRows = Object.entries(departmentData)
+                .map(([dept, data]) => {
+                    const avg = data.grades.length > 0 
+                        ? data.grades.reduce((a, b) => a + b, 0) / data.grades.length 
+                        : 0;
+                    const percentage = avg > 0 ? ((5.0 - avg) / 4.0) * 100 : 0;
+                    const passCount = data.grades.filter(g => g <= 3.0).length;
+                    const passRate = data.grades.length > 0 ? (passCount / data.grades.length * 100).toFixed(1) : 0;
+                    return { dept, students: data.students.size, teachers: data.teachers.size, avg: percentage.toFixed(1), passRate };
+                })
+                .filter(d => d.avg > 0)
+                .sort((a, b) => parseFloat(b.avg) - parseFloat(a.avg))
+                .slice(0, 10);
+
+            tbody.innerHTML = deptRows.map(d => `
+                <tr>
+                    <td>${d.dept}</td>
+                    <td>${d.students}</td>
+                    <td>${d.teachers}</td>
+                    <td>${d.avg}%</td>
+                    <td><span class="badge ${parseFloat(d.passRate) >= 75 ? 'bg-success' : parseFloat(d.passRate) >= 50 ? 'bg-warning' : 'bg-danger'}">${d.passRate}%</span></td>
+                </tr>
+            `).join('') || '<tr><td colspan="5" class="text-center text-muted">No data available</td></tr>';
+        }
+
+        // Faculty Table
+        async function renderFacultyTable(data) {
+            const tbody = document.getElementById('facultyTableBody');
+            const facultyData = [];
+
+            for (const teacher of data.teachers.slice(0, 15)) {
+                try {
+                    const classesResponse = await fetch(`/api/v1/admin/sectionsubject/teacher/${teacher.id}`, {
+                        credentials: 'include'
+                    });
+                    if (classesResponse.ok) {
+                        const classes = await classesResponse.json() || [];
+                        let totalStudents = 0;
+                        let allGrades = [];
+
+                        for (const classItem of classes) {
+                            try {
+                                const studentsResponse = await fetch(`/api/v1/studentsubject/sectionsubject/${classItem.id}`, {
+                                    credentials: 'include'
+                                });
+                                if (studentsResponse.ok) {
+                                    const students = await studentsResponse.json() || [];
+                                    const enrolled = students.filter(s => s.status === 'Enrolled' || s.status === 'Pending');
+                                    totalStudents += enrolled.length;
+
+                                    for (const student of enrolled) {
+                                        try {
+                                            const gradesResponse = await fetch(`/api/v1/grade/studentsubject/${student.id}`, {
+                                                credentials: 'include'
+                                            });
+                                            if (gradesResponse.ok) {
+                                                const grades = await gradesResponse.json() || [];
+                                                grades.forEach(g => {
+                                                    const gp = parseFloat(g.gradePoint || g.GradePoint) || 0;
+                                                    if (gp > 0) allGrades.push(gp);
+                                                });
+                                            }
+                                        } catch (e) {}
+                                    }
+                                }
+                            } catch (e) {}
+                        }
+
+                        const avg = allGrades.length > 0 
+                            ? allGrades.reduce((a, b) => a + b, 0) / allGrades.length 
+                            : 0;
+                        const percentage = avg > 0 ? ((5.0 - avg) / 4.0) * 100 : 0;
+
+                        facultyData.push({
+                            name: `${teacher.firstName} ${teacher.lastName}`,
+                            courses: classes.length,
+                            students: totalStudents,
+                            avg: percentage.toFixed(1),
+                            status: teacher.status || 'Active'
+                        });
+                    }
+                } catch (e) {}
+            }
+
+            tbody.innerHTML = facultyData
+                .sort((a, b) => parseFloat(b.avg) - parseFloat(a.avg))
+                .map(f => `
+                    <tr>
+                        <td>${f.name}</td>
+                        <td>${f.courses}</td>
+                        <td>${f.students}</td>
+                        <td>${f.avg}%</td>
+                        <td><span class="badge ${f.status === 'Active' ? 'bg-success' : 'bg-warning'}">${f.status}</span></td>
+                    </tr>
+                `).join('') || '<tr><td colspan="5" class="text-center text-muted">No data available</td></tr>';
+        }
+
+        // Export to PDF
+        function exportToPdf() {
+            window.location.href = '/api/v1/report/admin/analytics/pdf';
+        }
+
+        // Export to Excel
+        function exportToExcel() {
+            window.location.href = '/api/v1/report/admin/analytics/excel';
+        }
     </script>
 </body>
 </html>

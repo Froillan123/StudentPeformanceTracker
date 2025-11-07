@@ -166,7 +166,13 @@ public class AuthController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
+            _logger.LogWarning(ex, "Validation error during student registration");
             return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error registering student");
+            return StatusCode(500, new { message = "An error occurred while registering the student. Please try again." });
         }
     }
 

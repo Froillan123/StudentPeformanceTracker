@@ -28,6 +28,7 @@ namespace StudentPeformanceTracker.Data
         public DbSet<Enrollment> Enrollments { get; set; }
         public DbSet<StudentSubject> StudentSubjects { get; set; }
         public DbSet<Grade> Grades { get; set; }
+        public DbSet<Announcement> Announcements { get; set; }
 
 
 
@@ -224,6 +225,23 @@ namespace StudentPeformanceTracker.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            });
+
+            // Announcement configuration
+            modelBuilder.Entity<Announcement>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+                
+                entity.HasOne(a => a.Teacher)
+                    .WithMany()
+                    .HasForeignKey(a => a.TeacherId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                
+                entity.HasOne(a => a.SectionSubject)
+                    .WithMany()
+                    .HasForeignKey(a => a.SectionSubjectId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
         }

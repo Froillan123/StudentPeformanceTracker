@@ -22,26 +22,60 @@
         <link rel="stylesheet" href="~/css/global.css" asp-append-version="true" />
         
         <style>
-            body {
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body, html {
+                height: 100%;
+                overflow-x: hidden;
                 font-family: 'League Spartan', sans-serif;
-                background-color: #f8f9fa;
-                height: 100vh;
+            }
+
+            .login-container {
+                min-height: 100vh;
+                display: flex;
+                padding: 0;
+                margin: 0;
+                width: 100%;
             }
             
             .welcome-section {
-                background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/images/welcome_image.png');
+                background: linear-gradient(rgba(102, 126, 234, 0.6), rgba(118, 75, 162, 0.6)), url('/images/welcome_image.png');
                 background-size: cover;
                 background-position: center;
+                background-repeat: no-repeat;
+                position: relative;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                padding: 3rem;
+                width: 50%;
+                min-height: 100vh;
+            }
+
+            .welcome-content {
+                position: relative;
+                z-index: 2;
             }
             
             .btn-login {
                 background-color: #4a6bff;
                 border: none;
                 padding: 0.75rem;
+                color: white;
+                font-weight: 600;
+                transition: all 0.3s ease;
             }
             
             .btn-login:hover {
                 background-color: #3a5bef;
+                color: white;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 8px rgba(74, 107, 255, 0.3);
             }
             
             .form-control:focus {
@@ -64,24 +98,48 @@
                 text-decoration: none;
                 font-weight: 600;
             }
+
+            .form-container {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+                background-color: #ffffff;
+                width: 50%;
+                min-height: 100vh;
+            }
+
+            @@media (max-width: 768px) {
+                .login-container {
+                    flex-direction: column;
+                }
+                
+                .welcome-section {
+                    width: 100%;
+                    min-height: 40vh;
+                }
+
+                .form-container {
+                    width: 100%;
+                    padding: 1rem;
+                }
+            }
         </style>
     </head>
 
-    <body class="d-flex align-items-center">
-        <div class="container-fluid h-100">
-            <div class="row h-100">
+    <body>
+        <div class="login-container">
                 @* left container - welcome section *@
-                <div class="col-lg-6 col-md-12 p-4 d-flex align-items-stretch">
-                    <div class="welcome-section w-100 rounded-3 d-flex flex-column justify-content-between text-white p-5">
-                        <div>
+            <div class="welcome-section text-white">
+                <div class="welcome-content">
                             <h2 class="mb-2 fs-3 fw-normal">Welcome to</h2>
-                            <h1 class="mb-4 fw-bold display-5">GRADIA</h1>
-                        </div>
+                    <h1 class="mb-4 fw-bold display-4">GRADIA</h1>
+                    <p class="fs-5 mb-4">Your Student Performance Tracker</p>
                     </div>
                 </div>
 
                 @* right container - login form *@
-                <div class="col-lg-6 col-md-12 p-4 d-flex align-items-center justify-content-center">
+            <div class="form-container">
                     <div class="w-100" style="max-width: 400px;">
                         <h2 class="fw-bold mb-4 display-6 text-dark">Login</h2>
 
@@ -130,7 +188,6 @@
                                 </div>
                             </div>
                         </form>
-                    </div>
                 </div>
             </div>
         </div>

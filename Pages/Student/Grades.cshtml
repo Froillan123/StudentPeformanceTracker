@@ -372,7 +372,9 @@
                 const response = await fetch(`/api/v1/grade/student/${studentId}`);
                 if (response.ok) {
                     const grades = await response.json();
-                    allGrades = Array.isArray(grades) ? grades : [];
+                    const allGradesArray = Array.isArray(grades) ? grades : [];
+                    // Filter to only Midterm and Final Grade
+                    allGrades = filterMidtermFinalOnly(allGradesArray);
                     setupClassFilter(allGrades);
                     displayGrades(allGrades);
                 } else {
@@ -411,8 +413,23 @@
                 window.location.href = `/api/v1/report/student/${currentStudentId}/grades/excel`;
             });
         }
+        
+        // Filter grades to only show Midterm and Final Grade
+        function filterMidtermFinalOnly(grades) {
+            return grades.filter(g => g.assessmentType === 'Midterm' || g.assessmentType === 'Final Grade');
+        }
 
-        // Display grouped by class as cards
+        // Get grade status badge
+        function getGradeStatusBadge(gradePoint) {
+            const grade = parseFloat(gradePoint);
+            if (grade <= 3.0) {
+                return '<span class="badge bg-success">PASS</span>';
+            } else {
+                return '<span class="badge bg-danger">FAIL</span>';
+            }
+        }
+
+        // Display grades by class (only Midterm and Final)
         function displayGrades(grades) {
             const container = document.getElementById('gradesContainer');
             if (!container) return;
@@ -433,8 +450,13 @@
                 const subject = g.subjectName || 'N/A';
                 const section = g.sectionName || 'N/A';
                 const key = `${subject} || ${section}`;
-                if (!groups.has(key)) groups.set(key, { subject, section, items: [] });
-                groups.get(key).items.push(g);
+                if (!groups.has(key)) groups.set(key, { subject, section, midterm: null, final: null });
+                
+                if (g.assessmentType === 'Midterm') {
+                    groups.get(key).midterm = g;
+                } else if (g.assessmentType === 'Final Grade') {
+                    groups.get(key).final = g;
+                }
             });
 
             const entries = Array.from(groups.entries())
@@ -447,39 +469,63 @@
             }
 
             container.innerHTML = entries.map(([key, group]) => {
-                const cards = group.items
-                    .sort((a,b) => new Date(a.dateGiven || a.createdAt) - new Date(b.dateGiven || b.createdAt))
-                    .map(item => {
-                        const statusBadge = item.percentage !== null && item.percentage !== undefined ?
-                            '<span class="badge bg-success">Graded</span>' :
-                            '<span class="badge bg-warning text-dark">Pending</span>';
-                        const gradeDisplay = item.percentage !== null && item.percentage !== undefined ?
-                            `${item.score}/${item.maxScore} (${item.percentage}%)` : `${item.score}/${item.maxScore}`;
-                        const dateDisplay = item.dateGiven ? new Date(item.dateGiven).toLocaleDateString() : new Date(item.createdAt).toLocaleDateString();
-                        return `
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="fw-semibold">${item.assessmentName}</div>
-                                    <small class="text-muted">${item.assessmentType || 'Assessment'} • ${dateDisplay}</small>
-                                </div>
-                                <div class="text-end">
-                                    <div>${gradeDisplay}</div>
-                                    ${statusBadge}
-                                </div>
-                            </li>`;
-                    }).join('');
+                const midterm = group.midterm;
+                const final = group.final;
+                
+                // Calculate overall average (Midterm 40% + Final 60%) using grade points
+                let overallGradePoint = '-';
+                if (midterm && final && midterm.gradePoint && final.gradePoint) {
+                    const avgGradePoint = (midterm.gradePoint * 0.4) + (final.gradePoint * 0.6);
+                    overallGradePoint = avgGradePoint.toFixed(2);
+                } else if (midterm && midterm.gradePoint) {
+                    overallGradePoint = midterm.gradePoint.toFixed(2);
+                } else if (final && final.gradePoint) {
+                    overallGradePoint = final.gradePoint.toFixed(2);
+                }
+                
+                const overallStatusBadge = overallGradePoint !== '-' ? getGradeStatusBadge(overallGradePoint) : '';
+                
                 return `
                     <div class="col-12">
                         <div class="card">
                             <div class="card-header bg-success text-white">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <h6 class="mb-0"><i class="fas fa-book me-2"></i>${group.subject} <span class="text-white-50">(${group.section})</span></h6>
-                                    <span class="badge bg-light text-dark">${group.items.length} assessments</span>
+                                    <span class="badge bg-light text-dark">Overall: ${overallGradePoint} ${overallStatusBadge}</span>
                                 </div>
                             </div>
-                            <ul class="list-group list-group-flush">
-                                ${cards}
-                            </ul>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <h6 class="text-primary"><i class="fas fa-calendar-alt me-2"></i>Midterm Grade</h6>
+                                        ${midterm ? `
+                                            <div class="p-3 bg-light rounded">
+                                                ${(() => {
+                                                    const gradePoint = (midterm.gradePoint || 0).toFixed(2);
+                                                    const statusBadge = getGradeStatusBadge(gradePoint);
+                                                    return `<h4 class="text-primary mb-1">${gradePoint} ${statusBadge}</h4>`;
+                                                })()}
+                                                <p class="text-muted mb-0"><small>Date: ${new Date(midterm.dateGiven).toLocaleDateString()}</small></p>
+                                                ${midterm.remarks ? `<p class="text-muted mt-2 mb-0"><small><strong>Remarks:</strong> ${midterm.remarks}</small></p>` : ''}
+                                            </div>
+                                        ` : '<p class="text-muted"><small>No midterm grade yet</small></p>'}
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <h6 class="text-success"><i class="fas fa-graduation-cap me-2"></i>Final Grade</h6>
+                                        ${final ? `
+                                            <div class="p-3 bg-light rounded">
+                                                ${(() => {
+                                                    const gradePoint = (final.gradePoint || 0).toFixed(2);
+                                                    const statusBadge = getGradeStatusBadge(gradePoint);
+                                                    return `<h4 class="text-success mb-1">${gradePoint} ${statusBadge}</h4>`;
+                                                })()}
+                                                <p class="text-muted mb-0"><small>Date: ${new Date(final.dateGiven).toLocaleDateString()}</small></p>
+                                                ${final.remarks ? `<p class="text-muted mt-2 mb-0"><small><strong>Remarks:</strong> ${final.remarks}</small></p>` : ''}
+                                            </div>
+                                        ` : '<p class="text-muted"><small>No final grade yet</small></p>'}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>`;
             }).join('');

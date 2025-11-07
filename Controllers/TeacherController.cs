@@ -23,14 +23,16 @@ public class TeacherController : ControllerBase
     private readonly IUserRepository _userRepository;
     private readonly AuthService _authService;
     private readonly AppDbContext _context;
+    private readonly ISectionSubjectRepository _sectionSubjectRepository;
 
-    public TeacherController(ITeacherRepository teacherRepository, IDepartmentRepository departmentRepository, IUserRepository userRepository, AuthService authService, AppDbContext context)
+    public TeacherController(ITeacherRepository teacherRepository, IDepartmentRepository departmentRepository, IUserRepository userRepository, AuthService authService, AppDbContext context, ISectionSubjectRepository sectionSubjectRepository)
     {
         _teacherRepository = teacherRepository;
         _departmentRepository = departmentRepository;
         _userRepository = userRepository;
         _authService = authService;
         _context = context;
+        _sectionSubjectRepository = sectionSubjectRepository;
     }
 
     [HttpGet]
@@ -454,6 +456,64 @@ public class TeacherController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, new { message = "Error creating teacher", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get current teacher's classes (SectionSubjects)
+    /// </summary>
+    [HttpGet("classes")]
+    [Authorize(Policy = "TeacherOnly")]
+    public async Task<ActionResult<IEnumerable<object>>> GetMyClasses()
+    {
+        try
+        {
+            // Get current user ID from JWT token
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Unauthorized(new { message = "Invalid user token" });
+            }
+
+            // Get teacher data
+            var teacher = await _teacherRepository.GetByUserIdAsync(userId);
+            if (teacher == null)
+            {
+                return NotFound(new { message = "Teacher profile not found" });
+            }
+
+            // Get teacher's classes
+            var sectionSubjects = await _sectionSubjectRepository.GetByTeacherIdAsync(teacher.Id);
+            
+            var result = sectionSubjects.Select(ss => new
+            {
+                ss.Id,
+                ss.SectionId,
+                SectionName = ss.Section?.SectionName,
+                ss.SubjectId,
+                SubjectName = ss.Subject?.SubjectName,
+                SubjectDescription = ss.Subject?.Description,
+                ss.TeacherId,
+                TeacherName = ss.Teacher != null ? $"{ss.Teacher.FirstName} {ss.Teacher.LastName}" : "N/A",
+                Schedule = !string.IsNullOrEmpty(ss.ScheduleDay) && !string.IsNullOrEmpty(ss.ScheduleTime)
+                    ? $"{ss.ScheduleDay} {ss.ScheduleTime}"
+                    : "TBA",
+                ss.ScheduleDay,
+                ss.ScheduleTime,
+                ss.Room,
+                ss.EdpCode,
+                ss.MaxStudents,
+                ss.CurrentEnrollment,
+                ss.IsActive,
+                ss.CreatedAt,
+                ss.UpdatedAt
+            });
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving classes", error = ex.Message });
         }
     }
 }
