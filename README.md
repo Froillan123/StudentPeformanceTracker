@@ -5,13 +5,23 @@ A comprehensive web-based student performance tracking system built with ASP.NET
 ## 🎯 Features
 
 ### 👨‍🎓 Student Portal
-- **User Registration & Login** - Secure authentication with role-based access
+- **User Registration & Login** - Secure authentication with role-based access (login via username or email)
+- **Account Status** - Pending approval status with highlighted notifications for inactive accounts
 - **Dashboard** - Overview of enrolled classes, recent grades, and academic statistics
+- **Enrollment System** - Comprehensive enrollment management with:
+  - **Pending Enrollment Flow** - Select subjects with 12-unit cap, pending admin approval
+  - **Browse Available Classes** - Filter by year level and course
+  - **Browse by Section** - Semester-based section browsing with visual semester highlighting
+  - **Year Level Filtering** - Automatically filtered to show only relevant sections for student's year level
+  - **Entire Section Enrollment** - Option to enroll in entire sections
 - **My Classes** - View all enrolled subjects with schedules, teachers, and EDP codes
 - **My Grades** - Detailed grade breakdown by subject with Midterm and Final grades
 - **Grade Reports** - Generate and download PDF/Excel reports of academic performance
-- **Announcements** - View class-specific announcements from teachers
-- **Profile Management** - View and update personal information with real academic statistics (GPA, units, subjects)
+- **Announcements** - View announcements including:
+  - Class-specific announcements from teachers
+  - General announcements from admins (with visual distinction)
+- **Profile Management** - View and update personal information (first name, last name, phone) with real academic statistics (GPA, units, subjects)
+- **Auto-Generated Student ID** - Unique student ID format: `ucmn-{YYMMDD}{studentId}`
 
 ### 👨‍🏫 Teacher Portal
 - **Dashboard** - Overview of assigned classes, student statistics, and recent activity
@@ -25,17 +35,41 @@ A comprehensive web-based student performance tracking system built with ASP.NET
   - Student performance trends
   - Midterm vs Final grade comparison
 - **Analytics Export** - Export analytics dashboard to PDF/Excel
-- **Announcements** - Create and manage class-scoped announcements for students
+- **Announcements** - Create and manage:
+  - Class-scoped announcements for students
+  - View general announcements from admins (with visual distinction)
+- **Profile Management** - View and update profile with:
+  - Personal information (first name, last name, phone)
+  - Professional information (highest qualification, emergency contact)
+  - Real-time teaching statistics (classes, students, subjects, total units)
 
 ### 👨‍💼 Admin Portal
 - **Dashboard** - System-wide statistics and overview
-- **Student Management** - Create, view, update, and delete student accounts
+- **Student Management** - Comprehensive student management with:
+  - Create students (automatically set to "Active" status)
+  - View all students with search and filter capabilities
+  - Edit student details (first name, last name, email, phone, course, year level)
+  - Username and Student ID are read-only (auto-generated)
+  - Auto-generated Student ID format: `ucmn-{YYMMDD}{studentId}`
 - **Teacher Management** - Create, view, update, and delete teacher accounts
 - **User Management** - Manage all user accounts with status control
 - **Course Management** - Create and manage academic courses
 - **Subject Management** - Manage subjects with units and descriptions
-- **Section Management** - Create sections and assign subjects
-- **Enrollment Management** - Manage student enrollments and enrollment status
+- **Section Management** - Advanced section management with:
+  - Create sections with duplicate validation
+  - Search sections by name
+  - Filter sections by course
+  - Edit section details (name, max capacity, course, year level, semester)
+- **Enrollment Management** - Comprehensive enrollment management:
+  - View pending enrollments grouped by student
+  - Approve or reject pending enrollments
+  - Capacity validation during approval
+  - Unit cap enforcement (12 units maximum)
+- **General Announcements** - Create and manage system-wide announcements:
+  - Visible to all students and teachers
+  - Create, edit, and delete general announcements
+  - Only the creating admin can edit/delete their announcements
+  - Priority levels: General, Important, Urgent
 - **Analytics Dashboard** - System-wide analytics with:
   - Student enrollment by course
   - Grade distribution across all courses
@@ -43,6 +77,7 @@ A comprehensive web-based student performance tracking system built with ASP.NET
   - Faculty load distribution
   - Course performance overview
 - **Analytics Export** - Export analytics dashboard to PDF/Excel with timestamp
+- **Scrollable Sidebar** - Responsive sidebar navigation that scrolls on smaller screens
 
 ## 🏗️ System Architecture
 
@@ -135,6 +170,7 @@ erDiagram
     
     Student ||--o{ Enrollment : has
     Student ||--o{ StudentSubject : enrolled_in
+    StudentSubject }o--|| EnrollmentStatus : has_status
     Enrollment }o--|| Course : for
     Enrollment }o--|| YearLevel : in
     Enrollment }o--|| Semester : in
@@ -156,7 +192,10 @@ erDiagram
     Section }o--|| Semester : in
     
     Teacher ||--o{ Announcement : creates
-    Announcement }o--|| SectionSubject : scoped_to
+    Admin ||--o{ Announcement : creates_general
+    Announcement }o--o| SectionSubject : scoped_to
+    Announcement }o--o| Teacher : created_by
+    Announcement }o--o| Admin : created_by
     
     Teacher ||--o{ TeacherDepartment : belongs_to
     TeacherDepartment }o--|| Department : part_of
@@ -171,26 +210,42 @@ sequenceDiagram
     participant S as Student
     participant API as API
     participant DB as Database
+    participant A as Admin
     
     S->>API: Register Account
-    API->>DB: Create User & Student
-    DB-->>API: Success
-    API-->>S: Account Created
+    API->>DB: Create User & Student (Status: Inactive)
+    DB-->>API: Success (Auto-generated Student ID)
+    API-->>S: Account Created (Pending Approval)
     
-    S->>API: Login
-    API->>DB: Verify Credentials
+    A->>API: Approve Student
+    API->>DB: Update Status to Active
+    DB-->>API: Success
+    API-->>A: Student Approved
+    
+    S->>API: Login (Username/Email)
+    API->>DB: Verify Credentials & Status
     DB-->>API: JWT Token
     API-->>S: Redirect to Dashboard
     
-    S->>API: View Available Subjects
-    API->>DB: Get Subjects by Course/Year/Sem
+    S->>API: Browse Available Classes
+    API->>DB: Get Subjects by Course/Year/Sem (Filtered by Student Year Level)
     DB-->>API: Subject List
     API-->>S: Display Subjects
     
-    S->>API: Enroll via EDP Code
-    API->>DB: Validate EDP & Enroll
-    DB-->>API: Enrollment Confirmed
-    API-->>S: Success Message
+    S->>API: Select Subjects (12-unit cap)
+    API->>DB: Create Pending Enrollments
+    DB-->>API: Pending Created
+    API-->>S: Pending Status
+    
+    A->>API: View Pending Enrollments
+    API->>DB: Get Pending by Student
+    DB-->>API: Pending List
+    API-->>A: Display Pending
+    
+    A->>API: Approve/Reject Pending
+    API->>DB: Validate Capacity & Update Status
+    DB-->>API: Enrollment Confirmed/Rejected
+    API-->>A: Success Message
 ```
 
 ### Grade Management Flow
@@ -289,6 +344,7 @@ CREATE DATABASE student_performance_tracker;
    - `Migrations/departments-migration.sql`
    - `complete-enrollment-system-migration.sql`
    - `announcements_table.sql`
+   - `Migrations/admin-general-announcements-migration.sql` (PostgreSQL)
 
 ### Application Setup
 
@@ -320,19 +376,25 @@ dotnet run
 ## 🔌 API Endpoints
 
 ### Authentication
-- `POST /api/v1/auth/login` - User login
+- `POST /api/v1/auth/login` - User login (supports username or email for all roles)
 - `POST /api/v1/auth/register` - User registration
-- `POST /api/v1/auth/register/student` - Student registration
+- `POST /api/v1/auth/register/student` - Student registration (self-registration: Inactive status, admin-created: Active status)
 - `POST /api/v1/auth/refresh` - Refresh JWT token
+- `POST /api/v1/auth/logout` - User logout
 
 ### Student Endpoints
-- `GET /api/v1/student/profile` - Get student profile
+- `GET /api/v1/student/profile` - Get student profile (includes CourseId)
+- `PUT /api/v1/student/profile` - Update student profile (first name, last name, phone)
 - `GET /api/v1/studentsubject/student/{id}/enrolled` - Get enrolled classes
+- `GET /api/v1/studentsubject/student/{id}/pending` - Get pending enrollments
 - `POST /api/v1/studentsubject/enroll` - Enroll via EDP code
+- `POST /api/v1/studentsubject/select` - Select subjects for pending enrollment (12-unit cap)
 - `DELETE /api/v1/studentsubject/{id}` - Drop class
+- `DELETE /api/v1/studentsubject/pending/{id}` - Delete pending enrollment
 
 ### Teacher Endpoints
 - `GET /api/v1/teacher/profile` - Get teacher profile
+- `PUT /api/v1/teacher/profile` - Update teacher profile (first name, last name, phone, highest qualification, emergency contact)
 - `GET /api/v1/teacher/classes` - Get assigned classes
 - `GET /api/v1/sectionsubject/teacher/{id}` - Get classes by teacher ID
 
@@ -354,18 +416,32 @@ dotnet run
 - `GET /api/v1/report/admin/analytics/excel` - Admin analytics (Excel)
 
 ### Announcements
-- `GET /api/v1/announcement` - Get active announcements (Student/Teacher)
-- `GET /api/v1/announcement/{id}` - Get announcement by ID
-- `POST /api/v1/announcement` - Create announcement (Teacher only)
-- `PUT /api/v1/announcement/{id}` - Update announcement (Teacher only)
-- `DELETE /api/v1/announcement/{id}` - Delete announcement (Teacher only)
+- `GET /api/v1/announcement` - Get active announcements (Student/Teacher - includes class-specific and general)
+- `GET /api/v1/announcement/{id}` - Get announcement by ID (Student/Teacher/Admin)
+- `POST /api/v1/announcement` - Create class announcement (Teacher only)
+- `PUT /api/v1/announcement/{id}` - Update class announcement (Teacher only, own announcements)
+- `DELETE /api/v1/announcement/{id}` - Delete class announcement (Teacher only, own announcements)
+- `GET /api/v1/announcement/admin/general` - Get all general announcements (Admin only)
+- `POST /api/v1/announcement/admin/general` - Create general announcement (Admin only)
+- `PUT /api/v1/announcement/admin/general/{id}` - Update general announcement (Admin only, own announcements)
+- `DELETE /api/v1/announcement/admin/general/{id}` - Delete general announcement (Admin only, own announcements)
 
 ### Admin Endpoints
 - `GET /api/v1/admin/profile` - Get admin profile
+- `PUT /api/v1/admin/profile` - Update admin profile
 - `GET /api/v1/admin/sectionsubject/teacher/{id}` - Get classes by teacher (Admin)
 - `GET /api/v1/user-management` - Get all users (Admin only)
 - `POST /api/v1/teacher/admin-create` - Create teacher (Admin only)
 - `DELETE /api/v1/user-management/{id}` - Delete user (Admin only)
+- `GET /api/v1/student` - Get all students with pagination (Admin only)
+- `GET /api/v1/student/{id}` - Get student by ID (Admin only)
+- `PUT /api/v1/student/{id}` - Update student details (Admin only, username and student ID are read-only)
+- `GET /api/v1/studentsubject/pending` - Get all pending enrollments grouped by student (Admin only)
+- `POST /api/v1/enrollment/approve` - Approve pending enrollments (Admin only, with capacity validation)
+- `POST /api/v1/enrollment/reject` - Reject pending enrollments (Admin only)
+- `GET /api/v1/section` - Get all sections (Admin only)
+- `POST /api/v1/section` - Create section (Admin only, with duplicate validation)
+- `PUT /api/v1/section/{id}` - Update section (Admin only, with duplicate validation)
 
 ## 📈 Features Breakdown
 
@@ -386,12 +462,17 @@ dotnet run
 - **Trends**: Grade trends over time
 
 ### Announcement System
-- **Class-Scoped**: Teachers post announcements to specific classes
+- **Class-Scoped Announcements**: Teachers post announcements to specific classes
+- **General Announcements**: Admins can create system-wide announcements visible to all students and teachers
 - **Role-Based Visibility**: 
-  - Students see announcements from enrolled classes only
-  - Teachers see announcements from their assigned classes
+  - Students see announcements from enrolled classes + general announcements
+  - Teachers see announcements from their assigned classes + general announcements
+  - Visual distinction between class-specific and general announcements
 - **Priority Levels**: General, Important, Urgent
 - **Active/Inactive**: Toggle announcement visibility
+- **Ownership Control**: 
+  - Teachers can only edit/delete their own class announcements
+  - Admins can only edit/delete their own general announcements
 
 ### Grade Management
 - **Assessment Types**: Midterm and Final Grade
@@ -399,6 +480,24 @@ dotnet run
 - **Grade Scale**: 1.0 (Excellent) to 5.0 (Failed)
 - **Remarks**: Excellent, Very Good, Good, Pass, Failed
 - **Validation**: Prevents duplicate grades of same type
+
+### Enrollment Management
+- **Pending Enrollment System**: Students select subjects with 12-unit cap, pending admin approval
+- **Unit Cap Enforcement**: Maximum 12 units per enrollment period
+- **Capacity Validation**: Automatic capacity checking during approval
+- **Year Level Filtering**: Students only see sections relevant to their year level
+- **Semester-Based Browsing**: Browse sections by semester with visual highlighting
+- **Entire Section Enrollment**: Option to enroll in all subjects of a section
+- **Status Management**: Pending → Enrolled/Rejected workflow
+
+### User Management
+- **Auto-Generated Student IDs**: Format `ucmn-{YYMMDD}{studentId}` (e.g., `ucmn-2511112001`)
+- **Status Control**: 
+  - Self-registered students: "Inactive" (pending approval)
+  - Admin-created students: "Active" (immediate access)
+- **Flexible Login**: All roles can login with username or email
+- **Account Status Notifications**: Highlighted messages for pending approval accounts
+- **Read-Only Fields**: Username and Student ID cannot be modified after creation
 
 ## 🔒 Security Features
 
@@ -408,6 +507,10 @@ dotnet run
 - **HttpOnly Cookies**: Secure cookie storage for tokens
 - **CORS Configuration**: Cross-origin resource sharing setup
 - **Input Validation**: Server-side validation for all inputs
+- **Account Status Verification**: Login blocked for inactive accounts with clear messaging
+- **Ownership Validation**: Users can only modify their own resources (announcements, profiles)
+- **Capacity Validation**: Prevents over-enrollment in sections
+- **Duplicate Prevention**: Server-side validation for duplicate sections and enrollments
 
 ## 📝 License
 
