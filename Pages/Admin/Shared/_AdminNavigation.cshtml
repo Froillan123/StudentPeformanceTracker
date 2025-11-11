@@ -32,6 +32,9 @@
         transition: all 0.3s ease;
         z-index: 1000;
         box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
     }
     
     .sidebar.collapsed {
@@ -42,6 +45,7 @@
         padding: 1.5rem 1rem;
         border-bottom: 1px solid rgba(255,255,255,0.1);
         text-align: center;
+        flex-shrink: 0;
     }
     
     .sidebar-header h3 {
@@ -81,6 +85,26 @@
     
     .sidebar-menu {
         padding: 1rem 0;
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    
+    .sidebar-menu::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .sidebar-menu::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.05);
+    }
+    
+    .sidebar-menu::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.2);
+        border-radius: 3px;
+    }
+    
+    .sidebar-menu::-webkit-scrollbar-thumb:hover {
+        background: rgba(255,255,255,0.3);
     }
     
     .sidebar-menu ul {
@@ -314,6 +338,12 @@
                 <a href="/Admin/EnrollmentManage" class="@(currentPath.Contains("/admin/enrollmentmanage") ? "active" : "")">
                     <i class="fas fa-user-graduate"></i>
                     <span>Enrollments</span>
+                </a>
+            </li>
+            <li>
+                <a href="/Admin/Announcements" class="@(currentPath.Contains("/admin/announcements") ? "active" : "")">
+                    <i class="fas fa-bullhorn"></i>
+                    <span>Announcements</span>
                 </a>
             </li>
             <li>

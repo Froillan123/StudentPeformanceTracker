@@ -18,10 +18,11 @@ namespace StudentPeformanceTracker.Repository
         {
             return await _context.Announcements
                 .Include(a => a.Teacher)
-                .Include(a => a.SectionSubject)
+                .Include(a => a.SectionSubject!)
                     .ThenInclude(ss => ss.Subject)
-                .Include(a => a.SectionSubject)
+                .Include(a => a.SectionSubject!)
                     .ThenInclude(ss => ss.Section)
+                .Include(a => a.Admin)
                 .OrderByDescending(a => a.CreatedAt)
                 .ToListAsync();
         }
@@ -30,10 +31,11 @@ namespace StudentPeformanceTracker.Repository
         {
             return await _context.Announcements
                 .Include(a => a.Teacher)
-                .Include(a => a.SectionSubject)
+                .Include(a => a.SectionSubject!)
                     .ThenInclude(ss => ss.Subject)
-                .Include(a => a.SectionSubject)
+                .Include(a => a.SectionSubject!)
                     .ThenInclude(ss => ss.Section)
+                .Include(a => a.Admin)
                 .FirstOrDefaultAsync(a => a.Id == id);
         }
 
@@ -41,10 +43,11 @@ namespace StudentPeformanceTracker.Repository
         {
             return await _context.Announcements
                 .Include(a => a.Teacher)
-                .Include(a => a.SectionSubject)
+                .Include(a => a.SectionSubject!)
                     .ThenInclude(ss => ss.Subject)
-                .Include(a => a.SectionSubject)
+                .Include(a => a.SectionSubject!)
                     .ThenInclude(ss => ss.Section)
+                .Include(a => a.Admin)
                 .Where(a => a.TeacherId == teacherId)
                 .OrderByDescending(a => a.CreatedAt)
                 .ToListAsync();
@@ -54,10 +57,11 @@ namespace StudentPeformanceTracker.Repository
         {
             return await _context.Announcements
                 .Include(a => a.Teacher)
-                .Include(a => a.SectionSubject)
+                .Include(a => a.SectionSubject!)
                     .ThenInclude(ss => ss.Subject)
-                .Include(a => a.SectionSubject)
+                .Include(a => a.SectionSubject!)
                     .ThenInclude(ss => ss.Section)
+                .Include(a => a.Admin)
                 .Where(a => a.IsActive)
                 .OrderByDescending(a => a.CreatedAt)
                 .ToListAsync();
@@ -67,11 +71,30 @@ namespace StudentPeformanceTracker.Repository
         {
             return await _context.Announcements
                 .Include(a => a.Teacher)
-                .Include(a => a.SectionSubject)
+                .Include(a => a.SectionSubject!)
                     .ThenInclude(ss => ss.Subject)
-                .Include(a => a.SectionSubject)
+                .Include(a => a.SectionSubject!)
                     .ThenInclude(ss => ss.Section)
-                .Where(a => a.IsActive && sectionSubjectIds.Contains(a.SectionSubjectId))
+                .Include(a => a.Admin)
+                .Where(a => a.IsActive && a.SectionSubjectId.HasValue && sectionSubjectIds.Contains(a.SectionSubjectId.Value))
+                .OrderByDescending(a => a.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Announcement>> GetAllGeneralAnnouncementsAsync()
+        {
+            return await _context.Announcements
+                .Include(a => a.Admin)
+                .Where(a => a.IsActive && a.AdminId != null)
+                .OrderByDescending(a => a.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Announcement>> GetByAdminIdAsync(int adminId)
+        {
+            return await _context.Announcements
+                .Include(a => a.Admin)
+                .Where(a => a.AdminId == adminId)
                 .OrderByDescending(a => a.CreatedAt)
                 .ToListAsync();
         }

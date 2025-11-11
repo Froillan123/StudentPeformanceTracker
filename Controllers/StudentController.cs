@@ -182,11 +182,13 @@ public class StudentController : ControllerBase
                 student.Email,
                 student.Phone,
                 student.YearLevel,
+                student.CourseId,
                 student.EnrollmentDate,
                 student.CreatedAt,
                 student.UpdatedAt,
                 CourseName = courseName,
-                Status = student.User?.Status ?? "Unknown"
+                Status = student.User?.Status ?? "Unknown",
+                Username = student.User?.Username ?? "N/A"
             };
 
             return Ok(result);
@@ -330,6 +332,77 @@ public class StudentController : ControllerBase
             return StatusCode(500, new { message = "Error updating student profile", error = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Update student by ID (Admin access only)
+    /// </summary>
+    [HttpPut("{id}")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<object>> UpdateStudent(int id, [FromBody] AdminUpdateStudentRequest request)
+    {
+        try
+        {
+            var student = await _studentRepository.GetByIdAsync(id);
+            if (student == null)
+            {
+                return NotFound(new { message = "Student not found" });
+            }
+
+            // Check if email is being changed and if it already exists (excluding current student)
+            if (!string.IsNullOrEmpty(request.Email) && request.Email != student.Email)
+            {
+                var existingStudent = await _studentRepository.GetByEmailAsync(request.Email);
+                if (existingStudent != null && existingStudent.Id != id)
+                {
+                    return BadRequest(new { message = "Email already exists" });
+                }
+            }
+
+            // Update student information (username and student ID cannot be changed)
+            student.FirstName = request.FirstName;
+            student.LastName = request.LastName;
+            student.Email = request.Email;
+            student.Phone = request.Phone;
+            student.YearLevel = request.YearLevel;
+            student.CourseId = request.CourseId;
+            student.UpdatedAt = DateTime.UtcNow;
+
+            var updatedStudent = await _studentRepository.UpdateAsync(student);
+
+            // Get course name
+            string courseName = updatedStudent.Course?.CourseName ?? "N/A";
+            if (courseName == "N/A")
+            {
+                var enrollments = await _enrollmentRepository.GetByStudentIdAsync(updatedStudent.Id);
+                var activeEnrollment = enrollments.FirstOrDefault(e => e.Status == "Active" || e.Status == "Pending");
+                courseName = activeEnrollment?.Course?.CourseName ?? "N/A";
+            }
+
+            var result = new
+            {
+                Id = updatedStudent.Id,
+                UserId = updatedStudent.UserId,
+                StudentId = updatedStudent.StudentId,
+                FirstName = updatedStudent.FirstName,
+                LastName = updatedStudent.LastName,
+                Email = updatedStudent.Email,
+                Phone = updatedStudent.Phone,
+                YearLevel = updatedStudent.YearLevel,
+                CourseId = updatedStudent.CourseId,
+                EnrollmentDate = updatedStudent.EnrollmentDate,
+                CourseName = courseName,
+                Status = updatedStudent.User?.Status ?? "Unknown",
+                UpdatedAt = updatedStudent.UpdatedAt,
+                Message = "Student updated successfully"
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error updating student", error = ex.Message });
+        }
+    }
 }
 
 public class UpdateStudentProfileRequest
@@ -344,4 +417,28 @@ public class UpdateStudentProfileRequest
 
     [MaxLength(20)]
     public string? Phone { get; set; }
+}
+
+public class AdminUpdateStudentRequest
+{
+    [Required]
+    [MaxLength(50)]
+    public string FirstName { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(50)]
+    public string LastName { get; set; } = string.Empty;
+
+    [Required]
+    [EmailAddress]
+    [MaxLength(100)]
+    public string Email { get; set; } = string.Empty;
+
+    [MaxLength(20)]
+    public string? Phone { get; set; }
+
+    [Range(1, 5)]
+    public int? YearLevel { get; set; }
+
+    public int? CourseId { get; set; }
 }

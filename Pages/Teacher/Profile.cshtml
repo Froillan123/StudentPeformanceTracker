@@ -282,7 +282,6 @@
                                 <i class="fas fa-chalkboard-teacher"></i>
                             </div>
                             <h2 class="h3" id="teacherName">Loading...</h2>
-                            <p class="text-muted" id="teacherPosition">Loading...</p>
                             <button class="btn btn-edit" onclick="editProfile()">
                                 <i class="fas fa-edit me-2"></i>Edit Profile
                             </button>
@@ -341,26 +340,26 @@
                         <div class="row text-center">
                             <div class="col-6 mb-3">
                                 <div class="stat-item">
-                                    <span class="stat-number">5</span>
+                                    <span class="stat-number" id="totalClasses">-</span>
                                     <span class="stat-label">Classes</span>
                                 </div>
                             </div>
                             <div class="col-6 mb-3">
                                 <div class="stat-item">
-                                    <span class="stat-number">98</span>
+                                    <span class="stat-number" id="totalStudents">-</span>
                                     <span class="stat-label">Students</span>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="stat-item">
-                                    <span class="stat-number">3</span>
+                                    <span class="stat-number" id="totalSubjects">-</span>
                                     <span class="stat-label">Subjects</span>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="stat-item">
-                                    <span class="stat-number">92%</span>
-                                    <span class="stat-label">Attendance</span>
+                                    <span class="stat-number" id="totalUnits">-</span>
+                                    <span class="stat-label">Total Units</span>
                                 </div>
                             </div>
                         </div>
@@ -462,12 +461,15 @@
         // Load profile data on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadProfileData();
+            loadTeachingStatistics();
         });
 
         // Load profile data from API
         async function loadProfileData() {
             try {
-                const response = await fetch('/api/v1/teacher/profile');
+                const response = await fetch('/api/v1/teacher/profile', {
+                    credentials: 'include'
+                });
                 if (response.ok) {
                     const profileData = await response.json();
                     displayProfileData(profileData);
@@ -489,6 +491,12 @@
             const fullName = `${data.firstName} ${data.lastName}`;
             document.getElementById('teacherName').textContent = fullName;
             document.getElementById('fullName').textContent = fullName;
+            
+            // Remove or hide teacherPosition if it exists
+            const teacherPositionEl = document.getElementById('teacherPosition');
+            if (teacherPositionEl) {
+                teacherPositionEl.style.display = 'none';
+            }
             document.getElementById('email').textContent = data.email || 'Not provided';
             document.getElementById('phone').textContent = data.phone || 'Not provided';
             document.getElementById('username').textContent = data.username;
@@ -513,6 +521,88 @@
             // Emergency Contact
             document.getElementById('emergencyContact').textContent = data.emergencyContact || 'Not provided';
             document.getElementById('emergencyPhone').textContent = data.emergencyPhone || 'Not provided';
+        }
+
+        // Load teaching statistics
+        async function loadTeachingStatistics() {
+            try {
+                // Get teacher's classes
+                const classesResponse = await fetch('/api/v1/teacher/classes', {
+                    credentials: 'include'
+                });
+                
+                if (!classesResponse.ok) {
+                    console.error('Failed to load classes');
+                    return;
+                }
+
+                const classes = await classesResponse.json() || [];
+                
+                // Calculate statistics
+                const totalClasses = classes.length;
+                const uniqueSubjects = new Set(classes.map(c => c.subjectId).filter(id => id != null)).size;
+                
+                // Calculate total students and total units
+                let totalStudents = 0;
+                let totalUnits = 0;
+                const subjectUnitsMap = new Map(); // Track units per subject to avoid double counting
+                
+                // Get unique subject IDs
+                const uniqueSubjectIds = [...new Set(classes.map(c => c.subjectId).filter(id => id != null))];
+                
+                // First, try to get units from subjects API
+                for (const subjectId of uniqueSubjectIds) {
+                    try {
+                        const subjectResponse = await fetch(`/api/v1/subject/${subjectId}`, {
+                            credentials: 'include'
+                        });
+                        if (subjectResponse.ok) {
+                            const subject = await subjectResponse.json();
+                            if (subject.units) {
+                                subjectUnitsMap.set(subjectId, subject.units);
+                                totalUnits += subject.units;
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`Error loading subject ${subjectId}:`, error);
+                    }
+                }
+                
+                // Get students for each class
+                for (const classItem of classes) {
+                    try {
+                        // Get students for this class
+                        const studentsResponse = await fetch(`/api/v1/studentsubject/sectionsubject/${classItem.id}`, {
+                            credentials: 'include'
+                        });
+                        
+                        if (studentsResponse.ok) {
+                            const students = await studentsResponse.json() || [];
+                            const enrolledStudents = students.filter(s => s.status === 'Enrolled' || s.status === 'Pending');
+                            totalStudents += enrolledStudents.length;
+                        }
+                    } catch (error) {
+                        console.error(`Error loading students for class ${classItem.id}:`, error);
+                        // Fallback to CurrentEnrollment if available
+                        if (classItem.currentEnrollment) {
+                            totalStudents += classItem.currentEnrollment;
+                        }
+                    }
+                }
+                
+                // Update UI
+                document.getElementById('totalClasses').textContent = totalClasses;
+                document.getElementById('totalStudents').textContent = totalStudents;
+                document.getElementById('totalSubjects').textContent = uniqueSubjects;
+                document.getElementById('totalUnits').textContent = totalUnits;
+                
+            } catch (error) {
+                console.error('Error loading teaching statistics:', error);
+                document.getElementById('totalClasses').textContent = '0';
+                document.getElementById('totalStudents').textContent = '0';
+                document.getElementById('totalSubjects').textContent = '0';
+                document.getElementById('totalUnits').textContent = '0';
+            }
         }
 
         // Show error message
@@ -563,6 +653,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
+                    credentials: 'include',
                     body: JSON.stringify(updateData)
                 });
 

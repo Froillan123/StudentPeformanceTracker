@@ -236,12 +236,20 @@ namespace StudentPeformanceTracker.Data
                 entity.HasOne(a => a.Teacher)
                     .WithMany()
                     .HasForeignKey(a => a.TeacherId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired(false);
                 
                 entity.HasOne(a => a.SectionSubject)
                     .WithMany()
                     .HasForeignKey(a => a.SectionSubjectId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired(false);
+                
+                entity.HasOne(a => a.Admin)
+                    .WithMany()
+                    .HasForeignKey(a => a.AdminId)
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired(false);
             });
 
         }

@@ -8,11 +8,11 @@ public class Announcement
     [Key]
     public int Id { get; set; }
 
-    [Required]
-    public int TeacherId { get; set; }
+    public int? TeacherId { get; set; }
 
-    [Required]
-    public int SectionSubjectId { get; set; }
+    public int? SectionSubjectId { get; set; }
+
+    public int? AdminId { get; set; }
 
     [Required]
     [MaxLength(200)]
@@ -34,9 +34,12 @@ public class Announcement
 
     // Navigation properties
     [ForeignKey("TeacherId")]
-    public Teacher Teacher { get; set; } = null!;
+    public Teacher? Teacher { get; set; }
 
     [ForeignKey("SectionSubjectId")]
-    public SectionSubject SectionSubject { get; set; } = null!;
+    public SectionSubject? SectionSubject { get; set; }
+
+    [ForeignKey("AdminId")]
+    public Admin? Admin { get; set; }
 }
 

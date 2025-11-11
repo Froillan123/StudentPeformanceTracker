@@ -1,5 +1,5 @@
-@page "/Teacher/Announcements"
-@model StudentPeformanceTracker.Pages.Teacher.TeacherAnnouncementsModel
+@page "/Admin/Announcements"
+@model StudentPeformanceTracker.Pages.Admin.AdminAnnouncementsModel
 @{
     ViewData["Title"] = "Announcements";
     Layout = null;
@@ -10,177 +10,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@ViewData["Title"] - Teacher Portal</title>
+    <title>@ViewData["Title"] - Admin Portal</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root {
-            --primary-color: #2196F3;
-            --secondary-color: #f5f5f5;
-            --accent-color: #FF9800;
-            --text-color: #333;
-            --border-color: #e0e0e0;
-            --sidebar-width: 250px;
-            --sidebar-collapsed-width: 70px;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f9f9f9;
-            color: var(--text-color);
-            overflow-x: hidden;
-        }
-        
-        /* Sidebar Styles */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            width: var(--sidebar-width);
-            background-color: var(--primary-color);
-            color: white;
-            transition: all 0.3s ease;
-            z-index: 1000;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-        }
-        
-        .sidebar.collapsed {
-            width: var(--sidebar-collapsed-width);
-        }
-        
-        .sidebar-header {
-            padding: 1.5rem 1rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            text-align: center;
-        }
-        
-        .sidebar-header h3 {
-            margin: 0;
-            font-size: 1.2rem;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-        }
-        
-        .sidebar.collapsed .sidebar-header h3 {
-            display: none;
-        }
-        
-        .sidebar-menu {
-            padding: 1rem 0;
-        }
-        
-        .sidebar-menu ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        
-        .sidebar-menu li {
-            margin-bottom: 0.5rem;
-        }
-        
-        .sidebar-menu a {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            color: rgba(255,255,255,0.8);
-            text-decoration: none;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-            overflow: hidden;
-        }
-        
-        .sidebar-menu a:hover, .sidebar-menu a.active {
-            background-color: rgba(255,255,255,0.1);
-            color: white;
-            border-left: 4px solid var(--accent-color);
-        }
-        
-        .sidebar-menu i {
-            width: 24px;
-            margin-right: 1rem;
-            text-align: center;
-        }
-        
-        .sidebar.collapsed .sidebar-menu span {
-            display: none;
-        }
-        
-        .sidebar.collapsed .sidebar-menu i {
-            margin-right: 0;
-        }
-        
-        .toggle-btn {
-            position: absolute;
-            top: 1rem;
-            right: -15px;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        
-        /* Main Content Area */
-        .main-content {
-            margin-left: var(--sidebar-width);
-            transition: all 0.3s ease;
-            min-height: 100vh;
-            background-color: #f9f9f9;
-        }
-        
-        .main-content.expanded {
-            margin-left: var(--sidebar-collapsed-width);
-        }
-        
-        .dashboard-header {
-            background-color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 1rem 0;
-        }
-        
-        .card-custom {
-            background-color: white;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            transition: all 0.3s ease;
-            border: none;
-        }
-        
-        .card-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        
-        .section-title {
-            color: var(--primary-color);
-            font-weight: 600;
-            margin-bottom: 1rem;
-            border-bottom: 2px solid var(--accent-color);
-            padding-bottom: 0.5rem;
-        }
-        
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-        
         .announcement-card {
-            border-left: 4px solid var(--primary-color);
+            border-left: 4px solid #3498db;
             margin-bottom: 1rem;
             transition: all 0.3s ease;
         }
@@ -190,11 +27,11 @@
         }
         
         .announcement-card.important {
-            border-left-color: var(--accent-color);
+            border-left-color: #f39c12;
         }
         
         .announcement-card.urgent {
-            border-left-color: #f44336;
+            border-left-color: #e74c3c;
         }
         
         .priority-badge {
@@ -205,7 +42,7 @@
 </head>
 <body>
     <!-- Sidebar Navigation -->
-    @await Html.PartialAsync("Shared/_TeacherNavigation")
+    @await Html.PartialAsync("Shared/_AdminNavigation")
 
     <!-- Main Content -->
     <div class="main-content" id="mainContent">
@@ -213,21 +50,21 @@
         <header class="dashboard-header">
             <div class="container">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h1 class="h3 mb-0">Announcements</h1>
+                    <h1 class="h3 mb-0">General Announcements</h1>
                     <div class="d-flex align-items-center">
                         <button class="btn btn-primary me-2" onclick="showCreateModal()">
                             <i class="fas fa-plus me-1"></i>New Announcement
                         </button>
                         <div class="dropdown">
                             <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                <img src="https://ui-avatars.com/api/?name=Loading&background=2196F3&color=fff" class="user-avatar me-2" id="headerAvatar">
+                                <img src="https://ui-avatars.com/api/?name=Loading&background=3498db&color=fff" class="user-avatar me-2" id="headerAvatar">
                                 <span id="headerName">Loading...</span>
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="userDropdown">
-                                <li><a class="dropdown-item" href="/Profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
+                                <li><a class="dropdown-item" href="/Admin/Profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
                                 <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="/LoginPage"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="handleLogout()"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                             </ul>
                         </div>
                     </div>
@@ -239,7 +76,7 @@
         <main class="container my-4">
             <!-- Announcements Content -->
             <div class="card-custom">
-                <h3 class="section-title">Recent Announcements</h3>
+                <h3 class="section-title">General Announcements</h3>
                 <div id="announcementsContainer">
                     <div class="text-center py-5">
                         <i class="fas fa-spinner fa-spin fa-3x text-muted mb-3"></i>
@@ -248,33 +85,31 @@
                 </div>
             </div>
         </main>
-                </div>
+    </div>
                 
     <!-- Create/Edit Announcement Modal -->
     <div class="modal fade" id="announcementModal" tabindex="-1" aria-labelledby="announcementModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="announcementModalLabel">New Announcement</h5>
+                    <h5 class="modal-title" id="announcementModalLabel">New General Announcement</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
+                </div>
                 <div class="modal-body">
                     <form id="announcementForm">
                         <input type="hidden" id="announcementId" value="">
-                        <div class="mb-3">
-                            <label for="announcementSectionSubject" class="form-label">Class <span class="text-danger">*</span></label>
-                            <select class="form-select" id="announcementSectionSubject" required>
-                                <option value="">Select a class...</option>
-                            </select>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>General Announcement:</strong> This announcement will be visible to all students and teachers.
                         </div>
                         <div class="mb-3">
                             <label for="announcementTitle" class="form-label">Title <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="announcementTitle" required maxlength="200">
-                    </div>
+                        </div>
                         <div class="mb-3">
                             <label for="announcementContent" class="form-label">Content <span class="text-danger">*</span></label>
                             <textarea class="form-control" id="announcementContent" rows="5" required></textarea>
-                </div>
+                        </div>
                         <div class="mb-3">
                             <label for="announcementPriority" class="form-label">Priority <span class="text-danger">*</span></label>
                             <select class="form-select" id="announcementPriority" required>
@@ -284,7 +119,7 @@
                             </select>
                         </div>
                     </form>
-                    </div>
+                </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" onclick="saveAnnouncement()">Save Announcement</button>
@@ -315,80 +150,43 @@
             }
         });
         
-        let currentTeacherId = null;
+        let currentAdminId = null;
         let announcementModal = null;
         
-        // Load teacher data on page load
+        // Load admin data on page load
         document.addEventListener('DOMContentLoaded', function() {
-            loadTeacherData();
+            loadAdminData();
             announcementModal = new bootstrap.Modal(document.getElementById('announcementModal'));
-            
-            // Re-enable class dropdown when modal is hidden
-            document.getElementById('announcementModal').addEventListener('hidden.bs.modal', function() {
-                document.getElementById('announcementSectionSubject').disabled = false;
-            });
         });
 
-        let teacherClasses = [];
-
-        // Load teacher data from API
-        async function loadTeacherData() {
+        // Load admin data from API
+        async function loadAdminData() {
             try {
-                const response = await fetch('/api/v1/teacher/profile', { credentials: 'include' });
+                const response = await fetch('/api/v1/admin/profile', { credentials: 'include' });
                 if (response.ok) {
-                    const teacherData = await response.json();
-                    currentTeacherId = teacherData.id;
-                    updateHeader(teacherData);
-                    await loadTeacherClasses();
+                    const adminData = await response.json();
+                    currentAdminId = adminData.id;
+                    updateHeader(adminData);
                     loadAnnouncements();
                 } else {
-                    console.error('Failed to load teacher data');
+                    console.error('Failed to load admin data');
                 }
             } catch (error) {
-                console.error('Error loading teacher data:', error);
+                console.error('Error loading admin data:', error);
             }
         }
 
-        // Load teacher's classes
-        async function loadTeacherClasses() {
-            try {
-                const response = await fetch('/api/v1/teacher/classes', { credentials: 'include' });
-                if (response.ok) {
-                    teacherClasses = await response.json();
-                    populateClassDropdown();
-                } else {
-                    console.error('Failed to load teacher classes');
-                }
-            } catch (error) {
-                console.error('Error loading teacher classes:', error);
-            }
-        }
-
-        // Populate class dropdown
-        function populateClassDropdown() {
-            const dropdown = document.getElementById('announcementSectionSubject');
-            if (!dropdown) return;
-
-            dropdown.innerHTML = '<option value="">Select a class...</option>';
-            teacherClasses.forEach(cls => {
-                const option = document.createElement('option');
-                option.value = cls.id;
-                option.textContent = `${cls.sectionName} - ${cls.subjectName} (${cls.edpCode})`;
-                dropdown.appendChild(option);
-            });
-        }
-
-        // Update header with real teacher data
+        // Update header with real admin data
         function updateHeader(data) {
             const fullName = `${data.firstName} ${data.lastName}`;
             document.getElementById('headerName').textContent = fullName;
-            document.getElementById('headerAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2196F3&color=fff`;
+            document.getElementById('headerAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=3498db&color=fff`;
         }
 
         // Load announcements
         async function loadAnnouncements() {
             try {
-                const response = await fetch('/api/v1/announcement', { credentials: 'include' });
+                const response = await fetch('/api/v1/announcement/admin/general', { credentials: 'include' });
                 if (response.ok) {
                     const announcements = await response.json();
                     displayAnnouncements(announcements);
@@ -411,15 +209,14 @@
                     <div class="text-center py-5">
                         <i class="fas fa-bullhorn fa-4x text-muted mb-3"></i>
                         <h4 class="text-muted">No Announcements</h4>
-                        <p class="text-muted">There are no announcements at this time.</p>
+                        <p class="text-muted">There are no general announcements at this time.</p>
                     </div>
                 `;
                 return;
             }
 
             container.innerHTML = announcements.map(announcement => {
-                const isOwn = announcement.teacherId === currentTeacherId;
-                const isGeneral = announcement.isGeneral || announcement.adminId != null;
+                const isOwn = announcement.adminId === currentAdminId;
                 const priorityClass = announcement.priority === 'Urgent' ? 'urgent' : 
                                      announcement.priority === 'Important' ? 'important' : '';
                 const badgeClass = announcement.priority === 'Urgent' ? 'bg-danger' : 
@@ -440,24 +237,18 @@
                                     <div class="d-flex align-items-center mb-2">
                                         <h5 class="card-title mb-0 me-2">${escapeHtml(announcement.title)}</h5>
                                         <span class="badge ${badgeClass} priority-badge">${announcement.priority}</span>
-                                        ${isGeneral ? '<span class="badge bg-info ms-1">General</span>' : ''}
+                                        <span class="badge bg-info ms-2">General</span>
                                     </div>
                                     <p class="card-text mb-2">${escapeHtml(announcement.content)}</p>
                                     <small class="text-muted d-block mb-2">
-                                        ${isGeneral 
-                                            ? `<i class="fas fa-users me-1"></i><strong>Audience:</strong> All Students`
-                                            : `<i class="fas fa-book me-1"></i><strong>Class:</strong> ${escapeHtml(announcement.sectionName || 'Unknown')} - ${escapeHtml(announcement.subjectName || 'Unknown')}`
-                                        }
+                                        <i class="fas fa-users me-1"></i><strong>Audience:</strong> All Students
                                     </small>
                                     <div class="d-flex justify-content-between align-items-center mt-2">
                                         <small class="text-muted">
-                                            ${isGeneral 
-                                                ? `<i class="fas fa-user-shield me-1"></i>${escapeHtml(announcement.adminName || 'Admin')}`
-                                                : `<i class="fas fa-user me-1"></i>${escapeHtml(announcement.teacherName || 'Teacher')}`
-                                            }
+                                            <i class="fas fa-user-shield me-1"></i>${escapeHtml(announcement.adminName || 'Admin')}
                                             <i class="fas fa-calendar ms-3 me-1"></i>${formattedDate}
                                         </small>
-                                        ${isOwn && !isGeneral ? `
+                                        ${isOwn ? `
                                             <div>
                                                 <button class="btn btn-sm btn-outline-primary me-1" onclick="editAnnouncement(${announcement.id})">
                                                     <i class="fas fa-edit"></i> Edit
@@ -478,10 +269,9 @@
 
         // Show create modal
         function showCreateModal() {
-            document.getElementById('announcementModalLabel').textContent = 'New Announcement';
+            document.getElementById('announcementModalLabel').textContent = 'New General Announcement';
             document.getElementById('announcementForm').reset();
             document.getElementById('announcementId').value = '';
-            document.getElementById('announcementSectionSubject').value = '';
             announcementModal.show();
         }
 
@@ -491,14 +281,11 @@
                 const response = await fetch(`/api/v1/announcement/${id}`, { credentials: 'include' });
                 if (response.ok) {
                     const announcement = await response.json();
-                    document.getElementById('announcementModalLabel').textContent = 'Edit Announcement';
+                    document.getElementById('announcementModalLabel').textContent = 'Edit General Announcement';
                     document.getElementById('announcementId').value = announcement.id;
-                    document.getElementById('announcementSectionSubject').value = announcement.sectionSubjectId;
                     document.getElementById('announcementTitle').value = announcement.title;
                     document.getElementById('announcementContent').value = announcement.content;
                     document.getElementById('announcementPriority').value = announcement.priority;
-                    // Disable class selection when editing
-                    document.getElementById('announcementSectionSubject').disabled = true;
                     announcementModal.show();
                 } else {
                     alert('Failed to load announcement details');
@@ -509,46 +296,43 @@
             }
         }
 
-        // Save announcement (create or update)
+        // Save announcement
         async function saveAnnouncement() {
-            const form = document.getElementById('announcementForm');
-            if (!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
-
             const id = document.getElementById('announcementId').value;
-            const sectionSubjectId = parseInt(document.getElementById('announcementSectionSubject').value);
-            const title = document.getElementById('announcementTitle').value;
-            const content = document.getElementById('announcementContent').value;
+            const title = document.getElementById('announcementTitle').value.trim();
+            const content = document.getElementById('announcementContent').value.trim();
             const priority = document.getElementById('announcementPriority').value;
 
-            if (!id && !sectionSubjectId) {
-                alert('Please select a class');
+            if (!title || !content || !priority) {
+                alert('Please fill in all required fields.');
                 return;
             }
 
+            const announcementData = {
+                title: title,
+                content: content,
+                priority: priority
+            };
+
             try {
-                const url = id ? `/api/v1/announcement/${id}` : '/api/v1/announcement';
+                const url = id 
+                    ? `/api/v1/announcement/admin/general/${id}`
+                    : '/api/v1/announcement/admin/general';
                 const method = id ? 'PUT' : 'POST';
-                const body = id 
-                    ? { title, content, priority }
-                    : { sectionSubjectId, title, content, priority };
 
                 const response = await fetch(url, {
                     method: method,
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
                     },
                     credentials: 'include',
-                    body: JSON.stringify(body)
+                    body: JSON.stringify(announcementData)
                 });
 
                 if (response.ok) {
                     announcementModal.hide();
-                    // Re-enable class selection
-                    document.getElementById('announcementSectionSubject').disabled = false;
                     loadAnnouncements();
+                    alert(id ? 'Announcement updated successfully!' : 'Announcement created successfully!');
                 } else {
                     const error = await response.json();
                     alert(error.message || 'Failed to save announcement');
@@ -566,13 +350,14 @@
             }
 
             try {
-                const response = await fetch(`/api/v1/announcement/${id}`, {
+                const response = await fetch(`/api/v1/announcement/admin/general/${id}`, {
                     method: 'DELETE',
                     credentials: 'include'
                 });
 
-                if (response.ok || response.status === 204) {
+                if (response.ok) {
                     loadAnnouncements();
+                    alert('Announcement deleted successfully!');
                 } else {
                     const error = await response.json();
                     alert(error.message || 'Failed to delete announcement');
@@ -586,15 +371,18 @@
         // Display error state
         function displayErrorState() {
             const container = document.getElementById('announcementsContainer');
-            if (!container) return;
-
-            container.innerHTML = `
-                <div class="text-center py-5">
-                    <i class="fas fa-exclamation-triangle fa-4x text-muted mb-3"></i>
-                    <h4 class="text-muted">Error Loading Announcements</h4>
-                    <p class="text-muted">Please try refreshing the page.</p>
-                </div>
-            `;
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-exclamation-triangle fa-4x text-danger mb-3"></i>
+                        <h4 class="text-muted">Error Loading Announcements</h4>
+                        <p class="text-muted">Failed to load announcements. Please try again.</p>
+                        <button class="btn btn-primary" onclick="loadAnnouncements()">
+                            <i class="fas fa-refresh me-2"></i>Retry
+                        </button>
+                    </div>
+                `;
+            }
         }
 
         // Escape HTML to prevent XSS
@@ -603,20 +391,7 @@
             div.textContent = text;
             return div.innerHTML;
         }
-
-        // Set active menu item
-        document.querySelectorAll('.sidebar-menu a').forEach(item => {
-            if (item.getAttribute('href') === window.location.pathname) {
-                item.classList.add('active');
-            }
-            
-            item.addEventListener('click', function() {
-                document.querySelectorAll('.sidebar-menu a').forEach(link => {
-                    link.classList.remove('active');
-                });
-                this.classList.add('active');
-            });
-        });
     </script>
 </body>
 </html>
+
