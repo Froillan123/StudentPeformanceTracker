@@ -278,7 +278,9 @@
         // Edit announcement
         async function editAnnouncement(id) {
             try {
-                const response = await fetch(`/api/v1/announcement/${id}`, { credentials: 'include' });
+                const response = await fetch(`/api/v1/announcement/${id}`, { 
+                    credentials: 'include' 
+                });
                 if (response.ok) {
                     const announcement = await response.json();
                     document.getElementById('announcementModalLabel').textContent = 'Edit General Announcement';
@@ -288,7 +290,8 @@
                     document.getElementById('announcementPriority').value = announcement.priority;
                     announcementModal.show();
                 } else {
-                    alert('Failed to load announcement details');
+                    const error = await response.json();
+                    alert(error.message || 'Failed to load announcement details');
                 }
             } catch (error) {
                 console.error('Error loading announcement:', error);

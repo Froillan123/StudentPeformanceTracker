@@ -1010,15 +1010,22 @@
             const showingFrom = totalCount > 0 ? (currentPage - 1) * pageSize + 1 : 0;
             const showingTo = Math.min(currentPage * pageSize, totalCount);
             
-            document.getElementById('showingFrom').textContent = showingFrom;
-            document.getElementById('showingTo').textContent = showingTo;
-            document.getElementById('totalCount').textContent = totalCount;
+            // Add null checks for pagination elements
+            const showingFromEl = document.getElementById('showingFrom');
+            const showingToEl = document.getElementById('showingTo');
+            const totalCountEl = document.getElementById('totalCount');
+            
+            if (showingFromEl) showingFromEl.textContent = showingFrom;
+            if (showingToEl) showingToEl.textContent = showingTo;
+            if (totalCountEl) totalCountEl.textContent = totalCount;
             
             renderPaginationButtons();
         }
 
         function renderPaginationButtons() {
             const pagination = document.getElementById('pagination');
+            if (!pagination) return; // Return early if pagination element doesn't exist
+            
             pagination.innerHTML = '';
             
             // Previous button

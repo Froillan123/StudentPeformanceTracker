@@ -143,7 +143,7 @@ public class AnnouncementController : ControllerBase
     /// Get announcement by ID
     /// </summary>
     [HttpGet("{id}")]
-    [Authorize(Roles = "Student,Teacher")]
+    [Authorize(Roles = "Student,Teacher,Admin")]
     public async Task<ActionResult<object>> GetById(int id)
     {
         try
@@ -360,7 +360,12 @@ public class AnnouncementController : ControllerBase
                 announcement.IsActive = request.IsActive.Value;
             }
 
+            // Ensure DateTime values are UTC for PostgreSQL
             announcement.UpdatedAt = DateTime.UtcNow;
+            if (announcement.CreatedAt.Kind != DateTimeKind.Utc)
+            {
+                announcement.CreatedAt = announcement.CreatedAt.ToUniversalTime();
+            }
 
             var updated = await _announcementRepository.UpdateAsync(announcement);
             
@@ -608,7 +613,12 @@ public class AnnouncementController : ControllerBase
                 announcement.IsActive = request.IsActive.Value;
             }
 
+            // Ensure DateTime values are UTC for PostgreSQL
             announcement.UpdatedAt = DateTime.UtcNow;
+            if (announcement.CreatedAt.Kind != DateTimeKind.Utc)
+            {
+                announcement.CreatedAt = announcement.CreatedAt.ToUniversalTime();
+            }
 
             var updated = await _announcementRepository.UpdateAsync(announcement);
             
