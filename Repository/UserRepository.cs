@@ -39,8 +39,12 @@ public class UserRepository : IUserRepository
         return await _context.Users
             .Include(u => u.Student)
                 .ThenInclude(s => s!.Course)
+            .Include(u => u.Teacher)
+            .Include(u => u.Admin)
             .FirstOrDefaultAsync(u => u.Username == usernameOrStudentId ||
-                (u.Student != null && u.Student.StudentId == usernameOrStudentId));
+                (u.Student != null && u.Student.Email == usernameOrStudentId) ||
+                (u.Teacher != null && u.Teacher.Email == usernameOrStudentId) ||
+                (u.Admin != null && u.Admin.Email == usernameOrStudentId));
     }
 
     public async Task<IEnumerable<User>> GetAllAsync()

@@ -25,6 +25,8 @@ public class LoginPageModel : PageModel
     [TempData]
     public string? ErrorMessage { get; set; }
 
+    public string? SuccessMessage { get; set; }
+
     public LoginPageModel(ILogger<LoginPageModel> logger, IHttpClientFactory httpClientFactory, ApiConfiguration apiConfig)
     {
         _logger = logger;
@@ -34,10 +36,19 @@ public class LoginPageModel : PageModel
 
     public void OnGet()
     {
-        // Check for redirect message from unauthorized access
+        // Check for redirect message from unauthorized access or registration
         if (Request.Query.ContainsKey("message"))
         {
-            ErrorMessage = Request.Query["message"];
+            var message = Request.Query["message"].ToString();
+            // Check if it's a registration success message
+            if (message.Contains("Registration successful") || message.Contains("pending admin approval"))
+            {
+                SuccessMessage = message;
+            }
+            else
+            {
+                ErrorMessage = message;
+            }
         }
     }
 
@@ -45,7 +56,7 @@ public class LoginPageModel : PageModel
     {
         if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(Password))
         {
-            ErrorMessage = "Username/Student ID and password are required";
+            ErrorMessage = "Username/Email and password are required";
             return Page();
         }
 
@@ -108,13 +119,13 @@ public class LoginPageModel : PageModel
                 _logger.LogWarning($"Login failed for user {Username}: {errorContent}");
                 
                 // Check if it's an inactive account error
-                if (errorContent.Contains("pending") || errorContent.Contains("activation"))
+                if (errorContent.Contains("ACCOUNT_PENDING") || errorContent.Contains("pending") || errorContent.Contains("activation"))
                 {
-                    ErrorMessage = "Your account is pending admin approval. Please contact an administrator.";
+                    ErrorMessage = "PENDING_APPROVAL:Your account is pending admin approval. Please contact an administrator to activate your account.";
                 }
                 else
                 {
-                    ErrorMessage = "Invalid username/student ID or password";
+                    ErrorMessage = "Invalid username/email or password";
                 }
                 return Page();
             }

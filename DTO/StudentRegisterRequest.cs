@@ -10,7 +10,7 @@ public class StudentRegisterRequest
     public string? Phone { get; set; }
 
     // Student-specific fields
-    public string StudentNumber { get; set; } = string.Empty; // User inputs: 22686570, system generates: ucmn-22686570
+    public string? StudentNumber { get; set; } // Optional - deprecated, student ID is now auto-generated
     public int? YearLevel { get; set; }
     public int CourseId { get; set; } // Required for students
 }

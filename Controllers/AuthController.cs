@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using StudentPeformanceTracker.Services;
 using StudentPeformanceTracker.DTO;
+using StudentPeformanceTracker.Repository.Interfaces;
 
 namespace StudentPeformanceTracker.Controllers;
 
@@ -12,16 +13,18 @@ namespace StudentPeformanceTracker.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly AuthService _authService;
+    private readonly IUserRepository _userRepository;
     private readonly ILogger<AuthController> _logger;
 
-    public AuthController(AuthService authService, ILogger<AuthController> logger)
+    public AuthController(AuthService authService, IUserRepository userRepository, ILogger<AuthController> logger)
     {
         _authService = authService;
+        _userRepository = userRepository;
         _logger = logger;
     }
 
     /// <summary>
-    /// Login with username/student_id and password
+    /// Login with username/email and password
     /// </summary>
     [HttpPost("login")]
     [AllowAnonymous]
@@ -29,7 +32,14 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.UsernameOrStudentId) || string.IsNullOrWhiteSpace(request.Password))
         {
-            return BadRequest(new { message = "Username/Student ID and password are required" });
+            return BadRequest(new { message = "Username/Email and password are required" });
+        }
+
+        // Check if user exists and is inactive before attempting login
+        var user = await _userRepository.GetByUsernameOrStudentIdAsync(request.UsernameOrStudentId);
+        if (user != null && user.Status != "Active")
+        {
+            return Unauthorized(new { message = "ACCOUNT_PENDING", detail = "Your account is pending admin approval. Please contact an administrator to activate your account." });
         }
 
         var result = await _authService.LoginAsync(request.UsernameOrStudentId, request.Password);
@@ -123,8 +133,7 @@ public class AuthController : ControllerBase
             string.IsNullOrWhiteSpace(request.Password) ||
             string.IsNullOrWhiteSpace(request.Email) ||
             string.IsNullOrWhiteSpace(request.FirstName) ||
-            string.IsNullOrWhiteSpace(request.LastName) ||
-            string.IsNullOrWhiteSpace(request.StudentNumber))
+            string.IsNullOrWhiteSpace(request.LastName))
         {
             return BadRequest(new { message = "All required fields must be provided" });
         }
@@ -141,7 +150,11 @@ public class AuthController : ControllerBase
 
         try
         {
-            var result = await _authService.RegisterStudentAsync(request);
+            // Check if the current user is an admin (if authenticated)
+            bool isAdminCreated = User.Identity?.IsAuthenticated == true && 
+                                  User.IsInRole("Admin");
+            
+            var result = await _authService.RegisterStudentAsync(request, isAdminCreated);
 
             if (result == null)
             {

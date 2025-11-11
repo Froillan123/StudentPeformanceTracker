@@ -143,19 +143,52 @@
                     <div class="w-100" style="max-width: 400px;">
                         <h2 class="fw-bold mb-4 display-6 text-dark">Login</h2>
 
-                        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
                         {
-                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                @Model.ErrorMessage
+                            <div class="alert alert-success alert-dismissible fade show border-success border-2 shadow-lg" role="alert" style="background: linear-gradient(135deg, #d1e7dd 0%, #a3d9a3 100%); border-color: #28a745 !important;">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-check-circle fa-2x me-3 text-success"></i>
+                                    <div class="flex-grow-1">
+                                        <h5 class="alert-heading fw-bold mb-2 text-dark">
+                                            <i class="fas fa-user-check me-2"></i>Registration Successful
+                                        </h5>
+                                        <p class="mb-0 fw-semibold text-dark">@Model.SuccessMessage</p>
+                                    </div>
+                                </div>
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
+                        }
+                        else if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                        {
+                            @if (Model.ErrorMessage.StartsWith("PENDING_APPROVAL:"))
+                            {
+                                <div class="alert alert-warning alert-dismissible fade show border-warning border-2 shadow-lg" role="alert" style="background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%); border-color: #ffc107 !important;">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-exclamation-triangle fa-2x me-3 text-warning"></i>
+                                        <div class="flex-grow-1">
+                                            <h5 class="alert-heading fw-bold mb-2 text-dark">
+                                                <i class="fas fa-clock me-2"></i>Account Pending Approval
+                                            </h5>
+                                            <p class="mb-0 fw-semibold text-dark">@Model.ErrorMessage.Replace("PENDING_APPROVAL:", "")</p>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    @Model.ErrorMessage
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            }
                         }
 
                         <form method="post">
                             <div class="mb-3">
-                                <label for="username" class="form-label fw-medium">Username or Student ID</label>
+                                <label for="username" class="form-label fw-medium">Username or Email</label>
                                 <input type="text" class="form-control form-control-lg rounded-2 border-secondary" 
-                                       id="username" name="username" placeholder="Enter Username or Student ID (e.g., ucmn-22686570)" required>
+                                       id="username" name="username" placeholder="Enter Username or Email" required>
                             </div>
                             
                             <div class="mb-3">

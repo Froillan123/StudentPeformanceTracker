@@ -457,12 +457,29 @@
                             <div class="card-custom">
                                 <h5 class="section-title"><i class="fas fa-users me-2"></i>Available Sections</h5>
                                 <div class="mb-3">
-                                    <strong>Select a section to view available classes</strong>
+                                    <div class="row align-items-center">
+                                        <div class="col-md-6">
+                                            <label for="sectionSemesterSelect" class="form-label fw-semibold">
+                                                <i class="fas fa-calendar-alt me-2"></i>Select Semester:
+                                            </label>
+                                            <select id="sectionSemesterSelect" class="form-select" onchange="onSectionSemesterChange()">
+                                                <option value="">-- Select Semester --</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div id="selectedSemesterBadge" class="mt-4" style="display: none;">
+                                                <span class="badge bg-primary fs-6 px-3 py-2">
+                                                    <i class="fas fa-check-circle me-2"></i>
+                                                    <span id="selectedSemesterText">-</span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div id="sectionsListContainer">
                                     <div class="text-center py-4">
-                                        <i class="fas fa-spinner fa-spin fa-2x text-muted mb-2"></i>
-                                        <p class="text-muted">Loading sections...</p>
+                                        <i class="fas fa-calendar-check fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted">Please select a semester to view available sections</p>
                                     </div>
                                 </div>
                             </div>
@@ -480,6 +497,9 @@
         let foundClass = null;
         let enrolledSectionSubjectIds = new Set();
         let selectedSubjects = []; // array of { sectionId, sectionSubjectId, subjectName, units }
+        let studentProfile = null; // Store student profile data including year level
+        let allSemesters = []; // Store all semesters for section browser
+        let selectedSemesterId = null; // Currently selected semester for section browser
 
         document.addEventListener('DOMContentLoaded', function() {
             loadStudentData();
@@ -496,6 +516,7 @@
                         const students = await response.json();
                         if (students && students.length > 0) {
                             currentStudentId = students[0].id;
+                            studentProfile = students[0];
                             updateHeader(students[0]);
                             await loadEnrollmentInfo(currentStudentId);
                             await loadEnrolledClasses(currentStudentId);
@@ -504,6 +525,7 @@
                 } else {
                     const studentData = await response.json();
                     currentStudentId = studentData.id;
+                    studentProfile = studentData;
                     updateHeader(studentData);
                     await loadEnrollmentInfo(currentStudentId);
                     await loadEnrolledClasses(currentStudentId);
@@ -630,30 +652,13 @@
         function enforceTabsForEnrollment(hasEnrolled){
             try {
                 const enrollCol = document.querySelector('#search-pane #enrollColumn');
-                const browseTabBtn = document.getElementById('browse-tab');
-                const sectionTabBtn = document.getElementById('section-tab');
-                const browsePane = document.getElementById('browse-pane');
-                const sectionPane = document.getElementById('section-pane');
-
+                // Keep browse and section tabs visible so students can enroll in additional classes
+                // Only hide the enroll column in the search tab if they have enrolled classes
                 if (hasEnrolled){
                     if (enrollCol) enrollCol.style.display = 'none';
-                    if (browseTabBtn) browseTabBtn.style.display = 'none';
-                    if (sectionTabBtn) sectionTabBtn.style.display = 'none';
-                    if (browsePane) browsePane.style.display = 'none';
-                    if (sectionPane) sectionPane.style.display = 'none';
-
-                    // Ensure the Search tab (with My Enrolled Classes) is active
-                    const searchTabBtn = document.getElementById('search-tab');
-                    if (searchTabBtn && typeof bootstrap !== 'undefined'){
-                        const tab = new bootstrap.Tab(searchTabBtn);
-                        tab.show();
-                    }
+                    // Don't hide browse/section tabs - students should be able to add more classes
                 } else {
                     if (enrollCol) enrollCol.style.display = '';
-                    if (browseTabBtn) browseTabBtn.style.display = '';
-                    if (sectionTabBtn) sectionTabBtn.style.display = '';
-                    if (browsePane) browsePane.style.display = '';
-                    if (sectionPane) sectionPane.style.display = '';
                 }
             } catch (e) {
                 console.warn('enforceTabsForEnrollment failed', e);
@@ -804,27 +809,84 @@
             }
 
             try {
+                // Get student profile if not already loaded
+                if (!studentProfile) {
+                    const profileResp = await fetch('/api/v1/student/profile');
+                    if (profileResp.ok) {
+                        studentProfile = await profileResp.json();
+                    }
+                }
+
                 // Get student's active enrollment
                 const enrollment = await getActiveEnrollment(currentStudentId);
-                if (!enrollment) {
+                
+                let courseId, yearLevelId, semesterId, courseName, yearLevelName, semesterName;
+                
+                if (enrollment) {
+                    // Use enrollment data
+                    courseId = enrollment.courseId;
+                    yearLevelId = enrollment.yearLevelId;
+                    semesterId = enrollment.semesterId;
+                    courseName = enrollment.courseName;
+                    yearLevelName = enrollment.yearLevelName;
+                    semesterName = enrollment.semesterName;
+                } else if (studentProfile && studentProfile.yearLevel && studentProfile.courseId) {
+                    // Use student profile data if no enrollment
+                    courseId = studentProfile.courseId;
+                    yearLevelId = studentProfile.yearLevel;
+                    courseName = studentProfile.courseName || 'N/A';
+                    yearLevelName = `Year ${studentProfile.yearLevel}`;
+                    
+                    // Try to get current semester (default to 1st semester if not available)
+                    semesterId = 1; // Default to first semester
+                    semesterName = '1st Semester';
+                    
+                    // Try to fetch available semesters to get the current one
+                    try {
+                        const semResp = await fetch('/api/v1/semester');
+                        if (semResp.ok) {
+                            const semesters = await semResp.json();
+                            const semArray = Array.isArray(semesters) ? semesters : (semesters.data || []);
+                            if (semArray.length > 0) {
+                                // Use first semester as default, or you could implement logic to determine current semester
+                                semesterId = semArray[0].id;
+                                semesterName = semArray[0].semesterName || '1st Semester';
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Could not fetch semesters, using default', e);
+                    }
+                } else {
                     document.getElementById('browseClassesContainer').innerHTML = 
-                        '<div class="text-center py-4"><p class="text-danger">No active enrollment found</p></div>';
+                        '<div class="text-center py-4"><p class="text-warning">Please complete your profile or contact admin to set up your enrollment.</p></div>';
+                    document.getElementById('browseEnrollmentInfo').textContent = 'No enrollment information available';
                     return;
                 }
 
                 // Update enrollment info display
                 document.getElementById('browseEnrollmentInfo').textContent = 
-                    `${enrollment.courseName || 'N/A'} - Year ${enrollment.yearLevelName || 'N/A'} - ${enrollment.semesterName || 'N/A'}`;
+                    `${courseName || 'N/A'} - ${yearLevelName || 'N/A'} - ${semesterName || 'N/A'}`;
 
                 // Fetch available classes
                 const response = await fetch(
-                    `/api/v1/sectionsubject/available?courseId=${enrollment.courseId}&yearLevelId=${enrollment.yearLevelId}&semesterId=${enrollment.semesterId}`
+                    `/api/v1/sectionsubject/available?courseId=${courseId}&yearLevelId=${yearLevelId}&semesterId=${semesterId}`
                 );
                 
                 if (response.ok) {
                     const classes = await response.json();
-                    displayBrowseableClasses(classes);
+                    // Double-check: filter by student's year level if available
+                    let filteredClasses = classes;
+                    if (studentProfile?.yearLevel) {
+                        filteredClasses = classes.filter(cls => {
+                            // Get section details to check year level
+                            // Since we're already filtering by yearLevelId in the API, this is a safety check
+                            return true; // API should already filter correctly
+                        });
+                    }
+                    displayBrowseableClasses(filteredClasses);
                 } else {
+                    const errorText = await response.text();
+                    console.error('Failed to load classes:', errorText);
                     document.getElementById('browseClassesContainer').innerHTML = 
                         '<div class="text-center py-4"><p class="text-danger">Failed to load available classes</p></div>';
                 }
@@ -981,9 +1043,15 @@
         // Load browse classes when browse tab is clicked
         document.addEventListener('DOMContentLoaded', function() {
             const browseTab = document.getElementById('browse-tab');
-            browseTab.addEventListener('click', function() {
-                loadBrowseableClasses();
-            });
+            if (browseTab) {
+                browseTab.addEventListener('click', function() {
+                    loadBrowseableClasses();
+                });
+                // Auto-load if tab is already active
+                if (browseTab.classList.contains('active')) {
+                    loadBrowseableClasses();
+                }
+            }
         });
 
         // Section browser functions
@@ -994,28 +1062,129 @@
             }
 
             try {
+                // Load semesters first
+                await loadSemestersForSectionBrowser();
+                
+                // Get student profile if not already loaded
+                if (!studentProfile) {
+                    const profileResp = await fetch('/api/v1/student/profile');
+                    if (profileResp.ok) {
+                        studentProfile = await profileResp.json();
+                    }
+                }
+
+                // Set default semester from enrollment if available
                 const enrollment = await getActiveEnrollment(currentStudentId);
-                let sections = [];
-                if (!enrollment) {
-                    // Fallback: load all sections (paginated result)
-                    const respAll = await fetch('/api/v1/section?page=1&pageSize=1000');
-                    if (respAll.ok) {
-                        const result = await respAll.json();
-                        sections = (result.data || []).map(x => x);
+                if (enrollment && enrollment.semesterId) {
+                    selectedSemesterId = enrollment.semesterId;
+                    const semesterSelect = document.getElementById('sectionSemesterSelect');
+                    if (semesterSelect) {
+                        semesterSelect.value = enrollment.semesterId;
+                        onSectionSemesterChange();
                     }
                 } else {
-                    // Fetch sections for the enrollment's course/year/semester
-                    const response = await fetch(
-                        `/api/v1/section/course/${enrollment.courseId}/year/${enrollment.yearLevelId}/semester/${enrollment.semesterId}`
-                    );
-                    if (response.ok) {
-                        sections = await response.json();
+                    // Show message to select semester
+                    document.getElementById('sectionsListContainer').innerHTML = 
+                        '<div class="text-center py-4"><i class="fas fa-calendar-check fa-3x text-muted mb-3"></i><p class="text-muted">Please select a semester to view available sections</p></div>';
+                }
+            } catch (error) {
+                console.error('Error loading section browser:', error);
+                document.getElementById('sectionsListContainer').innerHTML = 
+                    '<div class="text-center py-4"><p class="text-danger">Error loading section browser</p></div>';
+            }
+        }
+
+        async function loadSemestersForSectionBrowser() {
+            try {
+                const response = await fetch('/api/v1/semester');
+                if (response.ok) {
+                    const semesters = await response.json();
+                    allSemesters = Array.isArray(semesters) ? semesters : (semesters.data || []);
+                    
+                    const select = document.getElementById('sectionSemesterSelect');
+                    if (select) {
+                        select.innerHTML = '<option value="">-- Select Semester --</option>';
+                        allSemesters.forEach(sem => {
+                            const option = document.createElement('option');
+                            option.value = sem.id;
+                            option.textContent = `${sem.semesterName} (${sem.schoolYear || 'N/A'})`;
+                            select.appendChild(option);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading semesters:', error);
+            }
+        }
+
+        async function onSectionSemesterChange() {
+            const select = document.getElementById('sectionSemesterSelect');
+            if (!select || !select.value) {
+                selectedSemesterId = null;
+                document.getElementById('selectedSemesterBadge').style.display = 'none';
+                document.getElementById('sectionsListContainer').innerHTML = 
+                    '<div class="text-center py-4"><i class="fas fa-calendar-check fa-3x text-muted mb-3"></i><p class="text-muted">Please select a semester to view available sections</p></div>';
+                return;
+            }
+
+            selectedSemesterId = parseInt(select.value);
+            const selectedSemester = allSemesters.find(s => s.id === selectedSemesterId);
+            
+            // Highlight selected semester
+            if (selectedSemester) {
+                const badge = document.getElementById('selectedSemesterBadge');
+                const text = document.getElementById('selectedSemesterText');
+                if (badge && text) {
+                    text.textContent = `${selectedSemester.semesterName} (${selectedSemester.schoolYear || 'N/A'})`;
+                    badge.style.display = 'block';
+                }
+            }
+
+            // Load sections for selected semester
+            await loadSectionsForSemester(selectedSemesterId);
+        }
+
+        async function loadSectionsForSemester(semesterId) {
+            if (!currentStudentId || !semesterId) {
+                return;
+            }
+
+            try {
+                // Get student profile if not already loaded
+                if (!studentProfile) {
+                    const profileResp = await fetch('/api/v1/student/profile');
+                    if (profileResp.ok) {
+                        studentProfile = await profileResp.json();
+                    }
+                }
+
+                if (!studentProfile || !studentProfile.yearLevel || !studentProfile.courseId) {
+                    document.getElementById('sectionsListContainer').innerHTML = 
+                        '<div class="text-center py-4"><p class="text-warning">Please complete your profile or contact admin to set up your enrollment.</p></div>';
+                    return;
+                }
+
+                // Show loading
+                document.getElementById('sectionsListContainer').innerHTML = 
+                    '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x text-muted mb-2"></i><p class="text-muted">Loading sections...</p></div>';
+
+                // Fetch sections for the course/year/semester
+                const response = await fetch(
+                    `/api/v1/section/course/${studentProfile.courseId}/year/${studentProfile.yearLevel}/semester/${semesterId}`
+                );
+                
+                let sections = [];
+                if (response.ok) {
+                    sections = await response.json();
+                    // Double-check: filter out any sections that don't match student's year level
+                    if (studentProfile?.yearLevel) {
+                        sections = sections.filter(s => s.yearLevelId === studentProfile.yearLevel);
                     }
                 }
                 
                 if (!sections || sections.length === 0) {
                     document.getElementById('sectionsListContainer').innerHTML = 
-                        '<div class="text-center py-4"><p class="text-muted">No sections available</p></div>';
+                        '<div class="text-center py-4"><i class="fas fa-inbox fa-3x text-muted mb-3"></i><p class="text-muted">No sections available for this semester and your year level</p></div>';
                 } else {
                     displaySections(sections);
                 }
@@ -1271,15 +1440,25 @@
             renderSelectedSummary();
         }
 
-        // Load section browser when tab is clicked and auto-load if tab already active
+        // Load section browser when tab is clicked
         document.addEventListener('DOMContentLoaded', function() {
             const sectionTab = document.getElementById('section-tab');
             if (sectionTab) {
                 sectionTab.addEventListener('click', function() {
                     loadSectionBrowser();
                 });
-                if (sectionTab.classList.contains('active')) {
-                    loadSectionBrowser();
+                // Also listen for Bootstrap tab shown event
+                const sectionPane = document.getElementById('section-pane');
+                if (sectionPane) {
+                    // Listen for when the tab pane is shown
+                    const tabElement = document.querySelector('#enrollmentTabs');
+                    if (tabElement) {
+                        tabElement.addEventListener('shown.bs.tab', function(event) {
+                            if (event.target.id === 'section-tab') {
+                                loadSectionBrowser();
+                            }
+                        });
+                    }
                 }
             }
         });

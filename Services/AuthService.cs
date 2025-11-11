@@ -104,7 +104,7 @@ public class AuthService
         };
     }
 
-    public async Task<RegisterResponse?> RegisterStudentAsync(StudentRegisterRequest request)
+    public async Task<RegisterResponse?> RegisterStudentAsync(StudentRegisterRequest request, bool isAdminCreated = false)
     {
         var existingUser = await _userRepository.GetByUsernameAsync(request.Username);
         if (existingUser != null)
@@ -114,44 +114,67 @@ public class AuthService
         if (existingEmail)
             return null;
 
-        // Check if student number already exists
-        var generatedStudentId = GenerateStudentId(request.StudentNumber);
-        var existingStudentId = await _studentRepository.StudentIdExistsAsync(generatedStudentId);
-        if (existingStudentId)
-            throw new InvalidOperationException($"Student number {generatedStudentId} already exists");
-
         var courseExists = await _courseRepository.ExistsAsync(request.CourseId);
         if (!courseExists)
             throw new InvalidOperationException($"Course with ID {request.CourseId} does not exist");
 
         var passwordHash = PasswordHelper.HashPassword(request.Password);
+        var enrollmentDate = DateTime.UtcNow;
 
         var user = new User
         {
             Username = request.Username,
             PasswordHash = passwordHash,
             Role = "Student",
-            Status = "Inactive", // Students are inactive by default
+            Status = isAdminCreated ? "Active" : "Inactive", // Admin-created students are active, self-registered are inactive
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
 
         await _userRepository.CreateAsync(user);
 
+        // Create student record first to get database ID
+        // Use temporary unique ID to avoid unique constraint violation
+        var tempStudentId = $"TEMP-{Guid.NewGuid()}";
         var student = new Student
         {
             UserId = user.Id,
-            StudentId = generatedStudentId,
+            StudentId = tempStudentId, // Temporary unique value, will be updated
             Email = request.Email,
             FirstName = request.FirstName,
             LastName = request.LastName,
             Phone = request.Phone,
             YearLevel = request.YearLevel,
             CourseId = request.CourseId,
-            EnrollmentDate = DateTime.UtcNow
+            EnrollmentDate = enrollmentDate
         };
 
         await _studentRepository.CreateAsync(student);
+
+        // Generate student ID using enrollment date and database ID
+        string generatedStudentId;
+        int attempts = 0;
+        const int maxAttempts = 10;
+        
+        do
+        {
+            generatedStudentId = GenerateStudentId(enrollmentDate, student.Id);
+            var exists = await _studentRepository.StudentIdExistsAsync(generatedStudentId);
+            if (!exists)
+                break;
+            attempts++;
+            // If collision occurs, wait a millisecond and try again with new random/UUID
+            await Task.Delay(1);
+        } while (attempts < maxAttempts);
+
+        if (attempts >= maxAttempts)
+        {
+            throw new InvalidOperationException("Failed to generate unique student ID after multiple attempts");
+        }
+
+        // Update student with generated ID
+        student.StudentId = generatedStudentId;
+        await _studentRepository.UpdateAsync(student);
 
         return new RegisterResponse
         {
@@ -333,19 +356,46 @@ public class AuthService
         switch (request.Role)
         {
             case "Student":
+                var enrollmentDate = DateTime.UtcNow;
+                // Use temporary unique ID to avoid unique constraint violation
+                var tempStudentId = $"TEMP-{Guid.NewGuid()}";
                 var student = new Student
                 {
                     UserId = userId,
-                    StudentId = GenerateStudentId(request.StudentNumber!),
+                    StudentId = tempStudentId, // Temporary unique value, will be updated
                     Email = request.Email,
                     FirstName = request.FirstName,
                     LastName = request.LastName,
                     Phone = request.Phone,
                     YearLevel = request.YearLevel,
                     CourseId = request.CourseId,
-                    EnrollmentDate = DateTime.UtcNow
+                    EnrollmentDate = enrollmentDate
                 };
                 await _studentRepository.CreateAsync(student);
+                
+                // Generate student ID using enrollment date and database ID
+                string generatedStudentId;
+                int attempts = 0;
+                const int maxAttempts = 10;
+                
+                do
+                {
+                    generatedStudentId = GenerateStudentId(enrollmentDate, student.Id);
+                    var exists = await _studentRepository.StudentIdExistsAsync(generatedStudentId);
+                    if (!exists)
+                        break;
+                    attempts++;
+                    await Task.Delay(1);
+                } while (attempts < maxAttempts);
+
+                if (attempts >= maxAttempts)
+                {
+                    throw new InvalidOperationException("Failed to generate unique student ID after multiple attempts");
+                }
+
+                // Update student with generated ID
+                student.StudentId = generatedStudentId;
+                await _studentRepository.UpdateAsync(student);
                 break;
 
             case "Teacher":
@@ -375,8 +425,20 @@ public class AuthService
         }
     }
 
-    private string GenerateStudentId(string studentNumber)
+    private string GenerateStudentId(DateTime enrollmentDate, int studentDatabaseId)
     {
-        return $"ucmn-{studentNumber}";
+        // Format: ucmn-{YYMMDD}{studentId}{random}
+        // Example: ucmn-2511112001 (~15 chars total, 10 digits after ucmn-)
+        // - YYMMDD = 6 digits (year/month/day)
+        // - studentId = 4 digits (padded, supports up to 9999 students per day)
+        // - random = removed to keep it shorter
+        
+        // 1. Short timestamp: YYMMDD (6 digits)
+        var shortDate = enrollmentDate.ToString("yyMMdd");
+        
+        // 2. Student database ID padded to 4 digits
+        var studentIdPart = studentDatabaseId.ToString("D4");
+        
+        return $"ucmn-{shortDate}{studentIdPart}";
     }
 }

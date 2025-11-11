@@ -64,6 +64,7 @@ public class StudentController : ControllerBase
                 student.Email,
                 student.Phone,
                 student.YearLevel,
+                student.CourseId,
                 student.EnrollmentDate,
                 student.CreatedAt,
                 student.UpdatedAt,

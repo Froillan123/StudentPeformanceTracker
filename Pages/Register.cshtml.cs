@@ -41,7 +41,7 @@ namespace StudentPeformanceTracker.Pages
         public string Email { get; set; } = string.Empty;
 
         [BindProperty]
-        public string ContactNumber { get; set; } = string.Empty;
+        public string? Phone { get; set; }
 
         [BindProperty]
         public string Username { get; set; } = string.Empty;
@@ -73,13 +73,14 @@ namespace StudentPeformanceTracker.Pages
                 if (string.IsNullOrEmpty(FirstName) || string.IsNullOrEmpty(LastName) || 
                     string.IsNullOrEmpty(Email) || string.IsNullOrEmpty(Username) || 
                     string.IsNullOrEmpty(Password) || CourseId == 0 || 
-                    YearLevel == 0 || string.IsNullOrEmpty(StudentNumber))
+                    YearLevel == 0)
                 {
                     ErrorMessage = "Please fill in all required fields.";
                     return Page();
                 }
 
                 // Create registration request matching StudentRegisterRequest
+                // StudentNumber is now auto-generated, so we don't send it
                 var registrationData = new
                 {
                     Username = Username,
@@ -87,8 +88,7 @@ namespace StudentPeformanceTracker.Pages
                     Password = Password,
                     FirstName = FirstName,
                     LastName = LastName,
-                    Phone = ContactNumber,
-                    StudentNumber = StudentNumber,
+                    Phone = Phone,
                     YearLevel = YearLevel,
                     CourseId = CourseId
                 };
@@ -99,7 +99,7 @@ namespace StudentPeformanceTracker.Pages
 
                 if (response.IsSuccessStatusCode)
                 {
-                    return RedirectToPage("/LoginPage", new { message = "Student registration successful! Please login with your credentials." });
+                    return RedirectToPage("/LoginPage", new { message = "Registration successful! Your account is pending admin approval. You will be able to login once your account is activated by an administrator." });
                 }
                 else
                 {
