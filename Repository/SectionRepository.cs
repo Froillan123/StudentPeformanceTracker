@@ -56,6 +56,18 @@ namespace StudentPeformanceTracker.Repository
                 .ToListAsync();
         }
 
+        public async Task<Section?> GetBySectionNameCourseYearSemesterAsync(string sectionName, int courseId, int yearLevelId, int semesterId)
+        {
+            return await _context.Sections
+                .Include(s => s.Course)
+                .Include(s => s.YearLevel)
+                .Include(s => s.Semester)
+                .FirstOrDefaultAsync(s => s.SectionName == sectionName 
+                    && s.CourseId == courseId 
+                    && s.YearLevelId == yearLevelId 
+                    && s.SemesterId == semesterId);
+        }
+
         public async Task<Section> CreateAsync(Section section)
         {
             _context.Sections.Add(section);

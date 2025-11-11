@@ -8,6 +8,7 @@ namespace StudentPeformanceTracker.Repository.Interfaces
         Task<Section?> GetByIdAsync(int id);
         Task<IEnumerable<Section>> GetByCourseIdAsync(int courseId);
         Task<IEnumerable<Section>> GetByCourseYearSemesterAsync(int courseId, int yearLevelId, int semesterId);
+        Task<Section?> GetBySectionNameCourseYearSemesterAsync(string sectionName, int courseId, int yearLevelId, int semesterId);
         Task<Section> CreateAsync(Section section);
         Task<Section> UpdateAsync(Section section);
         Task<bool> DeleteAsync(int id);

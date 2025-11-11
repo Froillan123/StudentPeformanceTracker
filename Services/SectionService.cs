@@ -39,6 +39,12 @@ namespace StudentPeformanceTracker.Services
             return sections.Select(MapToDto);
         }
 
+        public async Task<SectionDto?> GetBySectionNameCourseYearSemesterAsync(string sectionName, int courseId, int yearLevelId, int semesterId)
+        {
+            var section = await _sectionRepository.GetBySectionNameCourseYearSemesterAsync(sectionName, courseId, yearLevelId, semesterId);
+            return section != null ? MapToDto(section) : null;
+        }
+
         public async Task<SectionDto> CreateAsync(Section section)
         {
             var created = await _sectionRepository.CreateAsync(section);

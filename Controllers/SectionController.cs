@@ -65,6 +65,20 @@ namespace StudentPeformanceTracker.Controllers
         [HttpPost]
         public async Task<ActionResult<SectionDto>> Create(CreateSectionRequest request)
         {
+            // Check if section already exists with the same combination
+            var existing = await _sectionService.GetBySectionNameCourseYearSemesterAsync(
+                request.SectionName, 
+                request.CourseId, 
+                request.YearLevelId, 
+                request.SemesterId);
+
+            if (existing != null)
+            {
+                return BadRequest(new { 
+                    message = $"Section '{request.SectionName}' already exists for this Course, Year Level, and Semester combination." 
+                });
+            }
+
             var section = new Section
             {
                 SectionName = request.SectionName,
@@ -78,8 +92,15 @@ namespace StudentPeformanceTracker.Controllers
                 UpdatedAt = DateTime.UtcNow
             };
 
-            var created = await _sectionService.CreateAsync(section);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            try
+            {
+                var created = await _sectionService.CreateAsync(section);
+                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = "Failed to create section. It may already exist.", error = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]

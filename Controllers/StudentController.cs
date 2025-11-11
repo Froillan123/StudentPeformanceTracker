@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudentPeformanceTracker.Models;
 using StudentPeformanceTracker.Repository.Interfaces;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
 namespace StudentPeformanceTracker.Controllers;
@@ -264,4 +265,82 @@ public class StudentController : ControllerBase
             return StatusCode(500, new { message = "Error retrieving students by year level", error = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Update current student's profile (Student access only)
+    /// </summary>
+    [HttpPut("profile")]
+    [Authorize(Policy = "StudentOnly")]
+    public async Task<ActionResult<object>> UpdateProfile([FromBody] UpdateStudentProfileRequest request)
+    {
+        try
+        {
+            // Get current user ID from JWT token
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Unauthorized(new { message = "Invalid user token" });
+            }
+
+            // Get student data
+            var student = await _studentRepository.GetByUserIdAsync(userId);
+            if (student == null)
+            {
+                return NotFound(new { message = "Student profile not found" });
+            }
+
+            // Update student information (only allow updating certain fields)
+            student.FirstName = request.FirstName;
+            student.LastName = request.LastName;
+            student.Phone = request.Phone;
+            student.UpdatedAt = DateTime.UtcNow;
+
+            var updatedStudent = await _studentRepository.UpdateAsync(student);
+
+            // Get course name
+            string courseName = updatedStudent.Course?.CourseName ?? "N/A";
+            if (courseName == "N/A")
+            {
+                var enrollments = await _enrollmentRepository.GetByStudentIdAsync(updatedStudent.Id);
+                var activeEnrollment = enrollments.FirstOrDefault(e => e.Status == "Active" || e.Status == "Pending");
+                courseName = activeEnrollment?.Course?.CourseName ?? "N/A";
+            }
+
+            var result = new
+            {
+                Id = updatedStudent.Id,
+                UserId = updatedStudent.UserId,
+                StudentId = updatedStudent.StudentId,
+                FirstName = updatedStudent.FirstName,
+                LastName = updatedStudent.LastName,
+                Email = updatedStudent.Email,
+                Phone = updatedStudent.Phone,
+                YearLevel = updatedStudent.YearLevel,
+                EnrollmentDate = updatedStudent.EnrollmentDate,
+                CourseName = courseName,
+                UpdatedAt = updatedStudent.UpdatedAt,
+                Message = "Profile updated successfully"
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error updating student profile", error = ex.Message });
+        }
+    }
+}
+
+public class UpdateStudentProfileRequest
+{
+    [Required]
+    [MaxLength(50)]
+    public string FirstName { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(50)]
+    public string LastName { get; set; } = string.Empty;
+
+    [MaxLength(20)]
+    public string? Phone { get; set; }
 }

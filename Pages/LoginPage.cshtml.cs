@@ -45,7 +45,7 @@ public class LoginPageModel : PageModel
     {
         if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(Password))
         {
-            ErrorMessage = "Username and password are required";
+            ErrorMessage = "Username/Student ID and password are required";
             return Page();
         }
 
@@ -114,7 +114,7 @@ public class LoginPageModel : PageModel
                 }
                 else
                 {
-                    ErrorMessage = "Invalid username or password";
+                    ErrorMessage = "Invalid username/student ID or password";
                 }
                 return Page();
             }
