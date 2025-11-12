@@ -242,12 +242,89 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadAdminData();
             loadTeachers();
+            setupModalAccessibility();
+            setupUpdateTeacherButton();
         });
+
+        // Fix aria-hidden accessibility issues with modals
+        function setupModalAccessibility() {
+            // Handle all modals
+            const modals = ['addTeacherModal', 'editTeacherModal', 'deleteTeacherModal'];
+            
+            modals.forEach(modalId => {
+                const modalElement = document.getElementById(modalId);
+                if (modalElement) {
+                    // Before modal is shown - remove focus from any element that might be focused
+                    modalElement.addEventListener('show.bs.modal', function(event) {
+                        // Remove focus from any element that might be focused
+                        const activeElement = document.activeElement;
+                        if (activeElement && activeElement !== document.body && activeElement.blur) {
+                            try {
+                                activeElement.blur();
+                            } catch (e) {
+                                // Ignore blur errors
+                            }
+                        }
+                    });
+
+                    // After modal is shown - ensure proper focus
+                    modalElement.addEventListener('shown.bs.modal', function(event) {
+                        // Focus on first input or close button
+                        const firstInput = modalElement.querySelector('input:not([type="hidden"]), select, textarea, button[data-bs-dismiss]');
+                        if (firstInput) {
+                            setTimeout(() => {
+                                try {
+                                    firstInput.focus();
+                                } catch (e) {
+                                    // Ignore focus errors
+                                }
+                            }, 150);
+                        }
+                    });
+
+                    // Before modal is hidden - remove focus from modal elements
+                    modalElement.addEventListener('hide.bs.modal', function(event) {
+                        // Remove focus from any element inside the modal
+                        const focusedElement = modalElement.querySelector(':focus');
+                        if (focusedElement && focusedElement.blur) {
+                            try {
+                                focusedElement.blur();
+                            } catch (e) {
+                                // Ignore blur errors
+                            }
+                        }
+                    });
+
+                    // After modal is hidden - clean up and restore focus
+                    modalElement.addEventListener('hidden.bs.modal', function(event) {
+                        // Ensure no elements retain focus
+                        const activeElement = document.activeElement;
+                        if (activeElement && activeElement !== document.body) {
+                            try {
+                                // Only blur if it's not a valid focusable element
+                                if (activeElement.tagName === 'BODY' || 
+                                    activeElement.getAttribute('aria-hidden') === 'true') {
+                                    activeElement.blur();
+                                }
+                            } catch (e) {
+                                // Ignore blur errors
+                            }
+                        }
+                        
+                        // Focus on body to ensure no hidden elements have focus
+                        document.body.focus();
+                        document.body.blur();
+                    });
+                }
+            });
+        }
 
         // Load admin data from API
         async function loadAdminData() {
             try {
-                const response = await fetch('/api/v1/admin/profile');
+                const response = await fetch('/api/v1/admin/profile', {
+                    credentials: 'include'
+                });
                 if (response.ok) {
                     const adminData = await response.json();
                     updateHeader(adminData);
@@ -276,18 +353,22 @@
         async function loadTeachers(page = 1) {
             try {
                 currentPage = page;
-                const response = await fetch(`/api/v1/teacher?page=${page}&pageSize=${pageSize}`);
+                const response = await fetch(`/api/v1/teacher?page=${page}&pageSize=${pageSize}`, {
+                    credentials: 'include'
+                });
                 if (response.ok) {
                     const result = await response.json();
-                    totalPages = result.totalPages;
-                    totalCount = result.totalCount;
-                    displayTeachers(result.data);
+                    totalPages = result.totalPages || result.TotalPages;
+                    totalCount = result.totalCount || result.TotalCount;
+                    displayTeachers(result.data || result.Data);
                     updatePagination();
                 } else {
                     console.error('Failed to load teachers');
+                    showToast('Failed to load teachers', 'error');
                 }
             } catch (error) {
                 console.error('Error loading teachers:', error);
+                showToast('Error loading teachers', 'error');
             }
         }
 
@@ -296,46 +377,126 @@
         const saveTeacherBtn = document.getElementById('saveTeacherBtn');
         if (saveTeacherBtn) {
             saveTeacherBtn.addEventListener('click', async function() {
-            const form = document.getElementById('addTeacherForm');
-            const formData = new FormData(form);
+                const form = document.getElementById('addTeacherForm');
+                
+                // Validate form
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+                
+                const formData = new FormData(form);
             
-            const teacherData = {
-                Username: formData.get('username'),
-                Password: formData.get('password'),
-                Email: formData.get('email'),
-                FirstName: formData.get('firstName'),
-                LastName: formData.get('lastName'),
-                Phone: formData.get('phone'),
-                HighestQualification: formData.get('highestQualification'),
-                Status: formData.get('status'),
-                EmergencyContact: formData.get('emergencyContact'),
-                EmergencyPhone: formData.get('emergencyPhone'),
-                HireDate: formData.get('hireDate') ? new Date(formData.get('hireDate')).toISOString() : null
-            };
+                const teacherData = {
+                    Username: formData.get('username')?.trim(),
+                    Password: formData.get('password'),
+                    Email: formData.get('email')?.trim(),
+                    FirstName: formData.get('firstName')?.trim(),
+                    LastName: formData.get('lastName')?.trim(),
+                    Phone: formData.get('phone')?.trim() || null,
+                    HighestQualification: formData.get('highestQualification')?.trim() || null,
+                    Status: formData.get('status'),
+                    EmergencyContact: formData.get('emergencyContact')?.trim() || null,
+                    EmergencyPhone: formData.get('emergencyPhone')?.trim() || null,
+                    HireDate: formData.get('hireDate') ? new Date(formData.get('hireDate')).toISOString() : null
+                };
 
-            try {
-                const response = await fetch('/api/v1/teacher/admin-create', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(teacherData)
-                });
+                // Validate required fields
+                if (!teacherData.Username || !teacherData.Password || !teacherData.Email || 
+                    !teacherData.FirstName || !teacherData.LastName) {
+                    showToast('Please fill in all required fields', 'error');
+                    return;
+                }
+
+                // Disable button to prevent double submission
+                saveTeacherBtn.disabled = true;
+                saveTeacherBtn.textContent = 'Creating...';
+
+                try {
+                    const response = await fetch('/api/v1/teacher/admin-create', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify(teacherData)
+                    });
+
+                    let responseData = null;
+                    try {
+                        responseData = await response.json();
+                    } catch (parseError) {
+                        console.error('Error parsing response:', parseError);
+                    }
 
                 if (response.ok) {
+                    // Remove focus before hiding modal
+                    const activeElement = document.activeElement;
+                    if (activeElement && activeElement.blur) {
+                        activeElement.blur();
+                    }
+                    
                     const modal = bootstrap.Modal.getInstance(document.getElementById('addTeacherModal'));
-                    modal.hide();
+                    if (modal) {
+                        modal.hide();
+                    }
                     form.reset();
-                    loadTeachers();
+                    loadTeachers(currentPage);
                     showToast('Teacher created successfully!', 'success');
                 } else {
-                    const error = await response.json();
-                    showToast(error.message || 'Failed to create teacher', 'error');
+                        // Handle different error status codes
+                        let errorMessage = 'Failed to create teacher';
+                        const conflictField = responseData?.field;
+                        
+                        if (response.status === 409) {
+                            errorMessage = responseData?.message || 'Username or email already exists. Please use a different username or email.';
+                            
+                            // Highlight the conflicting field in the form
+                            if (conflictField === 'username') {
+                                const usernameField = document.getElementById('username');
+                                if (usernameField) {
+                                    usernameField.classList.add('is-invalid');
+                                    usernameField.focus();
+                                    setTimeout(() => usernameField.classList.remove('is-invalid'), 5000);
+                                }
+                            } else if (conflictField === 'email') {
+                                const emailField = document.getElementById('email');
+                                if (emailField) {
+                                    emailField.classList.add('is-invalid');
+                                    emailField.focus();
+                                    setTimeout(() => emailField.classList.remove('is-invalid'), 5000);
+                                }
+                            }
+                        } else if (response.status === 400) {
+                            if (responseData?.message) {
+                                errorMessage = responseData.message;
+                            } else if (responseData?.errors) {
+                                // Handle ModelState errors
+                                const errors = Object.values(responseData.errors).flat();
+                                errorMessage = errors.join(', ');
+                            } else {
+                                errorMessage = 'Invalid data. Please check all fields.';
+                            }
+                        } else if (responseData?.message) {
+                            errorMessage = responseData.message;
+                        }
+                        
+                        showToast(errorMessage, 'error');
+                        console.error('Error creating teacher:', {
+                            status: response.status,
+                            statusText: response.statusText,
+                            data: responseData,
+                            conflictField: conflictField
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error creating teacher:', error);
+                    showToast('Error creating teacher. Please try again.', 'error');
+                } finally {
+                    // Re-enable button
+                    saveTeacherBtn.disabled = false;
+                    saveTeacherBtn.textContent = 'Create Teacher';
                 }
-            } catch (error) {
-                console.error('Error creating teacher:', error);
-                showToast('Error creating teacher', 'error');
-            }
             });
         }
 
@@ -360,30 +521,40 @@
 
             teachers.forEach(teacher => {
                 const row = document.createElement('tr');
-                const statusBadge = teacher.status === 'Full-time' 
+                // Handle both PascalCase and camelCase property names
+                const teacherId = teacher.id || teacher.Id;
+                const firstName = teacher.firstName || teacher.FirstName || '';
+                const lastName = teacher.lastName || teacher.LastName || '';
+                const email = teacher.email || teacher.Email || '';
+                const status = teacher.status || teacher.Status || 'Full-time';
+                const highestQualification = teacher.highestQualification || teacher.HighestQualification || '';
+                const phone = teacher.phone || teacher.Phone || '';
+                const hireDate = teacher.hireDate || teacher.HireDate;
+                
+                const statusBadge = status === 'Full-time' 
                     ? '<span class="badge bg-success">Full-time</span>' 
                     : '<span class="badge bg-info">Part-time</span>';
 
                 row.innerHTML = `
                     <td>
                         <div class="d-flex align-items-center">
-                            <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(teacher.firstName + ' ' + teacher.lastName)}&background=3498db&color=fff" class="user-avatar me-3">
+                            <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(firstName + ' ' + lastName)}&background=3498db&color=fff" class="user-avatar me-3">
                             <div>
-                                <div class="fw-bold">${teacher.firstName} ${teacher.lastName}</div>
-                                <div class="text-muted small">${teacher.email}</div>
+                                <div class="fw-bold">${firstName} ${lastName}</div>
+                                <div class="text-muted small">${email}</div>
                             </div>
                         </div>
                     </td>
                     <td>${statusBadge}</td>
-                    <td>${teacher.highestQualification || '-'}</td>
-                    <td>${teacher.phone || '-'}</td>
-                    <td>${teacher.hireDate ? new Date(teacher.hireDate).toLocaleDateString() : '-'}</td>
+                    <td>${highestQualification || '-'}</td>
+                    <td>${phone || '-'}</td>
+                    <td>${hireDate ? new Date(hireDate).toLocaleDateString() : '-'}</td>
                     <td>
                         <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-primary action-btn" title="Edit" onclick="editTeacher(${teacher.id})">
+                            <button class="btn btn-outline-primary action-btn" title="Edit" onclick="editTeacher(${teacherId})">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-outline-danger action-btn" title="Delete" onclick="deleteTeacher(${teacher.id})">
+                            <button class="btn btn-outline-danger action-btn" title="Delete" onclick="deleteTeacher(${teacherId})">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -395,66 +566,195 @@
 
         // Edit teacher
         function editTeacher(id) {
-            fetch(`/api/v1/teacher/${id}`)
-                .then(response => response.json())
+            // Clear any previous validation errors
+            const form = document.getElementById('editTeacherForm');
+            if (form) {
+                const invalidFields = form.querySelectorAll('.is-invalid');
+                invalidFields.forEach(field => field.classList.remove('is-invalid'));
+            }
+            
+            fetch(`/api/v1/teacher/${id}`, {
+                credentials: 'include'
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => {
+                            throw new Error(err.message || 'Failed to load teacher');
+                        });
+                    }
+                    return response.json();
+                })
                 .then(teacher => {
-                    document.getElementById('editTeacherId').value = teacher.id;
-                    document.getElementById('editTeacherEmail').value = teacher.email;
-                    document.getElementById('editTeacherFirstName').value = teacher.firstName;
-                    document.getElementById('editTeacherLastName').value = teacher.lastName;
-                    document.getElementById('editTeacherPhone').value = teacher.phone || '';
-                    document.getElementById('editTeacherHireDate').value = teacher.hireDate ? new Date(teacher.hireDate).toISOString().split('T')[0] : '';
+                    // Handle both PascalCase and camelCase property names
+                    const teacherId = teacher.id || teacher.Id;
+                    const email = teacher.email || teacher.Email;
+                    const firstName = teacher.firstName || teacher.FirstName;
+                    const lastName = teacher.lastName || teacher.LastName;
+                    const phone = teacher.phone || teacher.Phone || '';
+                    
+                    document.getElementById('editTeacherId').value = teacherId;
+                    // Store email in hidden field for API call, display in read-only field
+                    document.getElementById('editTeacherEmail').value = email;
+                    document.getElementById('editTeacherEmailDisplay').value = email;
+                    document.getElementById('editTeacherFirstName').value = firstName;
+                    document.getElementById('editTeacherLastName').value = lastName;
+                    document.getElementById('editTeacherPhone').value = phone;
+                    
+                    // Remove focus before showing modal
+                    const activeElement = document.activeElement;
+                    if (activeElement && activeElement.blur) {
+                        activeElement.blur();
+                    }
                     
                     const modal = new bootstrap.Modal(document.getElementById('editTeacherModal'));
                     modal.show();
                 })
                 .catch(error => {
                     console.error('Error loading teacher:', error);
-                    showToast('Error loading teacher', 'error');
+                    showToast(error.message || 'Error loading teacher', 'error');
                 });
         }
 
-        // Update teacher
-        const updateTeacherBtn = document.getElementById('updateTeacherBtn');
-        if (updateTeacherBtn) {
-            updateTeacherBtn.addEventListener('click', async function() {
-            const id = document.getElementById('editTeacherId').value;
-            const teacherData = {
-                email: document.getElementById('editTeacherEmail').value,
-                firstName: document.getElementById('editTeacherFirstName').value,
-                lastName: document.getElementById('editTeacherLastName').value,
-                phone: document.getElementById('editTeacherPhone').value,
-                hireDate: document.getElementById('editTeacherHireDate').value ? new Date(document.getElementById('editTeacherHireDate').value) : null
-            };
+        // Setup update teacher button event listener
+        function setupUpdateTeacherButton() {
+            const updateTeacherBtn = document.getElementById('updateTeacherBtn');
+            if (updateTeacherBtn) {
+                updateTeacherBtn.addEventListener('click', async function() {
+                    const id = document.getElementById('editTeacherId').value;
+                    if (!id) {
+                        showToast('Teacher ID is missing', 'error');
+                        return;
+                    }
+                    
+                    const form = document.getElementById('editTeacherForm');
+                    
+                    // Validate form
+                    if (!form.checkValidity()) {
+                        form.reportValidity();
+                        return;
+                    }
+                    
+                    // Get existing email from hidden field (admin cannot change email)
+                    const existingEmail = document.getElementById('editTeacherEmail').value?.trim();
+                    
+                    const teacherData = {
+                        Email: existingEmail, // Always use existing email - admin cannot change it
+                        FirstName: document.getElementById('editTeacherFirstName').value?.trim(),
+                        LastName: document.getElementById('editTeacherLastName').value?.trim(),
+                        Phone: document.getElementById('editTeacherPhone').value?.trim() || null
+                    };
 
-            try {
-                const response = await fetch(`/api/v1/teacher/${id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(teacherData)
+                    // Validate required fields (only FirstName and LastName are required from admin)
+                    if (!teacherData.FirstName || !teacherData.LastName) {
+                        showToast('Please fill in first name and last name', 'error');
+                        return;
+                    }
+                    
+                    if (!existingEmail) {
+                        showToast('Email is missing. Please refresh and try again.', 'error');
+                        return;
+                    }
+
+                    // Disable button to prevent double submission
+                    updateTeacherBtn.disabled = true;
+                    updateTeacherBtn.textContent = 'Updating...';
+
+                    try {
+                        const response = await fetch(`/api/v1/teacher/${id}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify(teacherData)
+                        });
+
+                        let responseData = null;
+                        try {
+                            responseData = await response.json();
+                        } catch (parseError) {
+                            console.error('Error parsing response:', parseError);
+                        }
+
+                        if (response.ok) {
+                            // Remove focus before hiding modal
+                            const activeElement = document.activeElement;
+                            if (activeElement && activeElement.blur) {
+                                activeElement.blur();
+                            }
+                            
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('editTeacherModal'));
+                            if (modal) {
+                                modal.hide();
+                            }
+                            loadTeachers(currentPage);
+                            showToast('Teacher updated successfully!', 'success');
+                        } else {
+                            // Handle different error status codes
+                            let errorMessage = 'Failed to update teacher';
+                            const conflictField = responseData?.field;
+                            
+                            if (response.status === 409) {
+                                errorMessage = responseData?.message || 'An error occurred. Please try again.';
+                            } else if (response.status === 400) {
+                                if (responseData?.message) {
+                                    errorMessage = responseData.message;
+                                } else if (responseData?.errors) {
+                                    // Handle ModelState errors
+                                    const errors = Object.values(responseData.errors).flat();
+                                    errorMessage = errors.join(', ');
+                                } else {
+                                    errorMessage = 'Invalid data. Please check all fields.';
+                                }
+                            } else if (response.status === 404) {
+                                errorMessage = responseData?.message || 'Teacher not found';
+                            } else if (responseData?.message) {
+                                errorMessage = responseData.message;
+                            }
+                            
+                            showToast(errorMessage, 'error');
+                            console.error('Error updating teacher:', {
+                                status: response.status,
+                                statusText: response.statusText,
+                                data: responseData,
+                                conflictField: conflictField
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error updating teacher:', error);
+                        showToast('Error updating teacher. Please try again.', 'error');
+                    } finally {
+                        // Re-enable button
+                        updateTeacherBtn.disabled = false;
+                        updateTeacherBtn.textContent = 'Update Teacher';
+                    }
                 });
-
-                if (response.ok) {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('editTeacherModal'));
-                    modal.hide();
-                    loadTeachers();
-                    showToast('Teacher updated successfully!', 'success');
-                } else {
-                    const error = await response.json();
-                    showToast(error.message || 'Failed to update teacher', 'error');
-                }
-            } catch (error) {
-                console.error('Error updating teacher:', error);
-                showToast('Error updating teacher', 'error');
+            } else {
+                console.warn('Update teacher button not found');
             }
-            });
         }
 
         // Delete teacher
         function deleteTeacher(id) {
-            document.getElementById('deleteTeacherId').value = id;
+            if (!id) {
+                showToast('Teacher ID is missing', 'error');
+                return;
+            }
+            
+            const deleteIdInput = document.getElementById('deleteTeacherId');
+            if (!deleteIdInput) {
+                showToast('Delete modal not found', 'error');
+                return;
+            }
+            
+            deleteIdInput.value = id;
+            
+            // Remove focus before showing modal
+            const activeElement = document.activeElement;
+            if (activeElement && activeElement.blur) {
+                activeElement.blur();
+            }
+            
             const modal = new bootstrap.Modal(document.getElementById('deleteTeacherModal'));
             modal.show();
         }
@@ -465,16 +765,33 @@
             if (confirmDeleteTeacherBtn) {
                 confirmDeleteTeacherBtn.addEventListener('click', async function() {
                     const id = document.getElementById('deleteTeacherId').value;
+                    
+                    if (!id) {
+                        showToast('Teacher ID is missing', 'error');
+                        return;
+                    }
 
                     try {
                         const response = await fetch(`/api/v1/teacher/${id}`, {
-                            method: 'DELETE'
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            credentials: 'include'
                         });
 
                         if (response.ok) {
+                            // Remove focus before hiding modal
+                            const activeElement = document.activeElement;
+                            if (activeElement && activeElement.blur) {
+                                activeElement.blur();
+                            }
+                            
                             const modal = bootstrap.Modal.getInstance(document.getElementById('deleteTeacherModal'));
-                            modal.hide();
-                            loadTeachers();
+                            if (modal) {
+                                modal.hide();
+                            }
+                            loadTeachers(currentPage);
                             showToast('Teacher deleted successfully!', 'success');
                         } else {
                             const error = await response.json();
@@ -572,18 +889,16 @@
                 <div class="modal-body">
                     <form id="editTeacherForm">
                         <input type="hidden" id="editTeacherId">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editTeacherEmail" class="form-label">Email *</label>
-                                <input type="email" class="form-control" id="editTeacherEmail" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editTeacherDepartment" class="form-label">Department</label>
-                                <select class="form-control" id="editTeacherDepartment">
-                                    <option value="">Select Department</option>
-                                </select>
+                        <input type="hidden" id="editTeacherEmail">
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-muted">Email (Read-only)</label>
+                                <input type="email" class="form-control" id="editTeacherEmailDisplay" readonly style="background-color: #e9ecef;">
                             </div>
                         </div>
+                        
+                        <!-- Editable fields -->
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="editTeacherFirstName" class="form-label">First Name *</label>
@@ -596,12 +911,8 @@
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="editTeacherPhone" class="form-label">Phone</label>
+                                <label for="editTeacherPhone" class="form-label">Phone Number</label>
                                 <input type="tel" class="form-control" id="editTeacherPhone">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editTeacherHireDate" class="form-label">Hire Date</label>
-                                <input type="date" class="form-control" id="editTeacherHireDate">
                             </div>
                         </div>
                     </form>

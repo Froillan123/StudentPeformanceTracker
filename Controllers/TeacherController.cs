@@ -141,11 +141,68 @@ public class TeacherController : ControllerBase
                 return NotFound(new { message = "Teacher not found" });
             }
 
-            // Check if email already exists (excluding current teacher)
-            if (request.Email != existingTeacher.Email &&
-                await _teacherRepository.EmailExistsAsync(request.Email))
+            // Trim whitespace from inputs
+            if (request.Email != null)
+                request.Email = request.Email.Trim();
+            if (request.FirstName != null)
+                request.FirstName = request.FirstName.Trim();
+            if (request.LastName != null)
+                request.LastName = request.LastName.Trim();
+            if (request.Phone != null)
+                request.Phone = request.Phone.Trim();
+
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(request.Email))
             {
-                return BadRequest(new { message = "Email already exists" });
+                return BadRequest(new { message = "Email is required" });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.FirstName))
+            {
+                return BadRequest(new { message = "First name is required" });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.LastName))
+            {
+                return BadRequest(new { message = "Last name is required" });
+            }
+
+            // Check if email already exists (excluding current teacher) - case-insensitive check
+            var emailChanged = !string.Equals(request.Email, existingTeacher.Email, StringComparison.OrdinalIgnoreCase);
+            if (emailChanged)
+            {
+                // Check case-insensitive email match across all roles
+                var emailExistsCaseInsensitive = await _context.Teachers
+                    .AnyAsync(t => t.Id != id && EF.Functions.ILike(t.Email, request.Email));
+                
+                if (emailExistsCaseInsensitive)
+                {
+                    return Conflict(new { 
+                        message = $"The email address '{request.Email}' is already registered. Please use a different email address.",
+                        field = "email"
+                    });
+                }
+
+                // Also check in Students and Admins
+                var emailExistsInStudents = await _context.Students
+                    .AnyAsync(s => EF.Functions.ILike(s.Email, request.Email));
+                if (emailExistsInStudents)
+                {
+                    return Conflict(new { 
+                        message = $"The email address '{request.Email}' is already registered. Please use a different email address.",
+                        field = "email"
+                    });
+                }
+
+                var emailExistsInAdmins = await _context.Admins
+                    .AnyAsync(a => EF.Functions.ILike(a.Email, request.Email));
+                if (emailExistsInAdmins)
+                {
+                    return Conflict(new { 
+                        message = $"The email address '{request.Email}' is already registered. Please use a different email address.",
+                        field = "email"
+                    });
+                }
             }
 
             // Note: Department assignment is managed separately via TeacherDepartments API
@@ -154,7 +211,18 @@ public class TeacherController : ControllerBase
             existingTeacher.FirstName = request.FirstName;
             existingTeacher.LastName = request.LastName;
             existingTeacher.Phone = request.Phone;
-            existingTeacher.HireDate = request.HireDate;
+            
+            // Update optional fields if provided
+            if (request.HighestQualification != null)
+                existingTeacher.HighestQualification = request.HighestQualification;
+            if (request.Status != null)
+                existingTeacher.Status = request.Status;
+            if (request.EmergencyContact != null)
+                existingTeacher.EmergencyContact = request.EmergencyContact;
+            if (request.EmergencyPhone != null)
+                existingTeacher.EmergencyPhone = request.EmergencyPhone;
+            if (request.HireDate.HasValue)
+                existingTeacher.HireDate = request.HireDate;
 
             var updatedTeacher = await _teacherRepository.UpdateAsync(existingTeacher);
 
@@ -166,10 +234,14 @@ public class TeacherController : ControllerBase
                 updatedTeacher.FirstName,
                 updatedTeacher.LastName,
                 updatedTeacher.Phone,
+                updatedTeacher.HighestQualification,
+                updatedTeacher.Status,
+                updatedTeacher.EmergencyContact,
+                updatedTeacher.EmergencyPhone,
                 Departments = updatedTeacher.TeacherDepartments.Select(td => new
                 {
                     td.DepartmentId,
-                    DepartmentName = td.Department.DepartmentName
+                    DepartmentName = td.Department?.DepartmentName
                 }).ToList(),
                 updatedTeacher.HireDate,
                 updatedTeacher.CreatedAt,
@@ -311,51 +383,57 @@ public class TeacherController : ControllerBase
                 return NotFound(new { message = "Teacher not found" });
             }
 
-            // Use a transaction to ensure all deletions succeed or fail together
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
+            // Use execution strategy to support retry on failure with transactions
+            var strategy = _context.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                // First, delete related records that don't have cascade delete
-                // Delete TeacherSubjects
-                var teacherSubjects = await _context.TeacherSubjects
-                    .Where(ts => ts.TeacherId == id)
-                    .ToListAsync();
-                _context.TeacherSubjects.RemoveRange(teacherSubjects);
+                // Use a transaction to ensure all deletions succeed or fail together
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    // First, delete related records that don't have cascade delete
+                    // Delete TeacherSubjects
+                    var teacherSubjects = await _context.TeacherSubjects
+                        .Where(ts => ts.TeacherId == id)
+                        .ToListAsync();
+                    _context.TeacherSubjects.RemoveRange(teacherSubjects);
 
-                // Delete SectionSubjects where this teacher is assigned
-                var sectionSubjects = await _context.SectionSubjects
-                    .Where(ss => ss.TeacherId == id)
-                    .ToListAsync();
-                _context.SectionSubjects.RemoveRange(sectionSubjects);
+                    // Delete SectionSubjects where this teacher is assigned
+                    var sectionSubjects = await _context.SectionSubjects
+                        .Where(ss => ss.TeacherId == id)
+                        .ToListAsync();
+                    _context.SectionSubjects.RemoveRange(sectionSubjects);
 
-                // Save changes for related records
-                await _context.SaveChangesAsync();
+                    // Save changes for related records
+                    await _context.SaveChangesAsync();
 
-                // Delete from Teacher table (this will cascade to TeacherDepartments)
-                var teacherDeleted = await _teacherRepository.DeleteAsync(id);
-                if (!teacherDeleted)
+                    // Delete from Teacher table (this will cascade to TeacherDepartments)
+                    var teacherDeleted = await _teacherRepository.DeleteAsync(id);
+                    if (!teacherDeleted)
+                    {
+                        await transaction.RollbackAsync();
+                        throw new InvalidOperationException("Failed to delete teacher");
+                    }
+
+                    // Delete from Users table
+                    var userDeleted = await _userRepository.DeleteAsync(teacher.UserId);
+                    if (!userDeleted)
+                    {
+                        await transaction.RollbackAsync();
+                        throw new InvalidOperationException("Failed to delete associated user account");
+                    }
+
+                    // Commit the transaction
+                    await transaction.CommitAsync();
+                }
+                catch (Exception)
                 {
                     await transaction.RollbackAsync();
-                    return StatusCode(500, new { message = "Failed to delete teacher" });
+                    throw;
                 }
+            });
 
-                // Delete from Users table
-                var userDeleted = await _userRepository.DeleteAsync(teacher.UserId);
-                if (!userDeleted)
-                {
-                    await transaction.RollbackAsync();
-                    return StatusCode(500, new { message = "Failed to delete associated user account" });
-                }
-
-                // Commit the transaction
-                await transaction.CommitAsync();
-                return Ok(new { message = "Teacher and associated user account deleted successfully" });
-            }
-            catch (Exception)
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
+            return Ok(new { message = "Teacher and associated user account deleted successfully" });
         }
         catch (Exception ex)
         {
@@ -406,16 +484,66 @@ public class TeacherController : ControllerBase
                 return BadRequest(ModelState);
             }
 
-            // Check if username already exists
-            if (await _authService.UsernameExistsAsync(request.Username))
+            // Trim whitespace from inputs
+            if (request.Username != null)
+                request.Username = request.Username.Trim();
+            if (request.Email != null)
+                request.Email = request.Email.Trim();
+
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(request.Username))
             {
-                return Conflict(new { message = "Username already exists" });
+                return BadRequest(new { message = "Username is required" });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Email))
+            {
+                return BadRequest(new { message = "Email is required" });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Password))
+            {
+                return BadRequest(new { message = "Password is required" });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.FirstName))
+            {
+                return BadRequest(new { message = "First name is required" });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.LastName))
+            {
+                return BadRequest(new { message = "Last name is required" });
+            }
+
+            // Check if username already exists (case-insensitive check using EF.Functions.ILike for PostgreSQL)
+            var existingUser = await _userRepository.GetByUsernameAsync(request.Username);
+            if (existingUser != null)
+            {
+                return Conflict(new { 
+                    message = $"The username '{request.Username}' is already taken. Please choose a different username.",
+                    field = "username"
+                });
+            }
+
+            // Check case-insensitive username match using database query
+            var usernameExistsCaseInsensitive = await _context.Users
+                .AnyAsync(u => EF.Functions.ILike(u.Username, request.Username));
+            if (usernameExistsCaseInsensitive)
+            {
+                return Conflict(new { 
+                    message = $"The username '{request.Username}' is already taken. Please choose a different username.",
+                    field = "username"
+                });
             }
 
             // Check if email already exists
             if (await _authService.EmailExistsAsync(request.Email))
             {
-                return Conflict(new { message = "Email already exists" });
+                return Conflict(new { 
+                    message = $"The email address '{request.Email}' is already registered. Please use a different email address.",
+                    field = "email"
+                });
             }
 
             // Create teacher registration request

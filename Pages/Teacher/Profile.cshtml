@@ -239,6 +239,10 @@
             border-radius: 50%;
             object-fit: cover;
         }
+        /* Hide Professional Information section in edit modal */
+        .professional-info-section {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -415,13 +419,15 @@
                         </div>
 
                         <!-- Professional Information -->
-                        <h6 class="fw-bold mb-3 mt-4">
-                            <i class="fas fa-briefcase me-2"></i>Professional Information
-                        </h6>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editHighestQualification" class="form-label">Highest Qualification</label>
-                                <input type="text" class="form-control" id="editHighestQualification" name="highestQualification" placeholder="e.g., Master's Degree, PhD">
+                        <div class="professional-info-section" style="display: none;">
+                            <h6 class="fw-bold mb-3 mt-4">
+                                <i class="fas fa-briefcase me-2"></i>Professional Information
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="editHighestQualification" class="form-label">Highest Qualification</label>
+                                    <input type="text" class="form-control" id="editHighestQualification" name="highestQualification" placeholder="e.g., Master's Degree, PhD">
+                                </div>
                             </div>
                         </div>
 
