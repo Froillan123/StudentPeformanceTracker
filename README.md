@@ -201,6 +201,676 @@ erDiagram
     TeacherDepartment }o--|| Department : part_of
 ```
 
+### Database Schema Details
+
+#### User & Authentication Tables
+
+##### Users
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| Id | int | PK, Auto-increment | Primary key |
+| Username | string(100) | Required, Unique | User login username |
+| PasswordHash | string | Required | BCrypt hashed password |
+| Role | string(20) | Required, Default: "Student" | User role: Student, Teacher, Admin |
+| Status | string(20) | Required, Default: "Inactive" | Account status: Active, Inactive |
+| CreatedAt | DateTime (UTC) | Required | Record creation timestamp |
+| UpdatedAt | DateTime (UTC) | Required | Record last update timestamp |
+
+**Relationships:**
+- One-to-One with Students (CASCADE DELETE)
+- One-to-One with Teachers (CASCADE DELETE)
+- One-to-One with Admins (CASCADE DELETE)
+
+##### Students
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| Id | int | PK, Auto-increment | Primary key |
+| UserId | int | Required, FK → Users.Id | Foreign key to Users table (CASCADE DELETE) |
+| StudentId | string(50) | Required, Unique | Auto-generated student ID (format: ucmn-{YYMMDD}{studentId}) |
+| Email | string(100) | Required, Unique, Email format | Student email address |
+| FirstName | string(50) | Required | Student first name |
+| LastName | string(50) | Required | Student last name |
+| Phone | string(20) | Nullable | Student phone number |
+| YearLevel | int | Nullable | Current year level |
+| CourseId | int | Nullable, FK → Courses.Id | Foreign key to Courses table (SET NULL on delete) |
+| EnrollmentDate | DateTime | Nullable | Date of enrollment |
+| EnrollmentType | string(20) | Required, Default: "Regular" | Enrollment type: Regular or Irregular |
+| CreatedAt | DateTime (UTC) | Required | Record creation timestamp |
+| UpdatedAt | DateTime (UTC) | Required | Record last update timestamp |
+
+**Relationships:**
+- Many-to-One with Users (CASCADE DELETE)
+- Many-to-One with Courses (SET NULL on delete)
+- One-to-Many with Enrollments
+- One-to-Many with StudentSubjects
+
+##### Teachers
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| Id | int | PK, Auto-increment | Primary key |
+| UserId | int | Required, FK → Users.Id | Foreign key to Users table (CASCADE DELETE) |
+| Email | string(100) | Required, Unique, Email format | Teacher email address |
+| FirstName | string(50) | Required | Teacher first name |
+| LastName | string(50) | Required | Teacher last name |
+| Phone | string(20) | Nullable | Teacher phone number |
+| HighestQualification | string(100) | Nullable | Highest educational qualification |
+| Status | string(20) | Required, Default: "Full-time" | Employment status: Full-time or Part-time |
+| EmergencyContact | string(100) | Nullable | Emergency contact name |
+| EmergencyPhone | string(20) | Nullable | Emergency contact phone |
+| HireDate | DateTime | Nullable | Date of hire |
+| CreatedAt | DateTime (UTC) | Required | Record creation timestamp |
+| UpdatedAt | DateTime (UTC) | Required | Record last update timestamp |
+
+**Relationships:**
+- Many-to-One with Users (CASCADE DELETE)
+- Many-to-Many with Departments (through TeacherDepartments, CASCADE DELETE)
+- One-to-Many with SectionSubjects
+- One-to-Many with TeacherSubjects
+- One-to-Many with Announcements (nullable)
+
+##### Admins
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| Id | int | PK, Auto-increment | Primary key |
+| UserId | int | Required, FK → Users.Id | Foreign key to Users table (CASCADE DELETE) |
+| Email | string(100) | Required, Unique, Email format | Admin email address |
+| FirstName | string(50) | Required | Admin first name |
+| LastName | string(50) | Required | Admin last name |
+| Phone | string(20) | Nullable | Admin phone number |
+| CreatedAt | DateTime (UTC) | Required | Record creation timestamp |
+| UpdatedAt | DateTime (UTC) | Required | Record last update timestamp |
+
+**Relationships:**
+- Many-to-One with Users (CASCADE DELETE)
+- One-to-Many with Announcements (nullable, for general announcements)
+
+#### Academic Structure Tables
+
+##### Courses
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| Id | int | PK, Auto-increment | Primary key |
+| CourseName | string(100) | Required, Unique | Course name |
+| Description | string(500) | Nullable | Course description |
+| DepartmentId | int | Nullable, FK → Departments.Id | Foreign key to Departments table (SET NULL on delete) |
+| CreatedAt | DateTime (UTC) | Required | Record creation timestamp |
+| UpdatedAt | DateTime (UTC) | Required | Record last update timestamp |
+
+**Relationships:**
+- Many-to-One with Departments (SET NULL on delete)
+- One-to-Many with CourseSubjects
+- One-to-Many with Sections
+- One-to-Many with Enrollments
+
+##### Departments
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| Id | int | PK, Auto-increment | Primary key |
+| DepartmentName | string(100) | Required, Unique | Department name |
+| DepartmentCode | string(20) | Nullable, Unique | Department code |
+| Description | string(500) | Nullable | Department description |
+| HeadOfDepartment | string(100) | Nullable | Head of department name |
+| CreatedAt | DateTime (UTC) | Required | Record creation timestamp |
+| UpdatedAt | DateTime (UTC) | Required | Record last update timestamp |
+
+**Relationships:**
+- Many-to-Many with Teachers (through TeacherDepartments, CASCADE DELETE)
+
+##### TeacherDepartments (Junction Table)
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| TeacherId | int | PK, FK → Teachers.Id | Composite primary key, foreign key to Teachers (CASCADE DELETE) |
+| DepartmentId | int | PK, FK → Departments.Id | Composite primary key, foreign key to Departments (CASCADE DELETE) |
+| CreatedAt | DateTime (UTC) | Required | Record creation timestamp |
+
+**Relationships:**
+- Many-to-One with Teachers (CASCADE DELETE)
+- Many-to-One with Departments (CASCADE DELETE)
+- Composite Primary Key: (TeacherId, DepartmentId)
+
+##### YearLevels
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| Id | int | PK, Auto-increment | Primary key |
+| LevelNumber | int | Required, Unique | Year level number (1, 2, 3, 4, etc.) |
+| LevelName | string(50) | Required | Year level name (e.g., "First Year", "Second Year") |
+| Description | string(500) | Nullable | Year level description |
+| CreatedAt | DateTime (UTC) | Required | Record creation timestamp |
+| UpdatedAt | DateTime (UTC) | Required | Record last update timestamp |
+
+**Relationships:**
+- One-to-Many with CourseSubjects
+- One-to-Many with Sections
+- One-to-Many with Enrollments
+
+##### Semesters
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| Id | int | PK, Auto-increment | Primary key |
+| SemesterName | string(50) | Required | Semester name (e.g., "First Semester", "Second Semester") |
+| SemesterCode | string(20) | Required, Unique | Semester code (e.g., "1ST", "2ND", "SUMMER") |
+| SchoolYear | string(20) | Required | School year (e.g., "2024-2025") |
+| StartDate | DateTime | Nullable | Semester start date |
+| EndDate | DateTime | Nullable | Semester end date |
+| IsActive | bool | Required, Default: true | Active semester flag |
+| CreatedAt | DateTime (UTC) | Required | Record creation timestamp |
+| UpdatedAt | DateTime (UTC) | Required | Record last update timestamp |
+
+**Unique Constraints:**
+- Unique index on (SemesterCode, SchoolYear)
+
+**Relationships:**
+- One-to-Many with CourseSubjects
+- One-to-Many with Sections
+- One-to-Many with Enrollments
+
+##### Subjects
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| Id | int | PK, Auto-increment | Primary key |
+| SubjectName | string(200) | Required | Subject name |
+| Description | string(1000) | Nullable | Subject description |
+| Units | int | Required, Default: 3 | Number of units/credits |
+| Prerequisites | string(500) | Nullable | Prerequisite subjects |
+| IsActive | bool | Required, Default: true | Active subject flag |
+| CourseId | int | Nullable | Optional course association |
+| CreatedAt | DateTime (UTC) | Required | Record creation timestamp |
+| UpdatedAt | DateTime (UTC) | Required | Record last update timestamp |
+
+**Relationships:**
+- Many-to-One with Courses (nullable)
+- One-to-Many with CourseSubjects
+- One-to-Many with SectionSubjects
+
+##### CourseSubjects
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| Id | int | PK, Auto-increment | Primary key |
+| CourseId | int | Required, FK → Courses.Id | Foreign key to Courses table |
+| SubjectId | int | Required, FK → Subjects.Id | Foreign key to Subjects table |
+| YearLevelId | int | Required, FK → YearLevels.Id | Foreign key to YearLevels table |
+| SemesterId | int | Required, FK → Semesters.Id | Foreign key to Semesters table |
+| IsRequired | bool | Required, Default: true | Required subject flag |
+| CreatedAt | DateTime (UTC) | Required | Record creation timestamp |
+| UpdatedAt | DateTime (UTC) | Required | Record last update timestamp |
+
+**Unique Constraints:**
+- Unique index on (CourseId, SubjectId, YearLevelId, SemesterId)
+
+**Relationships:**
+- Many-to-One with Courses
+- Many-to-One with Subjects
+- Many-to-One with YearLevels
+- Many-to-One with Semesters
+
+#### Enrollment & Section Tables
+
+##### Sections
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| Id | int | PK, Auto-increment | Primary key |
+| SectionName | string(50) | Required | Section name (e.g., "A", "B", "1A") |
+| CourseId | int | Required, FK → Courses.Id | Foreign key to Courses table |
+| YearLevelId | int | Required, FK → YearLevels.Id | Foreign key to YearLevels table |
+| SemesterId | int | Required, FK → Semesters.Id | Foreign key to Semesters table |
+| MaxCapacity | int | Required, Default: 40 | Maximum student capacity |
+| CurrentEnrollment | int | Required, Default: 0 | Current number of enrolled students |
+| IsActive | bool | Required, Default: true | Active section flag |
+| CreatedAt | DateTime (UTC) | Required | Record creation timestamp |
+| UpdatedAt | DateTime (UTC) | Required | Record last update timestamp |
+
+**Unique Constraints:**
+- Unique index on (SectionName, CourseId, YearLevelId, SemesterId)
+
+**Relationships:**
+- Many-to-One with Courses
+- Many-to-One with YearLevels
+- Many-to-One with Semesters
+- One-to-Many with SectionSubjects
+
+##### SectionSubjects
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| Id | int | PK, Auto-increment | Primary key |
+| SectionId | int | Required, FK → Sections.Id | Foreign key to Sections table |
+| SubjectId | int | Required, FK → Subjects.Id | Foreign key to Subjects table |
+| EdpCode | string(20) | Required, Unique | Enrollment and Drop (EDP) code |
+| TeacherId | int | Nullable, FK → Teachers.Id | Foreign key to Teachers table (assigned teacher) |
+| ScheduleDay | string(20) | Nullable | Class schedule day |
+| ScheduleTime | string(50) | Nullable | Class schedule time |
+| Room | string(50) | Nullable | Classroom location |
+| MaxStudents | int | Required, Default: 40 | Maximum students for this subject section |
+| CurrentEnrollment | int | Required, Default: 0 | Current enrollment count |
+| IsActive | bool | Required, Default: true | Active section subject flag |
+| CreatedAt | DateTime (UTC) | Required | Record creation timestamp |
+| UpdatedAt | DateTime (UTC) | Required | Record last update timestamp |
+
+**Unique Constraints:**
+- Unique index on (SectionId, SubjectId)
+- Unique index on EdpCode
+
+**Relationships:**
+- Many-to-One with Sections
+- Many-to-One with Subjects
+- Many-to-One with Teachers (nullable)
+- One-to-Many with TeacherSubjects
+- One-to-Many with StudentSubjects
+- One-to-Many with Announcements (nullable)
+
+##### TeacherSubjects
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| Id | int | PK, Auto-increment | Primary key |
+| TeacherId | int | Required, FK → Teachers.Id | Foreign key to Teachers table |
+| SectionSubjectId | int | Required, FK → SectionSubjects.Id | Foreign key to SectionSubjects table |
+| IsPrimary | bool | Required, Default: true | Primary teacher flag |
+| CreatedAt | DateTime (UTC) | Required | Record creation timestamp |
+| UpdatedAt | DateTime (UTC) | Required | Record last update timestamp |
+
+**Unique Constraints:**
+- Unique index on (TeacherId, SectionSubjectId)
+
+**Relationships:**
+- Many-to-One with Teachers
+- Many-to-One with SectionSubjects
+
+##### Enrollments
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| Id | int | PK, Auto-increment | Primary key |
+| StudentId | int | Required, FK → Students.Id | Foreign key to Students table |
+| CourseId | int | Required, FK → Courses.Id | Foreign key to Courses table |
+| YearLevelId | int | Required, FK → YearLevels.Id | Foreign key to YearLevels table |
+| SemesterId | int | Required, FK → Semesters.Id | Foreign key to Semesters table |
+| EnrollmentType | string(20) | Required, Default: "Regular" | Enrollment type: Regular or Irregular |
+| EnrollmentDate | DateTime (UTC) | Required | Date of enrollment |
+| Status | string(20) | Required, Default: "Pending" | Enrollment status: Pending, Active, Completed, Dropped |
+| SchoolYear | string(20) | Nullable | School year (e.g., "2024-2025") |
+| CreatedAt | DateTime (UTC) | Required | Record creation timestamp |
+| UpdatedAt | DateTime (UTC) | Required | Record last update timestamp |
+
+**Unique Constraints:**
+- Unique index on (StudentId, CourseId, YearLevelId, SemesterId)
+
+**Relationships:**
+- Many-to-One with Students
+- Many-to-One with Courses
+- Many-to-One with YearLevels
+- Many-to-One with Semesters
+- One-to-Many with StudentSubjects
+
+##### StudentSubjects
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| Id | int | PK, Auto-increment | Primary key |
+| StudentId | int | Required, FK → Students.Id | Foreign key to Students table |
+| SectionSubjectId | int | Required, FK → SectionSubjects.Id | Foreign key to SectionSubjects table |
+| EnrollmentId | int | Required, FK → Enrollments.Id | Foreign key to Enrollments table |
+| Grade | decimal(5,2) | Nullable | Final grade (1.0 to 5.0 scale) |
+| Status | string(20) | Required, Default: "Enrolled" | Status: Enrolled, Completed, Dropped, Failed |
+| CreatedAt | DateTime (UTC) | Required | Record creation timestamp |
+| UpdatedAt | DateTime (UTC) | Required | Record last update timestamp |
+
+**Unique Constraints:**
+- Unique index on (StudentId, SectionSubjectId)
+
+**Relationships:**
+- Many-to-One with Students
+- Many-to-One with SectionSubjects
+- Many-to-One with Enrollments
+- One-to-Many with Grades
+
+#### Academic Records Tables
+
+##### Grades
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| Id | int | PK, Auto-increment | Primary key |
+| StudentSubjectId | int | Required, FK → StudentSubjects.Id | Foreign key to StudentSubjects table |
+| AssessmentType | string(50) | Required | Assessment type: "Midterm" or "Final Grade" |
+| AssessmentName | string(200) | Nullable | Assessment name (auto-filled as "Midterm Grade" or "Final Grade") |
+| GradePoint | decimal(3,2) | Required, Range: 1.0-5.0 | Grade point (1.0 = Excellent, 5.0 = Failed) |
+| Remarks | string(1000) | Nullable | Additional remarks |
+| DateGiven | DateTime | Nullable | Date when grade was given |
+| CreatedAt | DateTime (UTC) | Required | Record creation timestamp |
+| UpdatedAt | DateTime (UTC) | Required | Record last update timestamp |
+
+**Relationships:**
+- Many-to-One with StudentSubjects
+
+##### Announcements
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| Id | int | PK, Auto-increment | Primary key |
+| TeacherId | int | Nullable, FK → Teachers.Id | Foreign key to Teachers table (CASCADE DELETE, for class announcements) |
+| SectionSubjectId | int | Nullable, FK → SectionSubjects.Id | Foreign key to SectionSubjects table (CASCADE DELETE, for class-scoped announcements) |
+| AdminId | int | Nullable, FK → Admins.Id | Foreign key to Admins table (CASCADE DELETE, for general announcements) |
+| Title | string(200) | Required | Announcement title |
+| Content | string | Required | Announcement content |
+| Priority | string(20) | Required, Default: "General" | Priority level: General, Important, Urgent |
+| IsActive | bool | Required, Default: true | Active announcement flag |
+| CreatedAt | DateTime (UTC) | Required | Record creation timestamp |
+| UpdatedAt | DateTime (UTC) | Required | Record last update timestamp |
+
+**Relationships:**
+- Many-to-One with Teachers (nullable, CASCADE DELETE)
+- Many-to-One with SectionSubjects (nullable, CASCADE DELETE)
+- Many-to-One with Admins (nullable, CASCADE DELETE)
+
+**Notes:**
+- Class announcements: TeacherId and SectionSubjectId are set, AdminId is null
+- General announcements: AdminId is set, TeacherId and SectionSubjectId are null
+
+### Relationship Summary
+
+**Cascade Delete Behaviors:**
+- Users → Students, Teachers, Admins (CASCADE)
+- Students → Enrollments, StudentSubjects (implicit through FK)
+- Teachers → TeacherDepartments, SectionSubjects, TeacherSubjects, Announcements (CASCADE)
+- Admins → Announcements (CASCADE)
+- Departments → TeacherDepartments (CASCADE)
+- Sections → SectionSubjects (implicit through FK)
+- SectionSubjects → StudentSubjects, TeacherSubjects, Announcements (CASCADE)
+- Enrollments → StudentSubjects (implicit through FK)
+- StudentSubjects → Grades (implicit through FK)
+
+**Set Null Behaviors:**
+- Courses → Students.CourseId (SET NULL)
+- Courses → Courses.DepartmentId (SET NULL)
+- Departments → Courses.DepartmentId (SET NULL)
+
+### Complete Database Schema Diagram (All Fields)
+
+```mermaid
+erDiagram
+    Users {
+        int Id PK
+        string Username UK
+        string PasswordHash
+        string Role
+        string Status
+        datetime CreatedAt
+        datetime UpdatedAt
+    }
+    
+    Students {
+        int Id PK
+        int UserId FK
+        string StudentId UK
+        string Email UK
+        string FirstName
+        string LastName
+        string Phone
+        int YearLevel
+        int CourseId FK
+        datetime EnrollmentDate
+        string EnrollmentType
+        datetime CreatedAt
+        datetime UpdatedAt
+    }
+    
+    Teachers {
+        int Id PK
+        int UserId FK
+        string Email UK
+        string FirstName
+        string LastName
+        string Phone
+        string HighestQualification
+        string Status
+        string EmergencyContact
+        string EmergencyPhone
+        datetime HireDate
+        datetime CreatedAt
+        datetime UpdatedAt
+    }
+    
+    Admins {
+        int Id PK
+        int UserId FK
+        string Email UK
+        string FirstName
+        string LastName
+        string Phone
+        datetime CreatedAt
+        datetime UpdatedAt
+    }
+    
+    Courses {
+        int Id PK
+        string CourseName UK
+        string Description
+        int DepartmentId FK
+        datetime CreatedAt
+        datetime UpdatedAt
+    }
+    
+    Departments {
+        int Id PK
+        string DepartmentName UK
+        string DepartmentCode UK
+        string Description
+        string HeadOfDepartment
+        datetime CreatedAt
+        datetime UpdatedAt
+    }
+    
+    TeacherDepartments {
+        int TeacherId PK_FK
+        int DepartmentId PK_FK
+        datetime CreatedAt
+    }
+    
+    YearLevels {
+        int Id PK
+        int LevelNumber UK
+        string LevelName
+        string Description
+        datetime CreatedAt
+        datetime UpdatedAt
+    }
+    
+    Semesters {
+        int Id PK
+        string SemesterName
+        string SemesterCode UK
+        string SchoolYear
+        datetime StartDate
+        datetime EndDate
+        bool IsActive
+        datetime CreatedAt
+        datetime UpdatedAt
+    }
+    
+    Subjects {
+        int Id PK
+        string SubjectName
+        string Description
+        int Units
+        string Prerequisites
+        bool IsActive
+        int CourseId
+        datetime CreatedAt
+        datetime UpdatedAt
+    }
+    
+    CourseSubjects {
+        int Id PK
+        int CourseId FK
+        int SubjectId FK
+        int YearLevelId FK
+        int SemesterId FK
+        bool IsRequired
+        datetime CreatedAt
+        datetime UpdatedAt
+    }
+    
+    Sections {
+        int Id PK
+        string SectionName
+        int CourseId FK
+        int YearLevelId FK
+        int SemesterId FK
+        int MaxCapacity
+        int CurrentEnrollment
+        bool IsActive
+        datetime CreatedAt
+        datetime UpdatedAt
+    }
+    
+    SectionSubjects {
+        int Id PK
+        int SectionId FK
+        int SubjectId FK
+        string EdpCode UK
+        int TeacherId FK
+        string ScheduleDay
+        string ScheduleTime
+        string Room
+        int MaxStudents
+        int CurrentEnrollment
+        bool IsActive
+        datetime CreatedAt
+        datetime UpdatedAt
+    }
+    
+    TeacherSubjects {
+        int Id PK
+        int TeacherId FK
+        int SectionSubjectId FK
+        bool IsPrimary
+        datetime CreatedAt
+        datetime UpdatedAt
+    }
+    
+    Enrollments {
+        int Id PK
+        int StudentId FK
+        int CourseId FK
+        int YearLevelId FK
+        int SemesterId FK
+        string EnrollmentType
+        datetime EnrollmentDate
+        string Status
+        string SchoolYear
+        datetime CreatedAt
+        datetime UpdatedAt
+    }
+    
+    StudentSubjects {
+        int Id PK
+        int StudentId FK
+        int SectionSubjectId FK
+        int EnrollmentId FK
+        decimal Grade
+        string Status
+        datetime CreatedAt
+        datetime UpdatedAt
+    }
+    
+    Grades {
+        int Id PK
+        int StudentSubjectId FK
+        string AssessmentType
+        string AssessmentName
+        decimal GradePoint
+        string Remarks
+        datetime DateGiven
+        datetime CreatedAt
+        datetime UpdatedAt
+    }
+    
+    Announcements {
+        int Id PK
+        int TeacherId FK
+        int SectionSubjectId FK
+        int AdminId FK
+        string Title
+        string Content
+        string Priority
+        bool IsActive
+        datetime CreatedAt
+        datetime UpdatedAt
+    }
+    
+    Users ||--o| Students : "has (1:1)"
+    Users ||--o| Teachers : "has (1:1)"
+    Users ||--o| Admins : "has (1:1)"
+    
+    Students ||--o{ Enrollments : "has"
+    Students ||--o{ StudentSubjects : "enrolled_in"
+    Students }o--|| Courses : "belongs_to"
+    
+    Teachers ||--o{ TeacherDepartments : "belongs_to"
+    Teachers ||--o{ SectionSubjects : "assigned_to"
+    Teachers ||--o{ TeacherSubjects : "teaches"
+    Teachers ||--o{ Announcements : "creates"
+    
+    Admins ||--o{ Announcements : "creates_general"
+    
+    Departments ||--o{ TeacherDepartments : "has"
+    Departments ||--o{ Courses : "contains"
+    
+    Courses ||--o{ CourseSubjects : "contains"
+    Courses ||--o{ Sections : "has"
+    Courses ||--o{ Enrollments : "for"
+    
+    YearLevels ||--o{ CourseSubjects : "for"
+    YearLevels ||--o{ Sections : "for"
+    YearLevels ||--o{ Enrollments : "in"
+    
+    Semesters ||--o{ CourseSubjects : "in"
+    Semesters ||--o{ Sections : "in"
+    Semesters ||--o{ Enrollments : "in"
+    
+    Subjects ||--o{ CourseSubjects : "included_in"
+    Subjects ||--o{ SectionSubjects : "teaches"
+    
+    CourseSubjects }o--|| Courses : "belongs_to"
+    CourseSubjects }o--|| Subjects : "includes"
+    CourseSubjects }o--|| YearLevels : "for"
+    CourseSubjects }o--|| Semesters : "in"
+    
+    Sections ||--o{ SectionSubjects : "contains"
+    Sections }o--|| Courses : "belongs_to"
+    Sections }o--|| YearLevels : "for"
+    Sections }o--|| Semesters : "in"
+    
+    SectionSubjects ||--o{ TeacherSubjects : "assigned_to"
+    SectionSubjects ||--o{ StudentSubjects : "enrolled_in"
+    SectionSubjects ||--o{ Announcements : "scoped_to"
+    SectionSubjects }o--|| Sections : "part_of"
+    SectionSubjects }o--|| Subjects : "teaches"
+    SectionSubjects }o--o| Teachers : "assigned_to"
+    
+    TeacherSubjects }o--|| Teachers : "assigned_to"
+    TeacherSubjects }o--|| SectionSubjects : "teaches"
+    
+    Enrollments }o--|| Students : "belongs_to"
+    Enrollments }o--|| Courses : "for"
+    Enrollments }o--|| YearLevels : "in"
+    Enrollments }o--|| Semesters : "in"
+    Enrollments ||--o{ StudentSubjects : "contains"
+    
+    StudentSubjects }o--|| Students : "belongs_to"
+    StudentSubjects }o--|| SectionSubjects : "enrolled_in"
+    StudentSubjects }o--|| Enrollments : "part_of"
+    StudentSubjects ||--o{ Grades : "has"
+    
+    Grades }o--|| StudentSubjects : "belongs_to"
+    
+    Announcements }o--o| Teachers : "created_by"
+    Announcements }o--o| SectionSubjects : "scoped_to"
+    Announcements }o--o| Admins : "created_by"
+```
+
+**Legend:**
+- **PK** = Primary Key
+- **FK** = Foreign Key
+- **UK** = Unique Key/Constraint
+- **CASCADE DELETE** = Deletes related records when parent is deleted
+- **SET NULL** = Sets foreign key to null when parent is deleted
+
 ## 🔄 User Workflows
 
 ### Student Enrollment Flow
