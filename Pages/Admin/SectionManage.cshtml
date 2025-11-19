@@ -926,7 +926,9 @@
             // Get current section to check if we're changing the unique key and preserve CurrentEnrollment
             let currentSection = null;
             try {
-                const currentResponse = await fetch(`/api/v1/section/${sectionId}`);
+                const currentResponse = await fetch(`/api/v1/section/${sectionId}`, {
+                    credentials: 'include'
+                });
                 if (!currentResponse.ok) {
                     showToast('Failed to load current section data', 'error');
                     return;
@@ -941,7 +943,9 @@
 
                 // If changing the unique key, check if new combination already exists
                 if (isChangingKey) {
-                    const checkResponse = await fetch(`/api/v1/section?page=1&pageSize=1000`);
+                    const checkResponse = await fetch(`/api/v1/section?page=1&pageSize=1000`, {
+                        credentials: 'include'
+                    });
                     if (checkResponse.ok) {
                         const result = await checkResponse.json();
                         const existing = result.data.find(s => 
@@ -978,6 +982,7 @@
                 const response = await fetch(`/api/v1/section/${sectionId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify(sectionData)
                 });
 
@@ -1055,6 +1060,11 @@
 
         function renderPaginationButtons() {
             const pagination = document.getElementById('pagination');
+            if (!pagination || totalPages === 0) {
+                pagination.innerHTML = '';
+                return;
+            }
+            
             pagination.innerHTML = '';
             
             // Previous button
@@ -1063,15 +1073,47 @@
             prevLi.innerHTML = `<a class="page-link" href="#" onclick="goToPage(${currentPage - 1}); return false;">Previous</a>`;
             pagination.appendChild(prevLi);
             
-            // Page numbers (show max 5 pages)
-            const startPage = Math.max(1, currentPage - 2);
-            const endPage = Math.min(totalPages, currentPage + 2);
+            // Always show first page
+            if (currentPage > 3) {
+                const firstLi = document.createElement('li');
+                firstLi.className = 'page-item';
+                firstLi.innerHTML = `<a class="page-link" href="#" onclick="goToPage(1); return false;">1</a>`;
+                pagination.appendChild(firstLi);
+                
+                // Add ellipsis if there's a gap
+                if (currentPage > 4) {
+                    const ellipsisLi = document.createElement('li');
+                    ellipsisLi.className = 'page-item disabled';
+                    ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+                    pagination.appendChild(ellipsisLi);
+                }
+            }
+            
+            // Show pages around current page
+            const startPage = Math.max(1, currentPage - 1);
+            const endPage = Math.min(totalPages, currentPage + 1);
             
             for (let i = startPage; i <= endPage; i++) {
                 const li = document.createElement('li');
                 li.className = `page-item ${i === currentPage ? 'active' : ''}`;
                 li.innerHTML = `<a class="page-link" href="#" onclick="goToPage(${i}); return false;">${i}</a>`;
                 pagination.appendChild(li);
+            }
+            
+            // Always show last page
+            if (currentPage < totalPages - 2) {
+                // Add ellipsis if there's a gap
+                if (currentPage < totalPages - 3) {
+                    const ellipsisLi = document.createElement('li');
+                    ellipsisLi.className = 'page-item disabled';
+                    ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+                    pagination.appendChild(ellipsisLi);
+                }
+                
+                const lastLi = document.createElement('li');
+                lastLi.className = 'page-item';
+                lastLi.innerHTML = `<a class="page-link" href="#" onclick="goToPage(${totalPages}); return false;">${totalPages}</a>`;
+                pagination.appendChild(lastLi);
             }
             
             // Next button

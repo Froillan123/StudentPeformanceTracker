@@ -177,8 +177,16 @@
                             }
                             else
                             {
-                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                    @Model.ErrorMessage
+                                <div class="alert alert-danger alert-dismissible fade show border-danger border-2 shadow-lg" role="alert" style="background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); border-color: #dc3545 !important;">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-exclamation-circle fa-2x me-3 text-danger"></i>
+                                        <div class="flex-grow-1">
+                                            <h5 class="alert-heading fw-bold mb-2 text-dark">
+                                                <i class="fas fa-times-circle me-2"></i>Registration Failed
+                                            </h5>
+                                            <p class="mb-0 fw-semibold text-dark">@Model.ErrorMessage</p>
+                                        </div>
+                                    </div>
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>
                             }

@@ -321,6 +321,18 @@
                         </tbody>
                     </table>
                 </div>
+                
+                <!-- Pagination for Students Table -->
+                <div class="d-flex justify-content-between align-items-center mt-3" id="studentsPaginationContainer" style="display: none;">
+                    <div class="text-muted">
+                        Showing <span id="studentsShowingFrom">0</span> to <span id="studentsShowingTo">0</span> of <span id="studentsTotalCount">0</span> students
+                    </div>
+                    <nav>
+                        <ul class="pagination mb-0" id="studentsPagination">
+                            <!-- Pagination buttons will be generated here -->
+                        </ul>
+                    </nav>
+                </div>
             </div>
         </main>
     </div>
@@ -704,6 +716,10 @@
         let addGradeModal, viewGradesModal, editGradeModal;
         let currentSectionSubjectId = null;
         let currentStudents = [];
+        let studentsCurrentPage = 1;
+        let studentsTotalPages = 1;
+        let studentsPageSize = 10;
+        let studentsTotalCount = 0;
 
         // Initialize modals
         document.addEventListener('DOMContentLoaded', function() {
@@ -866,7 +882,11 @@
 
                 if (response.ok) {
                     currentStudents = await response.json();
+                    studentsTotalCount = currentStudents.length;
+                    studentsTotalPages = Math.ceil(studentsTotalCount / studentsPageSize);
+                    studentsCurrentPage = 1;
                     displayStudents(currentStudents);
+                    updateStudentsPagination();
                     calculateStatistics(currentStudents);
                 } else {
                     tbody.innerHTML = `
@@ -889,7 +909,7 @@
             }
         }
 
-        // Display students
+        // Display students with pagination
         function displayStudents(students) {
             const tbody = document.getElementById('studentsTableBody');
             
@@ -902,10 +922,16 @@
                         </td>
                     </tr>
                 `;
+                document.getElementById('studentsPaginationContainer').style.display = 'none';
                 return;
             }
 
-            tbody.innerHTML = students.map(student => {
+            // Calculate pagination
+            const startIndex = (studentsCurrentPage - 1) * studentsPageSize;
+            const endIndex = Math.min(startIndex + studentsPageSize, students.length);
+            const paginatedStudents = students.slice(startIndex, endIndex);
+
+            tbody.innerHTML = paginatedStudents.map(student => {
                 const fullName = `${student.firstName || ''} ${student.lastName || ''}`.trim();
                 const studentId = student.studentId || 'N/A';
                 const escapedName = fullName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
@@ -926,6 +952,98 @@
                 </tr>
             `;
             }).join('');
+            
+            // Show pagination if there are more than pageSize students
+            if (students.length > studentsPageSize) {
+                document.getElementById('studentsPaginationContainer').style.display = 'flex';
+            } else {
+                document.getElementById('studentsPaginationContainer').style.display = 'none';
+            }
+        }
+        
+        // Update students pagination display
+        function updateStudentsPagination() {
+            const showingFrom = studentsTotalCount > 0 ? (studentsCurrentPage - 1) * studentsPageSize + 1 : 0;
+            const showingTo = Math.min(studentsCurrentPage * studentsPageSize, studentsTotalCount);
+            
+            document.getElementById('studentsShowingFrom').textContent = showingFrom;
+            document.getElementById('studentsShowingTo').textContent = showingTo;
+            document.getElementById('studentsTotalCount').textContent = studentsTotalCount;
+            
+            renderStudentsPaginationButtons();
+        }
+        
+        // Render students pagination buttons with React-style ellipsis
+        function renderStudentsPaginationButtons() {
+            const pagination = document.getElementById('studentsPagination');
+            if (!pagination || studentsTotalPages === 0) {
+                pagination.innerHTML = '';
+                return;
+            }
+            
+            pagination.innerHTML = '';
+            
+            // Previous button
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${studentsCurrentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" onclick="goToStudentsPage(${studentsCurrentPage - 1}); return false;">Previous</a>`;
+            pagination.appendChild(prevLi);
+            
+            // Always show first page
+            if (studentsCurrentPage > 3) {
+                const firstLi = document.createElement('li');
+                firstLi.className = 'page-item';
+                firstLi.innerHTML = `<a class="page-link" href="#" onclick="goToStudentsPage(1); return false;">1</a>`;
+                pagination.appendChild(firstLi);
+                
+                // Add ellipsis if there's a gap
+                if (studentsCurrentPage > 4) {
+                    const ellipsisLi = document.createElement('li');
+                    ellipsisLi.className = 'page-item disabled';
+                    ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+                    pagination.appendChild(ellipsisLi);
+                }
+            }
+            
+            // Show pages around current page
+            const startPage = Math.max(1, studentsCurrentPage - 1);
+            const endPage = Math.min(studentsTotalPages, studentsCurrentPage + 1);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const li = document.createElement('li');
+                li.className = `page-item ${i === studentsCurrentPage ? 'active' : ''}`;
+                li.innerHTML = `<a class="page-link" href="#" onclick="goToStudentsPage(${i}); return false;">${i}</a>`;
+                pagination.appendChild(li);
+            }
+            
+            // Always show last page
+            if (studentsCurrentPage < studentsTotalPages - 2) {
+                // Add ellipsis if there's a gap
+                if (studentsCurrentPage < studentsTotalPages - 3) {
+                    const ellipsisLi = document.createElement('li');
+                    ellipsisLi.className = 'page-item disabled';
+                    ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+                    pagination.appendChild(ellipsisLi);
+                }
+                
+                const lastLi = document.createElement('li');
+                lastLi.className = 'page-item';
+                lastLi.innerHTML = `<a class="page-link" href="#" onclick="goToStudentsPage(${studentsTotalPages}); return false;">${studentsTotalPages}</a>`;
+                pagination.appendChild(lastLi);
+            }
+            
+            // Next button
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${studentsCurrentPage === studentsTotalPages || studentsTotalPages === 0 ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" onclick="goToStudentsPage(${studentsCurrentPage + 1}); return false;">Next</a>`;
+            pagination.appendChild(nextLi);
+        }
+        
+        function goToStudentsPage(page) {
+            if (page < 1 || page > studentsTotalPages) return;
+            studentsCurrentPage = page;
+            displayStudents(currentStudents);
+            updateStudentsPagination();
         }
 
         // Calculate statistics
