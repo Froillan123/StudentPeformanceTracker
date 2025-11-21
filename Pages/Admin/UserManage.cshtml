@@ -33,7 +33,7 @@
                     <h1 class="h3 mb-0">User Management</h1>
                     <div class="d-flex align-items-center">
                         <div class="search-box me-3">
-                            <input type="text" class="form-control" placeholder="Search users..." id="searchText">
+                            <input type="text" class="form-control" placeholder="Search users..." id="searchText" onkeyup="handleSearchInput(event)">
                             <i class="fas fa-search"></i>
                         </div>
                         <div class="dropdown">
@@ -372,6 +372,29 @@
             document.getElementById('searchText').value = '';
             currentPage = 1;
             loadUsers(1);
+        }
+
+        // Handle search input with debounce
+        let searchTimeout;
+        function handleSearchInput(event) {
+            // Clear previous timeout
+            clearTimeout(searchTimeout);
+            
+            // If Enter key is pressed, search immediately
+            if (event.key === 'Enter') {
+                filterUsers(1);
+                return;
+            }
+            
+            // Otherwise, debounce the search (wait 500ms after user stops typing)
+            searchTimeout = setTimeout(() => {
+                const searchValue = document.getElementById('searchText').value.trim();
+                if (searchValue.length > 0 || document.getElementById('filterStatus').value || document.getElementById('filterRole').value) {
+                    filterUsers(1);
+                } else {
+                    loadUsers(1);
+                }
+            }, 500);
         }
         
         // Update pagination display

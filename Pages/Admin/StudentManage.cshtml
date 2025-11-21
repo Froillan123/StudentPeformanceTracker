@@ -33,7 +33,7 @@
                     <h1 class="h3 mb-0">Student Management</h1>
                     <div class="d-flex align-items-center">
                         <div class="search-box me-3">
-                            <input type="text" class="form-control" placeholder="Search students...">
+                            <input type="text" class="form-control" placeholder="Search students..." id="searchText" onkeyup="handleSearchInput(event)">
                             <i class="fas fa-search"></i>
                         </div>
                         <div class="dropdown">
@@ -435,6 +435,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadAdminData();
             loadStudents();
+            loadAllStudents(); // Load all students for search functionality
             
             // Initialize view student modal
             const modalElement = document.getElementById('viewStudentModal');
@@ -1070,8 +1071,90 @@
 
         function goToPage(page) {
             if (page < 1 || page > totalPages) return;
-            loadStudents(page);
+            const searchValue = document.getElementById('searchText')?.value.trim() || '';
+            if (searchValue) {
+                searchStudents(page);
+            } else {
+                loadStudents(page);
+            }
         }
+
+        // Store all students for client-side filtering
+        let allStudents = [];
+
+        // Load all students for search
+        async function loadAllStudents() {
+            try {
+                const response = await fetch(`/api/v1/student?page=1&pageSize=1000`);
+                if (response.ok) {
+                    const result = await response.json();
+                    allStudents = result.data || [];
+                }
+            } catch (error) {
+                console.error('Error loading all students:', error);
+            }
+        }
+
+        // Search students (client-side filtering)
+        async function searchStudents(page = 1) {
+            const searchValue = (document.getElementById('searchText')?.value || '').toLowerCase().trim();
+            
+            if (!searchValue) {
+                loadStudents(page);
+                return;
+            }
+
+            // Load all students if not already loaded
+            if (allStudents.length === 0) {
+                await loadAllStudents();
+            }
+
+            // Filter students
+            const filtered = allStudents.filter(s => {
+                const fullName = `${s.firstName || ''} ${s.lastName || ''}`.toLowerCase();
+                const studentId = (s.studentId || '').toLowerCase();
+                const email = (s.email || '').toLowerCase();
+                const courseName = (s.courseName || '').toLowerCase();
+                
+                return fullName.includes(searchValue) ||
+                       studentId.includes(searchValue) ||
+                       email.includes(searchValue) ||
+                       courseName.includes(searchValue);
+            });
+
+            // Paginate filtered results
+            const startIndex = (page - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+            const paginatedResults = filtered.slice(startIndex, endIndex);
+
+            totalCount = filtered.length;
+            totalPages = Math.ceil(totalCount / pageSize);
+            currentPage = page;
+
+            displayStudents(paginatedResults);
+            updatePagination();
+        }
+
+        // Handle search input with debounce
+        let searchTimeout;
+        function handleSearchInput(event) {
+            clearTimeout(searchTimeout);
+            
+            if (event.key === 'Enter') {
+                searchStudents(1);
+                return;
+            }
+            
+            searchTimeout = setTimeout(() => {
+                const searchValue = document.getElementById('searchText')?.value.trim() || '';
+                if (searchValue.length > 0) {
+                    searchStudents(1);
+                } else {
+                    loadStudents(1);
+                }
+            }, 500);
+        }
+
 
         // Set active menu item
         document.querySelectorAll('.sidebar-menu a').forEach(item => {

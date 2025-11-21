@@ -33,7 +33,7 @@
                     <h1 class="h3 mb-0">Teacher Management</h1>
                     <div class="d-flex align-items-center">
                         <div class="search-box me-3">
-                            <input type="text" class="form-control" placeholder="Search teachers...">
+                            <input type="text" class="form-control" placeholder="Search teachers..." id="searchText" onkeyup="handleSearchInput(event)">
                             <i class="fas fa-search"></i>
                         </div>
                         <div class="dropdown">
@@ -242,6 +242,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadAdminData();
             loadTeachers();
+            loadAllTeachers(); // Load all teachers for search functionality
             setupModalAccessibility();
             setupUpdateTeacherButton();
         });
@@ -884,8 +885,92 @@
 
         function goToPage(page) {
             if (page < 1 || page > totalPages) return;
-            loadTeachers(page);
+            const searchValue = document.getElementById('searchText')?.value.trim() || '';
+            if (searchValue) {
+                searchTeachers(page);
+            } else {
+                loadTeachers(page);
+            }
         }
+
+        // Store all teachers for client-side filtering
+        let allTeachers = [];
+
+        // Load all teachers for search
+        async function loadAllTeachers() {
+            try {
+                const response = await fetch(`/api/v1/teacher?page=1&pageSize=1000`, {
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    const result = await response.json();
+                    allTeachers = result.data || result.Data || [];
+                }
+            } catch (error) {
+                console.error('Error loading all teachers:', error);
+            }
+        }
+
+        // Search teachers (client-side filtering)
+        async function searchTeachers(page = 1) {
+            const searchValue = (document.getElementById('searchText')?.value || '').toLowerCase().trim();
+            
+            if (!searchValue) {
+                loadTeachers(page);
+                return;
+            }
+
+            // Load all teachers if not already loaded
+            if (allTeachers.length === 0) {
+                await loadAllTeachers();
+            }
+
+            // Filter teachers
+            const filtered = allTeachers.filter(t => {
+                const firstName = (t.firstName || t.FirstName || '').toLowerCase();
+                const lastName = (t.lastName || t.LastName || '').toLowerCase();
+                const fullName = `${firstName} ${lastName}`.toLowerCase();
+                const email = (t.email || t.Email || '').toLowerCase();
+                const qualification = (t.highestQualification || t.HighestQualification || '').toLowerCase();
+                
+                return fullName.includes(searchValue) ||
+                       email.includes(searchValue) ||
+                       qualification.includes(searchValue);
+            });
+
+            // Paginate filtered results
+            const startIndex = (page - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+            const paginatedResults = filtered.slice(startIndex, endIndex);
+
+            totalCount = filtered.length;
+            totalPages = Math.ceil(totalCount / pageSize);
+            currentPage = page;
+
+            displayTeachers(paginatedResults);
+            updatePagination();
+        }
+
+        // Handle search input with debounce
+        let searchTimeout;
+        function handleSearchInput(event) {
+            clearTimeout(searchTimeout);
+            
+            if (event.key === 'Enter') {
+                searchTeachers(1);
+                return;
+            }
+            
+            searchTimeout = setTimeout(() => {
+                const searchValue = document.getElementById('searchText')?.value.trim() || '';
+                if (searchValue.length > 0) {
+                    searchTeachers(1);
+                } else {
+                    loadTeachers(1);
+                }
+            }, 500);
+        }
+
 
         // Show toast notification
         function showToast(message, type = 'info') {

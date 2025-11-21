@@ -216,7 +216,7 @@
                     <h1 class="h3 mb-0">Admin Dashboard</h1>
                     <div class="d-flex align-items-center">
                         <div class="search-box me-3">
-                            <input type="text" class="form-control" placeholder="Search...">
+                            <input type="text" class="form-control" placeholder="Search students and teachers..." id="searchText" onkeyup="handleSearchInput(event)">
                             <i class="fas fa-search"></i>
                         </div>
                         <div class="dropdown">
@@ -653,6 +653,10 @@
                     const result = await response.json();
                     totalPages = result.totalPages;
                     totalCount = result.totalCount;
+                    // Update allStudents array for search
+                    if (page === 1) {
+                        allStudents = result.data || [];
+                    }
                     displayStudentManagement(result.data.slice(0, 5)); // Show only first 5
                     updatePagination();
                 } else {
@@ -670,7 +674,7 @@
 
             tbody.innerHTML = '';
 
-            if (students.length === 0) {
+            if (!students || students.length === 0) {
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="3" class="text-center text-muted py-3">
@@ -684,10 +688,16 @@
 
             students.forEach(student => {
                 const row = document.createElement('tr');
+                const firstName = student.firstName || student.FirstName || '';
+                const lastName = student.lastName || student.LastName || '';
+                const yearLevel = student.yearLevel || student.YearLevel || 'N/A';
+                const status = (student.status || student.Status || 'Active').toLowerCase();
+                const statusClass = status === 'active' ? 'bg-success' : 'bg-warning';
+                
                 row.innerHTML = `
-                    <td>${student.firstName} ${student.lastName}</td>
-                    <td>${student.yearLevel || 'N/A'}</td>
-                    <td><span class="badge ${student.status === 'active' ? 'bg-success' : 'bg-warning'}">${student.status || 'Active'}</span></td>
+                    <td>${firstName} ${lastName}</td>
+                    <td>${yearLevel}</td>
+                    <td><span class="badge ${statusClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
                 `;
                 tbody.appendChild(row);
             });
@@ -699,7 +709,9 @@
                 const response = await fetch('/api/v1/teacher?page=1&pageSize=10');
                 if (response.ok) {
                     const result = await response.json();
-                    displayTeacherManagement(result.data.slice(0, 4)); // Show only first 4
+                    // Update allTeachers array for search
+                    allTeachers = result.data || result.Data || [];
+                    displayTeacherManagement(allTeachers.slice(0, 4)); // Show only first 4
                 } else {
                     console.error('Failed to load teachers');
                 }
@@ -715,10 +727,10 @@
 
             tbody.innerHTML = '';
 
-            if (teachers.length === 0) {
+            if (!teachers || teachers.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="4" class="text-center text-muted py-3">
+                        <td colspan="3" class="text-center text-muted py-3">
                             <i class="fas fa-chalkboard-teacher fa-2x mb-2 d-block"></i>
                             No teachers to display
                         </td>
@@ -729,10 +741,21 @@
 
             teachers.forEach(teacher => {
                 const row = document.createElement('tr');
+                const firstName = teacher.firstName || teacher.FirstName || '';
+                const lastName = teacher.lastName || teacher.LastName || '';
+                const qualification = teacher.highestQualification || teacher.HighestQualification || 'N/A';
+                const status = (teacher.status || teacher.Status || 'Active').toLowerCase();
+                let statusClass = 'bg-success';
+                if (status === 'on_leave' || status === 'on leave') {
+                    statusClass = 'bg-warning';
+                } else if (status !== 'active') {
+                    statusClass = 'bg-secondary';
+                }
+                
                 row.innerHTML = `
-                    <td>${teacher.firstName} ${teacher.lastName}</td>
-                    <td>${teacher.highestQualification || 'N/A'}</td>
-                    <td><span class="badge ${teacher.status === 'active' ? 'bg-success' : teacher.status === 'on_leave' ? 'bg-warning' : 'bg-secondary'}">${teacher.status || 'Active'}</span></td>
+                    <td>${firstName} ${lastName}</td>
+                    <td>${qualification}</td>
+                    <td><span class="badge ${statusClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
                 `;
                 tbody.appendChild(row);
             });
@@ -1089,9 +1112,115 @@
 
         function goToPage(page) {
             if (page < 1 || page > totalPages) return;
-            loadStudentManagement(page);
+            const searchValue = document.getElementById('searchText')?.value.trim() || '';
+            if (searchValue) {
+                searchDashboard(searchValue);
+            } else {
+                loadStudentManagement(page);
+                loadTeacherManagement();
+            }
         }
 
+        // Store all data for search
+        let allStudents = [];
+        let allTeachers = [];
+
+        // Load all data for search
+        async function loadAllDataForSearch() {
+            try {
+                const [studentsResponse, teachersResponse] = await Promise.all([
+                    fetch('/api/v1/student?page=1&pageSize=1000'),
+                    fetch('/api/v1/teacher?page=1&pageSize=1000')
+                ]);
+
+                if (studentsResponse.ok) {
+                    const result = await studentsResponse.json();
+                    allStudents = result.data || [];
+                }
+
+                if (teachersResponse.ok) {
+                    const result = await teachersResponse.json();
+                    allTeachers = result.data || result.Data || [];
+                }
+            } catch (error) {
+                console.error('Error loading data for search:', error);
+            }
+        }
+
+        // Search dashboard (filters both students and teachers)
+        function searchDashboard(searchValue) {
+            const searchLower = searchValue.toLowerCase().trim();
+            
+            if (!searchLower) {
+                loadStudentManagement(1);
+                loadTeacherManagement();
+                return;
+            }
+
+            // Filter students
+            const filteredStudents = allStudents.filter(s => {
+                const fullName = `${s.firstName || ''} ${s.lastName || ''}`.toLowerCase();
+                const studentId = (s.studentId || '').toLowerCase();
+                const email = (s.email || '').toLowerCase();
+                const courseName = (s.courseName || '').toLowerCase();
+                const yearLevel = (s.yearLevel || '').toString();
+                
+                return fullName.includes(searchLower) ||
+                       studentId.includes(searchLower) ||
+                       email.includes(searchLower) ||
+                       courseName.includes(searchLower) ||
+                       yearLevel.includes(searchLower);
+            });
+
+            // Filter teachers
+            const filteredTeachers = allTeachers.filter(t => {
+                const firstName = (t.firstName || t.FirstName || '').toLowerCase();
+                const lastName = (t.lastName || t.LastName || '').toLowerCase();
+                const fullName = `${firstName} ${lastName}`.toLowerCase();
+                const email = (t.email || t.Email || '').toLowerCase();
+                const qualification = (t.highestQualification || t.HighestQualification || '').toLowerCase();
+                
+                return fullName.includes(searchLower) ||
+                       email.includes(searchLower) ||
+                       qualification.includes(searchLower);
+            });
+
+            // Display filtered results (show first 5 students and first 4 teachers)
+            displayStudentManagement(filteredStudents.slice(0, 5));
+            displayTeacherManagement(filteredTeachers.slice(0, 4));
+        }
+
+        // Handle search input with debounce
+        let searchTimeout;
+        function handleSearchInput(event) {
+            clearTimeout(searchTimeout);
+            
+            if (event.key === 'Enter') {
+                const searchValue = document.getElementById('searchText')?.value.trim() || '';
+                if (searchValue) {
+                    searchDashboard(searchValue);
+                } else {
+                    loadStudentManagement(1);
+                    loadTeacherManagement();
+                }
+                return;
+            }
+            
+            searchTimeout = setTimeout(() => {
+                const searchValue = document.getElementById('searchText')?.value.trim() || '';
+                if (searchValue.length > 0) {
+                    searchDashboard(searchValue);
+                } else {
+                    loadStudentManagement(1);
+                    loadTeacherManagement();
+                }
+            }, 500);
+        }
+
+        // Load all data on page load for search
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAllDataForSearch();
+        });
         
     </script>
 </body>
