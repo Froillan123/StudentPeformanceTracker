@@ -79,11 +79,25 @@ namespace StudentPeformanceTracker.Repository
 
         public async Task<Section> UpdateAsync(Section section)
         {
-            _context.Sections.Update(section);
+            // Get the existing entity from the database (tracked by EF)
+            var existing = await _context.Sections.FindAsync(section.Id);
+            if (existing == null)
+                throw new InvalidOperationException($"Section with ID {section.Id} not found");
+
+            // Update only the scalar properties (not navigation properties)
+            existing.SectionName = section.SectionName;
+            existing.CourseId = section.CourseId;
+            existing.YearLevelId = section.YearLevelId;
+            existing.SemesterId = section.SemesterId;
+            existing.MaxCapacity = section.MaxCapacity;
+            existing.CurrentEnrollment = section.CurrentEnrollment;
+            existing.IsActive = section.IsActive;
+            existing.UpdatedAt = section.UpdatedAt;
+
             await _context.SaveChangesAsync();
 
             // Reload with includes to populate navigation properties
-            return await GetByIdAsync(section.Id) ?? section;
+            return await GetByIdAsync(section.Id) ?? existing;
         }
 
         public async Task<bool> DeleteAsync(int id)

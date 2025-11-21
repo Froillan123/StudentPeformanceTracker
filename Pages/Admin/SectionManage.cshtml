@@ -768,19 +768,37 @@
             }
         }
 
-        function openEditModal(section) {
+        async function openEditModal(section) {
             // Create edit modal if it doesn't exist
             if (!document.getElementById('editSectionModal')) {
                 createEditModal();
+                // Wait a bit for modal to be added to DOM
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
+
+            // Populate dropdowns first, then set values
+            await populateEditModalDropdowns();
 
             // Populate form with section data
             document.getElementById('editSectionId').value = section.id;
             document.getElementById('editSectionName').value = section.sectionName || '';
             document.getElementById('editMaxCapacity').value = section.maxCapacity || 40;
-            document.getElementById('editCourseId').value = section.courseId || '';
-            document.getElementById('editYearLevelId').value = section.yearLevelId || '';
-            document.getElementById('editSemesterId').value = section.semesterId || '';
+            
+            // Set dropdown values after they're populated
+            const courseSelect = document.getElementById('editCourseId');
+            if (courseSelect) {
+                courseSelect.value = section.courseId || '';
+            }
+            
+            const yearSelect = document.getElementById('editYearLevelId');
+            if (yearSelect) {
+                yearSelect.value = section.yearLevelId || '';
+            }
+            
+            const semSelect = document.getElementById('editSemesterId');
+            if (semSelect) {
+                semSelect.value = section.semesterId || '';
+            }
 
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('editSectionModal'));
@@ -858,11 +876,22 @@
             populateEditModalDropdowns();
         }
 
-        function populateEditModalDropdowns() {
-            // Populate courses
+        async function populateEditModalDropdowns() {
             const editCourseSelect = document.getElementById('editCourseId');
-            if (editCourseSelect && loadedCoursesForFilter.length > 0) {
-                const currentValue = editCourseSelect.value;
+            const editYearSelect = document.getElementById('editYearLevelId');
+            const editSemSelect = document.getElementById('editSemesterId');
+
+            if (!editCourseSelect || !editYearSelect || !editSemSelect) {
+                return;
+            }
+
+            // Store current values before repopulating
+            const currentCourseValue = editCourseSelect.value;
+            const currentYearValue = editYearSelect.value;
+            const currentSemValue = editSemSelect.value;
+
+            // Populate courses
+            if (loadedCoursesForFilter.length > 0) {
                 editCourseSelect.innerHTML = '<option value="">Select Course</option>';
                 loadedCoursesForFilter.forEach(course => {
                     const option = document.createElement('option');
@@ -870,44 +899,64 @@
                     option.textContent = course.courseName;
                     editCourseSelect.appendChild(option);
                 });
-                if (currentValue) editCourseSelect.value = currentValue;
+            } else {
+                // If courses not loaded yet, load them
+                try {
+                    const response = await fetch('/api/v1/course?page=1&pageSize=100');
+                    if (response.ok) {
+                        const result = await response.json();
+                        loadedCoursesForFilter = result.data || [];
+                        editCourseSelect.innerHTML = '<option value="">Select Course</option>';
+                        loadedCoursesForFilter.forEach(course => {
+                            const option = document.createElement('option');
+                            option.value = course.id;
+                            option.textContent = course.courseName;
+                            editCourseSelect.appendChild(option);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading courses:', error);
+                }
             }
 
             // Populate year levels
-            const editYearSelect = document.getElementById('editYearLevelId');
-            if (editYearSelect) {
-                fetch('/api/v1/yearlevel')
-                    .then(res => res.json())
-                    .then(yearLevels => {
-                        const currentValue = editYearSelect.value;
-                        editYearSelect.innerHTML = '<option value="">Select Year Level</option>';
-                        yearLevels.forEach(yl => {
-                            const option = document.createElement('option');
-                            option.value = yl.id;
-                            option.textContent = yl.levelName;
-                            editYearSelect.appendChild(option);
-                        });
-                        if (currentValue) editYearSelect.value = currentValue;
+            try {
+                const yearResponse = await fetch('/api/v1/yearlevel');
+                if (yearResponse.ok) {
+                    const yearLevels = await yearResponse.json();
+                    editYearSelect.innerHTML = '<option value="">Select Year Level</option>';
+                    yearLevels.forEach(yl => {
+                        const option = document.createElement('option');
+                        option.value = yl.id;
+                        option.textContent = yl.levelName;
+                        editYearSelect.appendChild(option);
                     });
+                }
+            } catch (error) {
+                console.error('Error loading year levels:', error);
             }
 
             // Populate semesters
-            const editSemSelect = document.getElementById('editSemesterId');
-            if (editSemSelect) {
-                fetch('/api/v1/semester')
-                    .then(res => res.json())
-                    .then(semesters => {
-                        const currentValue = editSemSelect.value;
-                        editSemSelect.innerHTML = '<option value="">Select Semester</option>';
-                        semesters.forEach(sem => {
-                            const option = document.createElement('option');
-                            option.value = sem.id;
-                            option.textContent = `${sem.semesterName} (${sem.schoolYear})`;
-                            editSemSelect.appendChild(option);
-                        });
-                        if (currentValue) editSemSelect.value = currentValue;
+            try {
+                const semResponse = await fetch('/api/v1/semester');
+                if (semResponse.ok) {
+                    const semesters = await semResponse.json();
+                    editSemSelect.innerHTML = '<option value="">Select Semester</option>';
+                    semesters.forEach(sem => {
+                        const option = document.createElement('option');
+                        option.value = sem.id;
+                        option.textContent = `${sem.semesterName} (${sem.schoolYear})`;
+                        editSemSelect.appendChild(option);
                     });
+                }
+            } catch (error) {
+                console.error('Error loading semesters:', error);
             }
+
+            // Restore values if they were set
+            if (currentCourseValue) editCourseSelect.value = currentCourseValue;
+            if (currentYearValue) editYearSelect.value = currentYearValue;
+            if (currentSemValue) editSemSelect.value = currentSemValue;
         }
 
         async function updateSection() {
@@ -992,12 +1041,22 @@
                     loadSections();
                     showToast('Section updated successfully!', 'success');
                 } else {
-                    const error = await response.json();
-                    showToast(error.message || 'Failed to update section', 'error');
+                    let errorMessage = 'Failed to update section';
+                    try {
+                        const error = await response.json();
+                        errorMessage = error.message || error.error || errorMessage;
+                        if (error.details) {
+                            console.error('Update error details:', error.details);
+                        }
+                    } catch (e) {
+                        errorMessage = `Server returned ${response.status}: ${response.statusText}`;
+                    }
+                    console.error('Update failed:', errorMessage, 'Payload:', sectionData);
+                    showToast(errorMessage, 'error');
                 }
             } catch (error) {
                 console.error('Error updating section:', error);
-                showToast('Error updating section', 'error');
+                showToast('Error updating section: ' + error.message, 'error');
             }
         }
 

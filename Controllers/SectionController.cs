@@ -104,13 +104,67 @@ namespace StudentPeformanceTracker.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, Section section)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateSectionRequest request)
         {
-            if (id != section.Id)
-                return BadRequest();
+            if (id != request.Id)
+                return BadRequest(new { message = "Section ID mismatch" });
 
-            var updated = await _sectionService.UpdateAsync(section);
-            return Ok(updated);
+            // Check if section exists
+            var existing = await _sectionService.GetByIdAsync(id);
+            if (existing == null)
+                return NotFound(new { message = "Section not found" });
+
+            // Check if the unique combination is being changed and if it already exists
+            var isChangingKey = existing.SectionName != request.SectionName ||
+                               existing.CourseId != request.CourseId ||
+                               existing.YearLevelId != request.YearLevelId ||
+                               existing.SemesterId != request.SemesterId;
+
+            if (isChangingKey)
+            {
+                var duplicate = await _sectionService.GetBySectionNameCourseYearSemesterAsync(
+                    request.SectionName,
+                    request.CourseId,
+                    request.YearLevelId,
+                    request.SemesterId);
+
+                if (duplicate != null && duplicate.Id != id)
+                {
+                    return BadRequest(new
+                    {
+                        message = $"Section '{request.SectionName}' already exists for this Course, Year Level, and Semester combination."
+                    });
+                }
+            }
+
+            // Create Section entity from request, preserving existing values
+            var section = new Section
+            {
+                Id = request.Id,
+                SectionName = request.SectionName,
+                CourseId = request.CourseId,
+                YearLevelId = request.YearLevelId,
+                SemesterId = request.SemesterId,
+                MaxCapacity = request.MaxCapacity,
+                CurrentEnrollment = existing.CurrentEnrollment, // Preserve
+                IsActive = request.IsActive,
+                CreatedAt = existing.CreatedAt, // Preserve
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            try
+            {
+                var updated = await _sectionService.UpdateAsync(section);
+                return Ok(updated);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = "Failed to update section.", error = ex.Message, details = ex.InnerException?.Message });
+            }
         }
 
         [HttpDelete("{id}")]
@@ -161,5 +215,16 @@ namespace StudentPeformanceTracker.Controllers
         public int YearLevelId { get; set; }
         public int SemesterId { get; set; }
         public int MaxCapacity { get; set; }
+    }
+
+    public class UpdateSectionRequest
+    {
+        public int Id { get; set; }
+        public string SectionName { get; set; } = string.Empty;
+        public int CourseId { get; set; }
+        public int YearLevelId { get; set; }
+        public int SemesterId { get; set; }
+        public int MaxCapacity { get; set; }
+        public bool IsActive { get; set; } = true;
     }
 }
